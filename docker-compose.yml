@@ -1,0 +1,151 @@
+services:
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    networks:
+      - homelab
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_SCHEDULE=0 0 3 * * SUN
+      - TZ=${TZ}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: homeassistant
+    network_mode: host
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - ./homeassistant:/config
+      - /run/dbus:/run/dbus:ro
+    environment:
+      - TZ=${TZ}
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: plex
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - PLEX_CLAIM=${PLEX_CLAIM}
+    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - "${RENDER_GID}"
+    volumes:
+      - ./plex/config:/config
+      - ./media:/data
+      - ./plex/transcode:/transcode
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    networks:
+      - homelab
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    environment:
+      - TZ=${TZ}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+    networks:
+      - homelab
+    ports:
+      - "3000:8080"
+    volumes:
+      - ./open-webui:/app/backend/data
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    networks:
+      - homelab
+    ports:
+      - "5678:5678"
+    volumes:
+      - ./n8n:/home/node/.n8n
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASS}
+      - N8N_SECURE_COOKIE=false
+      - TZ=${TZ}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  samba:
+    image: dperson/samba:latest
+    container_name: samba
+    restart: unless-stopped
+    networks:
+      - homelab
+    ports:
+      - "137-139:137-139/udp"
+      - "445:445"
+    environment:
+      - USERID=${PUID}
+      - GROUPID=${PGID}
+      - TZ=${TZ}
+      - USER=${SAMBA_USER};${SAMBA_PASS}
+    volumes:
+      - ./media:/mount/media:rw
+    command: "-u \"${SAMBA_USER};${SAMBA_PASS}\" -s \"Media;/mount/media;yes;no;no;${SAMBA_USER}\""
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+volumes:
+  ollama_models:
+
+
+networks:
+  homelab:
+    driver: bridge
