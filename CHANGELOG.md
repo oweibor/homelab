@@ -14,5 +14,8 @@ All notable changes to this project will be documented in this file.
     - Open WebUI
     - n8n
     - Samba
+    - Traefik (Reverse Proxy)
+- **Reverse Proxy**: Added Traefik with self-signed SSL support for secure local access (`https://*.homelab.local`).
+- **Dashboard**: Added Traefik dashboard for service monitoring.
 - `config.env.template` for easy user configuration.
 - Robust error handling and network safety checks in setup script.

@@ -18,6 +18,7 @@ A comprehensive, automated setup script and Docker stack for deploying a self-ho
 *   **n8n**: Workflow automation tool.
 *   **Samba**: Network file sharing for media.
 *   **Watchtower**: Automated container updates.
+*   **Traefik**: Reverse proxy for secure HTTPS access and pretty hostnames.
 
 ## Requirements
 
@@ -27,31 +28,57 @@ A comprehensive, automated setup script and Docker stack for deploying a self-ho
 
 ## Quick Start
 
-1.  **Clone or Download** this repository to your machine.
-2.  **Configure Environment**:
+**The One-Liner (Recommended)**:
+Run this on your Ubuntu Server to clone and deploy automatically:
+```bash
+git clone https://github.com/oweibor/homelab.git ~/homelab-setup && cd ~/homelab-setup && sudo ./setup.sh
+```
+
+### Manual Installation
+1.  **Clone the Repository**:
+    ```bash
+    git clone https://github.com/oweibor/homelab.git
+    cd homelab
+    ```
+2.  **Configure** (Optional):
     ```bash
     cp config.env.template config.env
     nano config.env
     ```
-    *   Set your `TIMEZONE`.
-    *   Add your `PLEX_CLAIM` token (claim one at [plex.tv/claim](https://www.plex.tv/claim/)). If omitted, you will need to manually sign in to the Plex Web UI to claim the server after the initial setup.
-    *   (Optional) Customize `OLLAMA_MODEL`.
-
-3.  **Run the Setup Script**:
+3.  **Run**:
     ```bash
-    chmod +x setup.sh
     sudo ./setup.sh
     ```
-4.  **Follow the Prompts**: The script will guide you through network configuration and deployment.
 
 ## Post-Install
 
 Access your services at:
-*   **Home Assistant**: `http://<IP>:8123`
-*   **Plex**: `http://<IP>:32400/web`
-*   **n8n**: `http://<IP>:5678`
-*   **Open WebUI**: `http://<IP>:3000`
+*   **Traefik Dashboard**: `https://traefik.homelab.local`
+*   **Home Assistant**: `https://ha.homelab.local` (or `http://<IP>:8123`)
+*   **Plex**: `https://plex.homelab.local` (or `http://<IP>:32400/web`)
+*   **n8n**: `https://n8n.homelab.local` (or `http://<IP>:5678`)
+*   **Open WebUI**: `https://chat.homelab.local` (or `http://<IP>:3000`)
 *   **Samba Share**: `\\<IP>\Media`
+
+**Note:** You must add the `.homelab.local` domains to your client machine's `hosts` file pointing to the server IP.
+
+## Existing Installations (Migration)
+
+If you already have a server with Docker running, **do not run `setup.sh` directly**, as it may overwrite your system configurations.
+
+Instead, follow these steps to adopt the Docker stack:
+1.  **Clone the Repo**: `git clone https://github.com/oweibor/homelab.git`
+2.  **Copy Compose File**: Copy `docker-compose.yml` to your preferred directory.
+3.  **Setup Traefik**:
+    *   Copy the `traefik/` directory to your project root.
+    *   Ensure `traefik/certs/` exists (generate certs or bring your own).
+4.  **Configure Env**:
+    *   Create a `.env` file based on `config.env.template`.
+    *   Key variables needed: `TZ`, `PUID`, `PGID`, `OLLAMA_MODEL`.
+5.  **Deploy**:
+    ```bash
+    docker compose up -d
+    ```
 
 ## License
 

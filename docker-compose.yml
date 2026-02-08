@@ -1,4 +1,21 @@
 services:
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      - "--configFile=/etc/traefik/traefik.yaml"
+    networks:
+      - homelab
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik:/etc/traefik
+    environment:
+      - TZ=${TZ}
+
   watchtower:
     image: containrrr/watchtower
     container_name: watchtower
@@ -71,6 +88,12 @@ services:
       - "11434:11434"
     volumes:
       - ollama_models:/root/.ollama
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ollama.rule=Host(`ollama.homelab.local`)"
+      - "traefik.http.routers.ollama.entrypoints=websecure"
+      - "traefik.http.routers.ollama.tls=true"
+      - "traefik.http.services.ollama.loadbalancer.server.port=11434"
     environment:
       - TZ=${TZ}
     logging:
@@ -89,6 +112,12 @@ services:
       - "3000:8080"
     volumes:
       - ./open-webui:/app/backend/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.chat.rule=Host(`chat.homelab.local`)"
+      - "traefik.http.routers.chat.entrypoints=websecure"
+      - "traefik.http.routers.chat.tls=true"
+      - "traefik.http.services.chat.loadbalancer.server.port=8080"
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
     logging:
@@ -107,6 +136,12 @@ services:
       - "5678:5678"
     volumes:
       - ./n8n:/home/node/.n8n
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.n8n.rule=Host(`n8n.homelab.local`)"
+      - "traefik.http.routers.n8n.entrypoints=websecure"
+      - "traefik.http.routers.n8n.tls=true"
+      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
     environment:
       - N8N_BASIC_AUTH_ACTIVE=true
       - N8N_BASIC_AUTH_USER=${N8N_USER}

@@ -1,0 +1,33 @@
+http:
+  routers:
+    homeassistant:
+      rule: "Host(`ha.homelab.local`)"
+      service: homeassistant
+      entryPoints:
+        - websecure
+      tls: {}
+
+    plex:
+      rule: "Host(`plex.homelab.local`)"
+      service: plex
+      entryPoints:
+        - websecure
+      tls: {}
+
+  services:
+    homeassistant:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:8123"
+
+    plex:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:32400"
+
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /etc/traefik/certs/homelab.local.crt
+        keyFile: /etc/traefik/certs/homelab.local.key

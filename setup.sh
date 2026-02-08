@@ -627,7 +627,7 @@ echo ""
 log_step "STEP 6: Creating Homelab Directory Structure"
 
 HOMELAB_DIR="$USER_HOME/homelab"
-mkdir -p "$HOMELAB_DIR"/{homeassistant,plex/config,plex/transcode,media,n8n,samba,backups,open-webui}
+mkdir -p "$HOMELAB_DIR"/{homeassistant,plex/config,plex/transcode,media,n8n,samba,backups,open-webui,traefik}
 
 # Set permissions
 PUID=$(id -u "$ACTUAL_USER")
@@ -677,6 +677,34 @@ if [ ! -f "$N8N_ENV" ]; then
 else
     log_info "Using existing n8n credentials"
     source "$N8N_ENV"
+fi
+
+# Traefik & SSL Setup
+TRAEFIK_DIR="$HOMELAB_DIR/traefik"
+mkdir -p "$TRAEFIK_DIR/certs"
+
+# Copy config files
+if [ -d "traefik" ]; then
+    cp -r traefik/* "$TRAEFIK_DIR/" 2>/dev/null || true
+    log_info "Traefik configuration copied"
+else
+    log_warn "Traefik configuration directory not found in source!"
+fi
+
+# Generate Self-Signed Certs
+CERT_KEY="$TRAEFIK_DIR/certs/homelab.local.key"
+CERT_CRT="$TRAEFIK_DIR/certs/homelab.local.crt"
+
+if [ ! -f "$CERT_KEY" ] || [ ! -f "$CERT_CRT" ]; then
+    log_info "Generating self-signed SSL certificates..."
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout "$CERT_KEY" \
+        -out "$CERT_CRT" \
+        -subj "/CN=homelab.local/O=Homelab/C=US" >/dev/null 2>&1
+    chmod 600 "$CERT_KEY"
+    log_info "SSL certificates generated"
+else
+    log_info "Using existing SSL certificates"
 fi
 
 echo ""
@@ -958,6 +986,24 @@ printf "║  Samba Media:      %-40s║\n" "smb://${CONFIGURED_IP:-localhost}/Me
 echo "║    - User: ${SAMBA_USER:-See details above}                                     ║"
 echo "║    - Pass: ${SAMBA_PASS:-See details above}                                     ║"
 echo "╠════════════════════════════════════════════════════════════╣"
+echo "║  MAINTENANCE                                               ║"
+echo "╚════════════════════════════════════════════════════════════╝"
+echo ""
+echo "╔════════════════════════════════════════════════════════════╗"
+echo "║  REVERSE PROXY (HTTPS)                                     ║"
+printf "║  - Dashboard:      %-40s║\n" "https://traefik.homelab.local"
+printf "║  - Home Assistant: %-40s║\n" "https://ha.homelab.local"
+printf "║  - Plex:           %-40s║\n" "https://plex.homelab.local"
+printf "║  - n8n:            %-40s║\n" "https://n8n.homelab.local"
+printf "║  - Open WebUI:     %-40s║\n" "https://chat.homelab.local"
+echo "║                                                            ║"
+echo "║  * NOTE: Add these domains to your local 'hosts' file:     ║"
+printf "║    %-55s ║\n" "${CONFIGURED_IP:-192.168.x.x} ha.homelab.local plex.homelab.local"
+printf "║    %-55s ║\n" "              n8n.homelab.local chat.homelab.local"
+printf "║    %-55s ║\n" "              traefik.homelab.local"
+echo "╚════════════════════════════════════════════════════════════╝"
+echo ""
+echo "╔════════════════════════════════════════════════════════════╗"
 echo "║  MAINTENANCE                                               ║"
 echo "║  - Watchtower: Auto-updates every Sunday at 3 AM           ║"
 echo "║  - Credentials: $HOMELAB_DIR/samba/.env                    ║"
