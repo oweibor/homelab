@@ -169,6 +169,28 @@ Ensure this matches the `RENDER_GID` in your `.env`.
 
 ---
 
+## 🤖 Advanced Integration: Home Assistant + Ollama
+
+Transform your smart home into a private AI assistant by linking Home Assistant to your local Ollama instance.
+
+### 1. Enable the Ollama Integration
+1.  Navigate to your Home Assistant dashboard: `https://ha.homelab.local`.
+2.  Go to **Settings** > **Devices & Services** > **Add Integration**.
+3.  Search for **Ollama**.
+4.  For the **Host**, enter the local IP of your server (e.g., `http://192.168.1.x:11434`) or the internal Docker service name if you are comfortable with YAML: `http://ollama:11434`.
+
+### 2. Configure a Conversation Agent
+Once the integration is added:
+1.  Go to **Settings** > **Voice Assistants**.
+2.  Add a new **Assistant** or edit the default one.
+3.  Set the **Conversation Agent** to **Ollama**.
+4.  Choose your model (e.g., `llama3` or `mistral`) from the dropdown.
+
+### 3. Usage Ideas
+*   **AI Voice Assistant**: Use the Home Assistant App to talk to your local LLM.
+*   **Smart Summaries**: Use **n8n** to send your daily Home Assistant sensor data to Ollama, then have HA notify you with a "Morning Home Briefing".
+*   **Natural Language Control**: Ollama can be trained (via a system prompt in HA) to understand commands like *"I'm feeling cold"* and turn up the smart thermostat.
+
 ## 📜 License
 
 This project is licensed under the **GNU General Public License v3.0**. See the [LICENSE](LICENSE) file for the full text.
