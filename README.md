@@ -112,7 +112,36 @@ Choose the scenario that matches your current environment:
 
 ---
 
-## �️ Homelab Pro-Tips (Avoid Common Errors)
+## 🌐 Post-Install Access
+
+| Service | Secure URL (HTTPS) | Internal Fallback |
+| :--- | :--- | :--- |
+| **Traefik Dashboard** | `https://traefik.homelab.local` | `N/A` |
+| **Home Assistant** | `https://ha.homelab.local` | `http://<IP>:8123` |
+| **Plex** | `https://plex.homelab.local` | `http://<IP>:32400/web` |
+| **n8n** | `https://n8n.homelab.local` | `http://<IP>:5678` |
+| **Open WebUI** | `https://chat.homelab.local` | `http://<IP>:3000` |
+| **Antigravity Editor** | `https://antigravity.homelab.local` | `http://<IP>:6080` |
+| **OpenClaw Agent** | `https://openclaw.homelab.local` | `http://<IP>:3005` |
+
+> [!IMPORTANT]
+> To use the `.homelab.local` domains, you must add them to your client machine's `hosts` file pointing to your server's IP address.
+
+---
+
+## 🔒 Security & Maintenance
+
+### 🔑 Credential Management
+*   **Traefik Dashboard**: Secure with basic auth in `traefik/dynamic.yaml`.
+*   **Samba & n8n**: Passwords are automatically generated and stored in their respective `.env` files within the `~/homelab/` subdirectories.
+
+### 🛠️ Maintenance Tools
+*   **Update All Services**: Run `./update.sh` to pull latest images and restart.
+*   **SSL Monitoring**: Run `./check-ssl-expiry.sh` to track self-signed certificate health.
+
+---
+
+## 🛡️ Homelab Pro-Tips (Avoid Common Errors)
 
 ### 1. The PUID/PGID Golden Rule
 Always ensure the `PUID` and `PGID` in your `.env` match the owner of the physical directories on your host. If you see "Permission Denied" in Plex or Samba logs, run:
@@ -146,4 +175,3 @@ This project is licensed under the **GNU General Public License v3.0**. See the 
 
 ---
 *Built with ❤️ for the self-hosting community.*
-
