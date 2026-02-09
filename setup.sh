@@ -793,6 +793,25 @@ chmod 600 "$ENV_FILE"
 chown "$ACTUAL_USER:$ACTUAL_USER" "$ENV_FILE"
 log_info "Environment configuration generated at $ENV_FILE"
 
+# Validate required environment variables
+log_info "Validating environment configuration..."
+REQUIRED_VARS=("PUID" "PGID" "TZ" "N8N_USER" "N8N_PASS" "SAMBA_USER" "SAMBA_PASS")
+MISSING_VARS=()
+
+for var in "${REQUIRED_VARS[@]}"; do
+    if ! grep -q "^${var}=" "$ENV_FILE"; then
+        MISSING_VARS+=("$var")
+    fi
+done
+
+if [ ${#MISSING_VARS[@]} -gt 0 ]; then
+    log_error "Required environment variables missing from $ENV_FILE:"
+    printf '  - %s\n' "${MISSING_VARS[@]}"
+    log_error "Please check the configuration and try again."
+    exit 1
+fi
+log_info "All required environment variables validated"
+
 # Copy docker-compose.yml
 SOURCE_COMPOSE="docker-compose.yml"
 DEST_COMPOSE="$HOMELAB_DIR/docker-compose.yml"
@@ -807,7 +826,7 @@ if [ -f "$SOURCE_COMPOSE" ]; then
     fi
     
     # Validate docker-compose.yml syntax using the user context
-    if su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose config >/dev/null 2>&1"; then
+    if su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose config > /dev/null 2>&1"; then
         log_info "Docker Compose file validated (available at $DEST_COMPOSE)"
     else
         log_error "Docker Compose file has syntax errors!"
