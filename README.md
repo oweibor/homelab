@@ -114,6 +114,42 @@ Choose the scenario that matches your current environment:
 
 ## 🌐 Post-Install Access
 
+### 1. Configure Local Access (Required)
+To access the services using their `.homelab.local` domains, your client machine needs to know your server's IP address.
+
+#### A. Automated Helper Scripts (Fastest)
+We provide scripts in the `./scripts/client/` directory to automate this for you:
+*   **Windows**: Run PowerShell as Administrator:
+    ```powershell
+    .\scripts\client\update-hosts.ps1 -ServerIp "YOUR_SERVER_IP"
+    ```
+*   **macOS / Linux / Ubuntu**: Run in your terminal:
+    ```bash
+    sudo ./scripts/client/update-hosts.sh YOUR_SERVER_IP
+    ```
+
+#### B. Manual Configuration
+Add the following block to your client's `hosts` file:
+*   **Windows**: `C:\Windows\System32\drivers\etc\hosts`
+*   **Mac/Linux/Ubuntu**: `/etc/hosts`
+
+```text
+# --- Homelab Domains Start ---
+YOUR_SERVER_IP traefik.homelab.local
+YOUR_SERVER_IP ha.homelab.local
+YOUR_SERVER_IP plex.homelab.local
+YOUR_SERVER_IP n8n.homelab.local
+YOUR_SERVER_IP chat.homelab.local
+YOUR_SERVER_IP antigravity.homelab.local
+YOUR_SERVER_IP openclaw.homelab.local
+# --- Homelab Domains End ---
+```
+
+> [!TIP]
+> **Pro Tip**: For a better network-wide solution without touching every device's hosts file, consider setting up an **AdGuard Home** or **Pi-hole** instance and adding these as "DNS Rewrites."
+
+### 2. Service URLs
+
 | Service | Secure URL (HTTPS) | Internal Fallback |
 | :--- | :--- | :--- |
 | **Traefik Dashboard** | `https://traefik.homelab.local` | `N/A` |
@@ -123,9 +159,6 @@ Choose the scenario that matches your current environment:
 | **Open WebUI** | `https://chat.homelab.local` | `http://<IP>:3000` |
 | **Antigravity Editor** | `https://antigravity.homelab.local` | `http://<IP>:6080` |
 | **OpenClaw Agent** | `https://openclaw.homelab.local` | `http://<IP>:3005` |
-
-> [!IMPORTANT]
-> To use the `.homelab.local` domains, you must add them to your client machine's `hosts` file pointing to your server's IP address.
 
 ---
 
