@@ -1,5 +1,22 @@
 http:
+  middlewares:
+    traefik-auth:
+      basicAuth:
+        users:
+          # Default: admin/admin (CHANGE THIS!)
+          # Generate with: echo $(htpasswd -nb admin yourpassword) | sed -e s/\\$/\\$\\$/g
+          - "admin:$$apr1$$8EVjn/nj$$GiLUZqcbueTFeD23SuB6x0"
+    
   routers:
+    dashboard:
+      rule: "Host(`traefik.homelab.local`)"
+      service: api@internal
+      entryPoints:
+        - websecure
+      middlewares:
+        - traefik-auth
+      tls: {}
+    
     homeassistant:
       rule: "Host(`ha.homelab.local`)"
       service: homeassistant
