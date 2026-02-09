@@ -1064,6 +1064,21 @@ echo ""
 echo ""
 
 # ============================================
+# STEP 11: AUTOMATED MAINTENANCE
+# ============================================
+show_step_header "11" "Setting up Automated Maintenance"
+
+# Ensure maintenance scripts are executable
+chmod +x "$HOMELAB_DIR/check-ssl-expiry.sh"
+chmod +x "$HOMELAB_DIR/update.sh"
+
+# Register weekly SSL check cron job (Every Sunday at midnight)
+CRON_JOB="0 0 * * 0 $HOMELAB_DIR/check-ssl-expiry.sh >/dev/null 2>&1"
+(crontab -l 2>/dev/null | grep -v "check-ssl-expiry.sh"; echo "$CRON_JOB") | crontab -
+log_success "Weekly SSL monitoring cron job registered."
+
+
+# ============================================
 # COMPLETION SUMMARY
 # ============================================
 clear

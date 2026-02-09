@@ -24,6 +24,18 @@ HOMELAB_DIR="${HOMELAB_DIR:-$USER_HOME/homelab}"
 # Certificate paths
 CERT_DIR="$HOMELAB_DIR/traefik/certs"
 CERT_FILE="$CERT_DIR/homelab.local.crt"
+LOG_DIR="$HOMELAB_DIR/logs"
+LOG_FILE="$LOG_DIR/ssl-check.log"
+
+# Create log directory if it doesn't exist
+mkdir -p "$LOG_DIR"
+chown "$ACTUAL_USER":"$ACTUAL_USER" "$LOG_DIR" 2>/dev/null || true
+
+# Redirect output to log file if not in a terminal
+if [ ! -t 1 ]; then
+    exec >> "$LOG_FILE" 2>&1
+    echo "--- SSL Check: $(date) ---"
+fi
 
 # Warning threshold in days
 WARNING_DAYS=30

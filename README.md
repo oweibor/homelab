@@ -137,7 +137,7 @@ Choose the scenario that matches your current environment:
 
 ### 🛠️ Maintenance Tools
 *   **Update All Services**: Run `./update.sh` to pull latest images and restart.
-*   **SSL Monitoring**: Run `./check-ssl-expiry.sh` to track self-signed certificate health.
+*   **Automated SSL Monitoring**: A weekly cron job automatically runs `./check-ssl-expiry.sh` every Sunday at midnight. Logs are stored in `~/homelab/logs/ssl-check.log`.
 
 ---
 
