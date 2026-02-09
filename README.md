@@ -80,6 +80,104 @@ Instead, follow these steps to adopt the Docker stack:
     docker compose up -d
     ```
 
+## Security
+
+### Default Credentials
+**⚠️ IMPORTANT:** Change default credentials immediately after installation!
+
+*   **Traefik Dashboard**: `https://traefik.homelab.local`
+    *   Default: `admin` / `admin`
+    *   Generate new password: `echo $(htpasswd -nb admin yourpassword) | sed -e s/\\$/\\$\\$/g`
+    *   Update in `traefik/dynamic.yaml` under `middlewares.traefik-auth.basicAuth.users`
+
+*   **n8n**: Credentials stored in `~/homelab/n8n/.env`
+*   **Samba**: Credentials stored in `~/homelab/samba/.env`
+
+### SSL Certificates
+The setup uses self-signed certificates. To trust them on your client machine:
+*   **Windows**: Import `traefik/certs/homelab.local.crt` to Trusted Root Certification Authorities
+*   **macOS**: `sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ~/homelab/traefik/certs/homelab.local.crt`
+*   **Linux**: Copy to `/usr/local/share/ca-certificates/` and run `sudo update-ca-certificates`
+
+### Certificate Monitoring
+Check SSL certificate expiry:
+```bash
+./check-ssl-expiry.sh
+```
+
+Certificates are valid for 365 days. Renew before expiry with:
+```bash
+cd ~/homelab
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout traefik/certs/homelab.local.key \
+  -out traefik/certs/homelab.local.crt \
+  -subj "/CN=homelab.local/O=Homelab/C=US"
+docker compose restart traefik
+```
+
+## Maintenance
+
+### Update Services
+```bash
+./update.sh
+```
+
+Or manually:
+```bash
+cd ~/homelab
+docker compose pull
+docker compose up -d
+docker image prune -f
+```
+
+### View Logs
+```bash
+cd ~/homelab
+docker compose logs -f <service-name>
+```
+
+### Restart Service
+```bash
+cd ~/homelab
+docker compose restart <service-name>
+```
+
+## Troubleshooting
+
+### Services Not Starting
+```bash
+# Check container status
+docker compose ps
+
+# View logs
+docker compose logs -f <service-name>
+
+# Restart specific service
+docker compose restart <service-name>
+```
+
+### Bluetooth Not Working in Home Assistant
+1. Verify D-Bus: `systemctl status dbus`
+2. Check Bluetooth: `bluetoothctl show`
+3. Ensure container has access: `docker exec homeassistant ls -la /run/dbus`
+
+### Network Issues
+```bash
+# Check network configuration
+ip addr show
+
+# Test connectivity
+ping 8.8.8.8
+
+# Restart networking
+sudo netplan apply
+```
+
+### Traefik Dashboard Not Accessible
+1. Ensure you've added `traefik.homelab.local` to your hosts file
+2. Check Traefik logs: `docker compose logs -f traefik`
+3. Verify certificate is trusted in your browser
+
 ## License
 
 GNU General Public License v3.0 - see [LICENSE](LICENSE) for details.
