@@ -1,194 +1,137 @@
-# N100 Homelab Setup
+# 🏠 N100 Homelab: The Ultimate Private AI & Media Stack 🚀
 
-A comprehensive, automated setup script and Docker stack for deploying a self-hosted homelab on an Intel N100 (or similar) mini-PC running Ubuntu Server 24.04+.
+[![GPL-3.0 License](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://opensource.org/licenses/GPL-3.0)
+[![Next.js](https://img.shields.io/badge/Stack-Next.js-black)](https://nextjs.org/)
+[![Docker](https://img.shields.io/badge/Platform-Docker-blue)](https://www.docker.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Styled-Tailwind-38B2AC)](https://tailwindcss.com/)
 
-## Features
+A premium, fully-automated homelab configuration optimized for Intel N100 hardware. This project provides a production-grade self-hosting environment with a focus on **Local AI**, **Media Excellence**, and **Privacy**.
 
-*   **Automated System Config**: configuring static IP, DNS, and system optimizations (C-states, CPU governor) for Intel N100 efficiency.
-*   **Docker Stack**: Pre-configured `docker-compose.yml` for core services.
-*   **Security**: Automatic firewall configuration, secure credential generation for services.
-*   **Hardware Acceleration**: Configures Intel QuickSync for Plex transcoding.
+---
 
-### Included Services
+## 🏗️ Architecture Overview
 
-*   **Home Assistant**: Home automation core (Host mode).
-*   **Plex**: Media server with hardware transcoding (Host mode).
-*   **Ollama**: Local LLM inference server (GPU enabled where supported).
-*   **Open WebUI**: User-friendly chat interface for Ollama.
-*   **n8n**: Workflow automation tool.
-*   **Samba**: Network file sharing for media.
-*   **Watchtower**: Automated container updates.
-*   **Traefik**: Reverse proxy for secure HTTPS access and pretty hostnames.
-*   **Antigravity**: Google's agent-first code editor (VNC/web access).
-*   **OpenClaw**: AI coding agent with sandboxed execution.
+The system uses a mixed networking model to balance secure reverse proxying with high-performance direct hardware access.
 
-## Requirements
+```mermaid
+graph TD
+    subgraph WAN [External Request]
+        User[User Browser]
+    end
 
-*   **Hardware**: Any PC with at least 4 cores, 8GB+ RAM, 128GB+ Storage.
-*   **OS**: Ubuntu Server 24.04 LTS (fresh install recommended).
-*   **User**: Root access (sudo) required.
+    subgraph Host ["Host Network (Intel N100)"]
+        direction TB
+        Traefik[Traefik 3.0: SSL / Proxy]
+        HA[Home Assistant: Smart Home]
+        Plex[Plex: 4K Transcoding]
+    end
 
-## Quick Start
+    subgraph Bridge ["Docker homelab Network"]
+        direction LR
+        Ollama[Ollama: LLM Backend]
+        WebUI[Open WebUI: Chat]
+        Antigravity[Antigravity: Agent IDE]
+        OpenClaw[OpenClaw: AI Agent]
+        n8n[n8n: Automation]
+        Samba[Samba: File Sharing]
+    end
 
-**The One-Liner (Recommended)**:
-Run this on your Ubuntu Server to clone and deploy automatically:
-```bash
-git clone https://github.com/oweibor/homelab.git ~/homelab-setup && cd ~/homelab-setup && sudo ./setup.sh
+    User -- HTTPS:443 --> Traefik
+    Traefik --> WebUI
+    Traefik --> HA
+    Traefik --> Plex
+    Traefik --> n8n
+    Traefik --> Antigravity
+    Traefik --> OpenClaw
+
+    WebUI --> Ollama
+    Antigravity --> Ollama
+    OpenClaw --> Ollama
+    OpenClaw -- /var/run/docker.sock --> Host
 ```
 
-### Manual Installation
-1.  **Clone the Repository**:
-    ```bash
-    git clone https://github.com/oweibor/homelab.git
-    cd homelab
-    ```
-2.  **Configure** (Optional):
-    ```bash
-    cp config.env.template config.env
-    nano config.env
-    ```
-3.  **Run**:
-    ```bash
-    sudo ./setup.sh
-    ```
+---
 
-## Post-Install
+## 🧩 Featured Services
 
-Access your services at:
-*   **Traefik Dashboard**: `https://traefik.homelab.local`
-*   **Home Assistant**: `https://ha.homelab.local` (or `http://<IP>:8123`)
-*   **Plex**: `https://plex.homelab.local` (or `http://<IP>:32400/web`)
-*   **n8n**: `https://n8n.homelab.local` (or `http://<IP>:5678`)
-*   **Open WebUI**: `https://chat.homelab.local` (or `http://<IP>:3000`)
-*   **Antigravity Editor**: `https://antigravity.homelab.local` (or `http://<IP>:6080`)
-*   **OpenClaw Agent**: `https://openclaw.homelab.local` (or `http://<IP>:3005`)
-*   **Samba Share**: `\\<IP>\Media`
+### 🧠 Core AI Stack
+*   **Ollama**: High-performance local LLM engine for running models like Llama 3 and Mistral.
+*   **Open WebUI**: A beautiful, ChatGPT-like interface for interacting with your local models.
+*   **Antigravity**: An agentic, AI-first code editor designed for local development.
+*   **OpenClaw**: An autonomous AI coding agent capable of executing commands in sandboxed environments.
 
-**Note:** You must add the `.homelab.local` domains to your client machine's `hosts` file pointing to the server IP.
+### 🎬 Home & Media
+*   **Home Assistant**: The center of your private smart home, supporting thousands of devices.
+*   **Plex**: Secure your personal media collection with hardware-accelerated 4K transcoding.
+*   **Samba**: Robust network file sharing for seamless media management across your home network.
 
-## Existing Installations (Migration)
+### 🛠️ Infrastructure & Automation
+*   **Traefik 3.0**: Automated SSL termination and routing for all services via secure HTTPS.
+*   **n8n**: Workflow automation tool to connect your services and AI with external APIs.
+*   **Watchtower**: Automatically keeps your Docker containers updated with zero manual intervention.
 
-If you already have a server with Docker running, **do not run `setup.sh` directly**, as it may overwrite your system configurations.
+---
 
-Instead, follow these steps to adopt the Docker stack:
-1.  **Clone the Repo**: `git clone https://github.com/oweibor/homelab.git`
-2.  **Copy Compose File**: Copy `docker-compose.yml` to your preferred directory.
-3.  **Setup Traefik**:
-    *   Copy the `traefik/` directory to your project root.
-    *   Ensure `traefik/certs/` exists (generate certs or bring your own).
-4.  **Configure Env**:
-    *   Create a `.env` file based on `config.env.template`.
-    *   Key variables needed: `TZ`, `PUID`, `PGID`, `OLLAMA_MODEL`.
-5.  **Deploy**:
-    ```bash
-    docker compose up -d
-    ```
+## 🚀 Quick Start
 
-## Security
+### 1. The Automated "Fancy" Setup (Recommended)
+Our `setup.sh` script provides a premium terminal experience with Braille spinners and automated system tuning:
 
-### Default Credentials
-**⚠️ IMPORTANT:** Change default credentials immediately after installation!
-
-*   **Traefik Dashboard**: `https://traefik.homelab.local`
-    *   Default: `admin` / `admin`
-    *   Generate new password: `echo $(htpasswd -nb admin yourpassword) | sed -e s/\\$/\\$\\$/g`
-    *   Update in `traefik/dynamic.yaml` under `middlewares.traefik-auth.basicAuth.users`
-
-*   **n8n**: Credentials stored in `~/homelab/n8n/.env`
-*   **Samba**: Credentials stored in `~/homelab/samba/.env`
-
-### SSL Certificates
-The setup uses self-signed certificates. To trust them on your client machine:
-*   **Windows**: Import `traefik/certs/homelab.local.crt` to Trusted Root Certification Authorities
-*   **macOS**: `sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ~/homelab/traefik/certs/homelab.local.crt`
-*   **Linux**: Copy to `/usr/local/share/ca-certificates/` and run `sudo update-ca-certificates`
-
-### Certificate Monitoring
-Check SSL certificate expiry:
 ```bash
-./check-ssl-expiry.sh
+git clone https://github.com/oweibor/homelab.git ~/homelab && cd ~/homelab && sudo ./setup.sh
 ```
 
-Certificates are valid for 365 days. Renew before expiry with:
-```bash
-cd ~/homelab
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout traefik/certs/homelab.local.key \
-  -out traefik/certs/homelab.local.crt \
-  -subj "/CN=homelab.local/O=Homelab/C=US"
-docker compose restart traefik
-```
+### 2. Manual Adoption
+1.  **Clone**: `git clone https://github.com/oweibor/homelab.git`
+2.  **Configure**: Copy `config.env.template` to `.env` and adjust your TZ and PUID.
+3.  **Deploy**: `docker compose up -d`
 
-## Maintenance
+---
 
-### Update Services
-```bash
-./update.sh
-```
+## 🌐 Post-Install Access
 
-Or manually:
-```bash
-cd ~/homelab
-docker compose pull
-docker compose up -d
-docker image prune -f
-```
+| Service | Secure URL (HTTPS) | Internal Fallback |
+| :--- | :--- | :--- |
+| **Traefik Dashboard** | `https://traefik.homelab.local` | `N/A` |
+| **Home Assistant** | `https://ha.homelab.local` | `http://<IP>:8123` |
+| **Plex** | `https://plex.homelab.local` | `http://<IP>:32400/web` |
+| **n8n** | `https://n8n.homelab.local` | `http://<IP>:5678` |
+| **Open WebUI** | `https://chat.homelab.local` | `http://<IP>:3000` |
+| **Antigravity Editor** | `https://antigravity.homelab.local` | `http://<IP>:6080` |
+| **OpenClaw Agent** | `https://openclaw.homelab.local` | `http://<IP>:3005` |
 
-### View Logs
-```bash
-cd ~/homelab
-docker compose logs -f <service-name>
-```
+> [!IMPORTANT]
+> To use the `.homelab.local` domains, you must add them to your client machine's `hosts` file pointing to your server's IP address.
 
-### Restart Service
-```bash
-cd ~/homelab
-docker compose restart <service-name>
-```
+---
 
-## Troubleshooting
+## 🔒 Security & Maintenance
 
-### Services Not Starting
-```bash
-# Check container status
-docker compose ps
+### 🔑 Credential Management
+*   **Traefik Dashboard**: Secure with basic auth in `traefik/dynamic.yaml`.
+*   **Samba & n8n**: Passwords are automatically generated and stored in their respective `.env` files within the `~/homelab/` subdirectories.
 
-# View logs
-docker compose logs -f <service-name>
+### 🛠️ Maintenance Tools
+*   **Update All Services**: Run `./update.sh` to pull latest images and restart.
+*   **SSL Monitoring**: Run `./check-ssl-expiry.sh` to track self-signed certificate health.
 
-# Restart specific service
-docker compose restart <service-name>
-```
+---
 
-### Bluetooth Not Working in Home Assistant
-1. Verify D-Bus: `systemctl status dbus`
-2. Check Bluetooth: `bluetoothctl show`
-3. Ensure container has access: `docker exec homeassistant ls -la /run/dbus`
-   ```
-   # Similar Expected output (showing D-Bus socket is accessible):
-   drwxr-xr-x 3 root root  80 Feb  9 08:00 .
-   drwxr-xr-x 1 root root 120 Feb  9 08:00 ..
-   srw-rw-rw- 1 root root   0 Feb  9 08:00 system_bus_socket
-   ```
-   If you see "No such file or directory", the D-Bus mount is missing from the container.
+## 🩺 Troubleshooting
 
-### Network Issues
-```bash
-# Check network configuration
-ip addr show
+| Issue | Resolution |
+| :--- | :--- |
+| **Container Failure** | Run `docker compose ps` to check status and `docker compose logs -f <service>` for details. |
+| **No 4K Transcoding** | Ensure your user is in the `render` group. The `setup.sh` script handles this automatically on N100. |
+| **Bluetooth Missing** | Verify `dbus` status on the host and ensure the Bluetooth service is shared with Home Assistant. |
+| **AI is Slow** | Ensure your models aren't exceeding system RAM. N100 is best with 7B-8B parameter models. |
 
-# Test connectivity
-ping 8.8.8.8
+---
 
-# Restart networking
-sudo netplan apply
-```
+## 📜 License
 
-### Traefik Dashboard Not Accessible
-1. Ensure you've added `traefik.homelab.local` to your hosts file
-2. Check Traefik logs: `docker compose logs -f traefik`
-3. Verify certificate is trusted in your browser
+This project is licensed under the **GNU General Public License v3.0**. See the [LICENSE](LICENSE) file for the full text.
 
-## License
+---
+*Built with ❤️ for the self-hosting community.*
 
-GNU General Public License v3.0 - see [LICENSE](LICENSE) for details.
