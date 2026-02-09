@@ -177,6 +177,67 @@ services:
         max-size: "5m"
         max-file: "2"
 
+  # Google Antigravity Code Editor (VNC-based IDE)
+  antigravity:
+    image: ghcr.io/rawritude/antigravity-remote:latest
+    container_name: antigravity
+    restart: unless-stopped
+    networks:
+      - homelab
+    ports:
+      - "6080:6080"
+      - "5900:5900"
+    volumes:
+      - ./antigravity/workspace:/home/devuser/workspace
+      - ./antigravity/config:/home/devuser/.config
+    environment:
+      - VNC_PASSWORD=${ANTIGRAVITY_VNC_PASSWORD}
+      - OLLAMA_HOST=http://ollama:11434
+      - TZ=${TZ}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.antigravity.rule=Host(`antigravity.homelab.local`)"
+      - "traefik.http.routers.antigravity.entrypoints=websecure"
+      - "traefik.http.routers.antigravity.tls=true"
+      - "traefik.http.services.antigravity.loadbalancer.server.port=6080"
+    depends_on:
+      - ollama
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # OpenClaw AI Agent
+  openclaw:
+    image: ghcr.io/openclaw/openclaw:latest
+    container_name: openclaw
+    restart: unless-stopped
+    networks:
+      - homelab
+    ports:
+      - "3005:3000"
+    volumes:
+      - ./openclaw:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - OLLAMA_API_BASE=http://ollama:11434
+      - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_TOKEN}
+      - TZ=${TZ}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.openclaw.rule=Host(`openclaw.homelab.local`)"
+      - "traefik.http.routers.openclaw.entrypoints=websecure"
+      - "traefik.http.routers.openclaw.tls=true"
+      - "traefik.http.services.openclaw.loadbalancer.server.port=3000"
+    depends_on:
+      - ollama
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 volumes:
   ollama_models:
 

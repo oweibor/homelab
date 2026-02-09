@@ -19,6 +19,8 @@ A comprehensive, automated setup script and Docker stack for deploying a self-ho
 *   **Samba**: Network file sharing for media.
 *   **Watchtower**: Automated container updates.
 *   **Traefik**: Reverse proxy for secure HTTPS access and pretty hostnames.
+*   **Antigravity**: Google's agent-first code editor (VNC/web access).
+*   **OpenClaw**: AI coding agent with sandboxed execution.
 
 ## Requirements
 
@@ -58,6 +60,8 @@ Access your services at:
 *   **Plex**: `https://plex.homelab.local` (or `http://<IP>:32400/web`)
 *   **n8n**: `https://n8n.homelab.local` (or `http://<IP>:5678`)
 *   **Open WebUI**: `https://chat.homelab.local` (or `http://<IP>:3000`)
+*   **Antigravity Editor**: `https://antigravity.homelab.local` (or `http://<IP>:6080`)
+*   **OpenClaw Agent**: `https://openclaw.homelab.local` (or `http://<IP>:3005`)
 *   **Samba Share**: `\\<IP>\Media`
 
 **Note:** You must add the `.homelab.local` domains to your client machine's `hosts` file pointing to the server IP.
@@ -160,6 +164,13 @@ docker compose restart <service-name>
 1. Verify D-Bus: `systemctl status dbus`
 2. Check Bluetooth: `bluetoothctl show`
 3. Ensure container has access: `docker exec homeassistant ls -la /run/dbus`
+   ```
+   # Similar Expected output (showing D-Bus socket is accessible):
+   drwxr-xr-x 3 root root  80 Feb  9 08:00 .
+   drwxr-xr-x 1 root root 120 Feb  9 08:00 ..
+   srw-rw-rw- 1 root root   0 Feb  9 08:00 system_bus_socket
+   ```
+   If you see "No such file or directory", the D-Bus mount is missing from the container.
 
 ### Network Issues
 ```bash

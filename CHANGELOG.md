@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **AI Development Tools**:
+  - Antigravity: Google's agent-first code editor (VNC/web access at port 6080)
+  - OpenClaw: AI coding agent with sandboxed Docker execution
+- **UI Enhancements**:
+  - Fancy Braille spinner animation during long operations
+  - Progress bar with percentage indicator
+  - Box-styled step headers for better visual organization
+  - Success banners for completed steps
 - **Security Enhancements**:
   - Traefik dashboard now requires authentication (default: admin/admin)
   - Environment variable validation in setup script
@@ -25,6 +33,8 @@ All notable changes to this project will be documented in this file.
     - n8n
     - Samba
     - Traefik (Reverse Proxy)
+    - Antigravity (Code Editor)
+    - OpenClaw (AI Agent)
 - **Reverse Proxy**: Added Traefik with self-signed SSL support for secure local access (`https://*.homelab.local`).
 - **Dashboard**: Added Traefik dashboard for service monitoring.
 - `config.env.template` for easy user configuration.

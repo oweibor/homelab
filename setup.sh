@@ -25,6 +25,8 @@ log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 # ============================================
 # HELPER FUNCTIONS
 # ============================================
+
+# Classic spinner (fallback)
 show_spinner() {
     local pid=$1
     local delay=0.1
@@ -38,6 +40,70 @@ show_spinner() {
     done
     printf "    \b\b\b\b"
 }
+
+# Fancy Braille spinner with message
+show_fancy_spinner() {
+    local pid=$1
+    local message=${2:-"Working..."}
+    local frames=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+    local i=0
+    
+    while kill -0 $pid 2>/dev/null; do
+        printf "\r  ${BLUE}${frames[i]}${NC} %s " "$message"
+        i=$(( (i + 1) % ${#frames[@]} ))
+        sleep 0.1
+    done
+    wait $pid 2>/dev/null
+    local exit_code=$?
+    if [ $exit_code -eq 0 ]; then
+        printf "\r  ${GREEN}✓${NC} %s \n" "$message"
+    else
+        printf "\r  ${RED}✗${NC} %s \n" "$message"
+    fi
+    return $exit_code
+}
+
+# Progress bar with percentage
+show_progress_bar() {
+    local current=$1
+    local total=$2
+    local label=${3:-"Progress"}
+    local width=40
+    local pct=$((current * 100 / total))
+    local filled=$((current * width / total))
+    local empty=$((width - filled))
+    
+    printf "\r  ${BLUE}▶${NC} %s [" "$label"
+    printf "%${filled}s" | tr ' ' '█'
+    printf "%${empty}s" | tr ' ' '░'
+    printf "] %3d%%" "$pct"
+    
+    if [ $current -eq $total ]; then
+        echo ""
+    fi
+}
+
+# Box-styled step header
+show_step_header() {
+    local step_num=$1
+    local step_name=$2
+    echo ""
+    echo "  ┌─────────────────────────────────────────────────────────────┐"
+    printf "  │  ${BLUE}STEP %s${NC}: %-51s │\n" "$step_num" "$step_name"
+    echo "  └─────────────────────────────────────────────────────────────┘"
+    echo ""
+}
+
+# Success banner
+show_success_banner() {
+    local message=$1
+    echo ""
+    echo "  ╔═════════════════════════════════════════════════════════════╗"
+    printf "  ║  ${GREEN}✓${NC} %-57s ║\n" "$message"
+    echo "  ╚═════════════════════════════════════════════════════════════╝"
+    echo ""
+}
+
 
 # ============================================
 # ERROR HANDLING & CLEANUP
@@ -133,39 +199,36 @@ validate_ip() {
 # BANNER
 # ============================================
 clear
-echo "╔════════════════════════════════════════════════════════════╗"
-echo "║        N100 HOMELAB COMPLETE SETUP SCRIPT                  ║"
-echo "║                                                            ║"
-echo "║  This script will configure:                               ║"
-echo "║  1. System updates & dependencies                          ║"
-echo "║  2. Bluetooth hardware & D-Bus                             ║"
-echo "║  3. Static IP configuration                                ║"
-echo "║  4. Docker & Docker Compose                                ║"
-echo "║  5. Performance optimizations (CPU C-states, governor)     ║"
-echo "║  6. Docker stack (HA, Plex, Ollama, n8n, Samba)            ║"
-echo "║                                                            ║"
-printf "║  Running as user: %-40s ║\n" "$ACTUAL_USER"
-echo "╚════════════════════════════════════════════════════════════╝"
+echo "  ┌─────────────────────────────────────────────────────────────┐"
+echo "  │        N100 HOMELAB COMPLETE SETUP SCRIPT                  │"
+echo "  │                                                            │"
+echo "  │  This script will configure:                               │"
+echo "  │  1. System updates & dependencies                          │"
+echo "  │  2. Bluetooth hardware & D-Bus                             │"
+echo "  │  3. Static IP configuration                                │"
+echo "  │  4. Docker & Docker Compose                                │"
+echo "  │  5. Performance optimizations (CPU C-states, governor)     │"
+echo "  │  6. Docker stack (HA, Plex, Ollama, n8n, Samba, ...)       │"
+echo "  │  7. AI Tools (Antigravity & OpenClaw)                      │"
+echo "  │                                                            │"
+printf "  │  Running as user: %-40s │\n" "$ACTUAL_USER"
+echo "  └─────────────────────────────────────────────────────────────┘"
 echo ""
-read -p "Press ENTER to continue or Ctrl+C to abort..."
+read -p "  Press ENTER to continue or Ctrl+C to abort..."
 echo ""
 
 # ============================================
 # STEP 1: SYSTEM UPDATES
 # ============================================
-log_step "STEP 1: Updating Ubuntu & Installing Dependencies"
-log_step "STEP 1: Updating Ubuntu & Installing Dependencies"
+show_step_header "1" "Updating Ubuntu & Installing Dependencies"
 export DEBIAN_FRONTEND=noninteractive
 
-log_info "Updating package lists..."
 apt update -qq &
-show_spinner $!
+show_fancy_spinner $! "Updating package lists"
 
-log_info "Upgrading packages (this may take a while)..."
 apt upgrade -y -qq &
-show_spinner $!
+show_fancy_spinner $! "Upgrading packages (this may take a while)"
 
-log_info "Installing dependencies..."
 apt install -y -qq \
     ca-certificates \
     curl \
@@ -178,17 +241,17 @@ apt install -y -qq \
     dbus \
     cpufrequtils \
     openssl 2>&1 | grep -v "already installed" || true &
-show_spinner $!
+show_fancy_spinner $! "Installing dependencies"
 
 unset DEBIAN_FRONTEND
-log_info "System updated successfully"
+show_success_banner "System updated successfully"
 echo ""
 
 
 # ============================================
 # STEP 2: BLUETOOTH CONFIGURATION
 # ============================================
-log_step "STEP 2: Configuring Bluetooth Hardware"
+show_step_header "2" "Configuring Bluetooth Hardware"
 
 # Verify D-Bus (critical for Home Assistant)
 if ! systemctl is-active --quiet dbus; then
@@ -244,7 +307,7 @@ echo ""
 # STEP 3: NETWORK CONFIGURATION
 # ============================================
 
-log_step "STEP 3: Detecting physical network interfaces..."
+show_step_header "3" "Detecting physical network interfaces..."
 
 # Detect physical interfaces with carrier signal AND up state
 SMART_INTERFACES=()
@@ -517,12 +580,13 @@ echo ""
 # ============================================
 # STEP 4: DOCKER INSTALLATION
 # ============================================
-log_step "STEP 4: Installing Docker & Docker Compose"
+show_step_header "4" "Installing Docker & Docker Compose"
 
 if command -v docker &> /dev/null; then
     log_info "Docker already installed: $(docker --version)"
 else
     # Remove old Docker versions
+    log_info "Removing old Docker versions..."
     apt remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
 
     # Add Docker GPG key
@@ -536,17 +600,15 @@ else
     | tee /etc/apt/sources.list.d/docker.list > /dev/null
 
     # Install Docker
-    log_info "Installing Docker packages..."
     apt update -qq &
-    show_spinner $!
+    show_fancy_spinner $! "Updating package lists for Docker"
     
     apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin &
-    show_spinner $!
+    show_fancy_spinner $! "Installing Docker packages"
 
     # Enable Docker
     systemctl enable docker
     systemctl start docker
-    log_info "Docker installed successfully"
 fi
 
 # Add user to docker group
@@ -562,13 +624,15 @@ else
     log_error "Docker Compose v2 not available"
     exit 1
 fi
+
+show_success_banner "Docker setup completed successfully"
 echo ""
 
 
 # ============================================
 # STEP 5: PERFORMANCE OPTIMIZATIONS
 # ============================================
-log_step "STEP 5: Applying Performance Optimizations"
+show_step_header "5" "Applying Performance Optimizations"
 
 # CPU governor to performance
 log_info "Setting CPU governor to performance..."
@@ -577,6 +641,8 @@ for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
         echo performance | tee "$cpu" >/dev/null 2>&1 || true
     fi
 done
+
+show_success_banner "Performance optimizations applied"
 
 # Persistent CPU governor
 if [ -d /etc/default ]; then
@@ -624,10 +690,10 @@ echo ""
 # ============================================
 # STEP 6: HOMELAB DIRECTORY STRUCTURE
 # ============================================
-log_step "STEP 6: Creating Homelab Directory Structure"
+show_step_header "6" "Creating Homelab Directory Structure"
 
 HOMELAB_DIR="$USER_HOME/homelab"
-mkdir -p "$HOMELAB_DIR"/{homeassistant,plex/config,plex/transcode,media,n8n,samba,backups,open-webui,traefik}
+mkdir -p "$HOMELAB_DIR"/{homeassistant,plex/config,plex/transcode,media,n8n,samba,backups,open-webui,traefik,antigravity/workspace,antigravity/config,openclaw}
 
 # Set permissions
 PUID=$(id -u "$ACTUAL_USER")
@@ -639,13 +705,13 @@ chown -R "$PUID:$PGID" "$HOMELAB_DIR/n8n"
 chmod 770 "$HOMELAB_DIR/plex/transcode"
 chmod 770 "$HOMELAB_DIR/media"
 
-log_info "Directory structure created at $HOMELAB_DIR"
+show_success_banner "Directory structure created at $HOMELAB_DIR"
 echo ""
 
 # ============================================
 # STEP 7: GENERATE SERVICE CREDENTIALS
 # ============================================
-log_step "STEP 7: Generating Service Credentials"
+show_step_header "7" "Generating Service Credentials"
 
 # Samba credentials
 SAMBA_ENV="$HOMELAB_DIR/samba/.env"
@@ -707,12 +773,37 @@ else
     log_info "Using existing SSL certificates"
 fi
 
-echo ""
+# Antigravity VNC credentials (simple password)
+ANTIGRAVITY_ENV="$HOMELAB_DIR/antigravity/.env"
+if [ ! -f "$ANTIGRAVITY_ENV" ]; then
+    # Simple 8-character alphanumeric password
+    ANTIGRAVITY_VNC_PASSWORD=$(openssl rand -base64 6 | tr -d '/+=' | head -c 8)
+    echo "ANTIGRAVITY_VNC_PASSWORD=$ANTIGRAVITY_VNC_PASSWORD" > "$ANTIGRAVITY_ENV"
+    chmod 600 "$ANTIGRAVITY_ENV"
+    chown "$ACTUAL_USER:$ACTUAL_USER" "$ANTIGRAVITY_ENV"
+    log_info "Antigravity VNC credentials generated"
+else
+    log_info "Using existing Antigravity credentials"
+    source "$ANTIGRAVITY_ENV"
+fi
+
+# OpenClaw gateway token
+OPENCLAW_ENV="$HOMELAB_DIR/openclaw/.env"
+if [ ! -f "$OPENCLAW_ENV" ]; then
+    OPENCLAW_TOKEN=$(openssl rand -hex 16)
+    echo "OPENCLAW_TOKEN=$OPENCLAW_TOKEN" > "$OPENCLAW_ENV"
+    chmod 600 "$OPENCLAW_ENV"
+    chown "$ACTUAL_USER:$ACTUAL_USER" "$OPENCLAW_ENV"
+    log_info "OpenClaw gateway token generated"
+else
+    log_info "Using existing OpenClaw credentials"
+    source "$OPENCLAW_ENV"
+fi
 
 # ============================================
 # STEP 8: DOCKER COMPOSE CONFIGURATION
 # ============================================
-log_step "STEP 8: Configuring Docker Stack"
+show_step_header "8" "Configuring Docker Stack"
 
 # Get render group GID - Handle missing/fail cases
 RENDER_GID=$(getent group render | cut -d: -f3 2>/dev/null)
@@ -789,13 +880,27 @@ if [ -n "${PLEX_CLAIM:-}" ]; then
     echo "PLEX_CLAIM=$PLEX_CLAIM" >> "$ENV_FILE"
 fi
 
+# Antigravity VNC Password
+if [ -n "${ANTIGRAVITY_VNC_PASSWORD:-}" ]; then
+    echo "ANTIGRAVITY_VNC_PASSWORD=$ANTIGRAVITY_VNC_PASSWORD" >> "$ENV_FILE"
+elif [ -f "$HOMELAB_DIR/antigravity/.env" ]; then
+    grep "ANTIGRAVITY_VNC_PASSWORD" "$HOMELAB_DIR/antigravity/.env" >> "$ENV_FILE"
+fi
+
+# OpenClaw Token
+if [ -n "${OPENCLAW_TOKEN:-}" ]; then
+    echo "OPENCLAW_TOKEN=$OPENCLAW_TOKEN" >> "$ENV_FILE"
+elif [ -f "$HOMELAB_DIR/openclaw/.env" ]; then
+    grep "OPENCLAW_TOKEN" "$HOMELAB_DIR/openclaw/.env" >> "$ENV_FILE"
+fi
+
 chmod 600 "$ENV_FILE"
 chown "$ACTUAL_USER:$ACTUAL_USER" "$ENV_FILE"
 log_info "Environment configuration generated at $ENV_FILE"
 
 # Validate required environment variables
 log_info "Validating environment configuration..."
-REQUIRED_VARS=("PUID" "PGID" "TZ" "N8N_USER" "N8N_PASS" "SAMBA_USER" "SAMBA_PASS")
+REQUIRED_VARS=("PUID" "PGID" "TZ" "N8N_USER" "N8N_PASS" "SAMBA_USER" "SAMBA_PASS" "ANTIGRAVITY_VNC_PASSWORD" "OPENCLAW_TOKEN")
 MISSING_VARS=()
 
 for var in "${REQUIRED_VARS[@]}"; do
@@ -844,26 +949,13 @@ echo ""
 # ============================================
 # STEP 9: DEPLOY DOCKER STACK
 # ============================================
-log_step "STEP 9: Deploying Docker Stack"
+show_step_header "9" "Deploying Docker Stack"
 
 cd "$HOMELAB_DIR"
 
-log_info "Pulling latest images (this may take a while)..."
 # Pull in background, capture error if fails
-if ! (su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose pull" >/dev/null 2>&1) & then
-    PID=$!
-    show_spinner $PID
-    wait $PID
-    EXIT_CODE=$?
-    if [ $EXIT_CODE -ne 0 ]; then
-        log_error "Failed to pull Docker images"
-        exit 1
-    fi
-else
-    # Immediate failure
-    log_error "Failed to pull Docker images"
-    exit 1
-fi
+(su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose pull" >/dev/null 2>&1) &
+show_fancy_spinner $! "Pulling latest images (this may take a while)"
 
 log_info "Starting containers..."
 if ! su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose up -d"; then
@@ -883,14 +975,14 @@ if [ -n "$FAILED_CONTAINERS" ]; then
     exit 1
 fi
 
-log_success "Docker stack deployed successfully"
+show_success_banner "Docker stack deployed successfully"
 echo ""
 
 
 # ============================================
 # STEP 10: OLLAMA MODEL DOWNLOAD
 # ============================================
-log_step "STEP 10: Downloading Ollama Model"
+show_step_header "10" "Downloading Ollama Model"
 
 log_info "Waiting for Ollama API (max 60s)..."
 TIMEOUT=60
@@ -906,14 +998,10 @@ if [ $TIMEOUT -gt 0 ]; then
     
     # Iterate through models and pull each one
     for model in $OLLAMA_MODEL; do
-        log_info "Pulling model: $model..."
-        # Synchronous pull with -T to stream output to console so user sees progress
-        if su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose exec -T ollama ollama pull '$model'"; then
-             log_success "Ollama model $model downloaded successfully"
-        else
-             log_warn "Ollama model $model download failed. Try manually: docker compose exec ollama ollama pull $model"
-        fi
+        (su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose exec -T ollama ollama pull '$model'" >/dev/null 2>&1) &
+        show_fancy_spinner $! "Ollama model: $model"
     done
+    show_success_banner "Ollama models downloaded successfully"
 else
     log_warn "Ollama didn't start in time. Pull models manually."
 fi
@@ -923,7 +1011,7 @@ echo ""
 # ============================================
 # STEP 11: HEALTH CHECKS
 # ============================================
-log_step "STEP 11: Running Service Health Checks"
+show_step_header "11" "Running Service Health Checks"
 
 sleep 5  # Give services a moment to bind ports
 
@@ -979,66 +1067,54 @@ echo ""
 # COMPLETION SUMMARY
 # ============================================
 clear
+show_success_banner "HOMELAB SETUP COMPLETE!"
+
 # Get statuses for summary
 BT_STATUS=$(systemctl is-active bluetooth || echo "inactive")
 DBUS_STATUS=$(systemctl is-active dbus || echo "inactive")
 
-echo "╔════════════════════════════════════════════════════════════╗"
-echo "║              HOMELAB SETUP COMPLETE!                       ║"
-echo "╠════════════════════════════════════════════════════════════╣"
-echo "║  SYSTEM CONFIGURATION                                      ║"
-printf "║  - Bluetooth: %-44s ║\n" "$BT_STATUS"
-printf "║  - D-Bus:     %-44s ║\n" "$DBUS_STATUS"
-printf "║  - Network:   %-44s ║\n" "${INTERFACE:-Unknown}"
-printf "║  - IP Addr:   %-44s ║\n" "${CONFIGURED_IP:-Unknown}"
-printf "║  - Gateway:   %-44s ║\n" "${GATEWAY:-N/A}"
-echo "╠════════════════════════════════════════════════════════════╣"
-echo "║  SERVICES (All running on ${CONFIGURED_IP:-localhost})                 ║"
-echo "║                                                            ║"
-printf "║  Home Assistant:   %-40s║\n" "http://${CONFIGURED_IP:-localhost}:8123"
-printf "║  Plex:             %-40s║\n" "http://${CONFIGURED_IP:-localhost}:32400/web"
-printf "║  n8n:              %-40s║\n" "http://${CONFIGURED_IP:-localhost}:5678"
-echo "║    - Username: ${N8N_USER:-See details above}                                   ║"
-echo "║    - Password: ${N8N_PASS:-See details above}                                   ║"
-printf "║  Ollama API:       %-40s║\n" "http://${CONFIGURED_IP:-localhost}:11434"
-printf "║  Samba Media:      %-40s║\n" "smb://${CONFIGURED_IP:-localhost}/Media"
-echo "║    - User: ${SAMBA_USER:-See details above}                                     ║"
-echo "║    - Pass: ${SAMBA_PASS:-See details above}                                     ║"
-echo "╠════════════════════════════════════════════════════════════╣"
-echo "║  MAINTENANCE                                               ║"
-echo "╚════════════════════════════════════════════════════════════╝"
-echo ""
-echo "╔════════════════════════════════════════════════════════════╗"
-echo "║  REVERSE PROXY (HTTPS)                                     ║"
-printf "║  - Dashboard:      %-40s║\n" "https://traefik.homelab.local"
-printf "║  - Home Assistant: %-40s║\n" "https://ha.homelab.local"
-printf "║  - Plex:           %-40s║\n" "https://plex.homelab.local"
-printf "║  - n8n:            %-40s║\n" "https://n8n.homelab.local"
-printf "║  - Open WebUI:     %-40s║\n" "https://chat.homelab.local"
-echo "║                                                            ║"
-echo "║  * NOTE: Add these domains to your local 'hosts' file:     ║"
-printf "║    %-55s ║\n" "${CONFIGURED_IP:-192.168.x.x} ha.homelab.local plex.homelab.local"
-printf "║    %-55s ║\n" "              n8n.homelab.local chat.homelab.local"
-printf "║    %-55s ║\n" "              traefik.homelab.local"
-echo "╚════════════════════════════════════════════════════════════╝"
-echo ""
-echo "╔════════════════════════════════════════════════════════════╗"
-echo "║  MAINTENANCE                                               ║"
-echo "║  - Watchtower: Auto-updates every Sunday at 3 AM           ║"
-echo "║  - Credentials: $HOMELAB_DIR/samba/.env                    ║"
-echo "╚════════════════════════════════════════════════════════════╝"
+echo "  ┌─────────────────────────────────────────────────────────────┐"
+echo "  │  SYSTEM CONFIGURATION                                       │"
+printf "  │  - User:       %-44s │\n" "$ACTUAL_USER"
+printf "  │  - Bluetooth:  %-44s │\n" "$BT_STATUS"
+printf "  │  - Network:    %-44s │\n" "${INTERFACE:-Unknown}"
+printf "  │  - IP Addr:    %-44s │\n" "${CONFIGURED_IP:-Unknown}"
+echo "  ├─────────────────────────────────────────────────────────────┤"
+echo "  │  SERVICES (Local Access)                                    │"
+printf "  │  - Home Assistant:  %-39s │\n" "http://${CONFIGURED_IP:-localhost}:8123"
+printf "  │  - Plex:            %-39s │\n" "http://${CONFIGURED_IP:-localhost}:32400/web"
+printf "  │  - n8n:             %-39s │\n" "http://${CONFIGURED_IP:-localhost}:5678"
+printf "  │  - Ollama API:      %-39s │\n" "http://${CONFIGURED_IP:-localhost}:11434"
+printf "  │  - Antigravity:     %-39s │\n" "http://${CONFIGURED_IP:-localhost}:6080"
+printf "  │  - OpenClaw Agent:  %-39s │\n" "http://${CONFIGURED_IP:-localhost}:3005"
+printf "  │  - Samba Media:     %-39s │\n" "smb://${CONFIGURED_IP:-localhost}/Media"
+echo "  ├─────────────────────────────────────────────────────────────┤"
+echo "  │  REVERSE PROXY (HTTPS)                                      │"
+printf "  │  - Traefik Dash:    %-39s │\n" "https://traefik.homelab.local"
+printf "  │  - Home Assistant:  %-39s │\n" "https://ha.homelab.local"
+printf "  │  - Plex:            %-39s │\n" "https://plex.homelab.local"
+printf "  │  - n8n:             %-39s │\n" "https://n8n.homelab.local"
+printf "  │  - Antigravity:     %-39s │\n" "https://antigravity.homelab.local"
+printf "  │  - OpenClaw:        %-39s │\n" "https://openclaw.homelab.local"
+echo "  ├─────────────────────────────────────────────────────────────┤"
+echo "  │  * NOTE: Add these domains to your local 'hosts' file:      │"
+printf "  │    %-56s │\n" "${CONFIGURED_IP:-192.168.x.x} ha.homelab.local"
+printf "  │    %-56s │\n" "traefik.homelab.local antigravity.homelab.local"
+printf "  │    %-56s │\n" "openclaw.homelab.local plex.homelab.local"
+echo "  └─────────────────────────────────────────────────────────────┘"
 echo ""
 
 if [ "${GRUB_MODIFIED:-false}" = "true" ]; then
     log_warn "IMPORTANT: GRUB was updated. REBOOT REQUIRED for CPU optimizations:"
     echo "  sudo reboot"
 else
-    log_info "No reboot needed. All services are running."
+    show_success_banner "No reboot needed. All services are running."
 fi
+
 echo ""
 log_info "Verification commands:"
 echo "  - docker ps                        # Check running containers"
-echo "  - ip addr show ${INTERFACE:-}          # Verify network config"
+echo "  - ip addr show ${INTERFACE:-}      # Verify network config"
 echo "  - bluetoothctl show                # Check Bluetooth status"
 echo ""
-log_info "Setup complete! Enjoy your homelab."
+show_success_banner "Setup complete! Enjoy your updated homelab."
