@@ -107,7 +107,8 @@ Choose the scenario that matches your current environment:
 *For users who only want specific services (e.g., just the AI stack).*
 
 1.  **Partial Compose**: Copy only the services you need from `docker-compose.yml`.
-2.  **Networking**: If you skip Traefik, ensure you manually map ports and handle SSL at the application level.
+2.  **Networking**: If you skip Traefik, ensure you manually map ports in `docker-compose.yml` (e.g., `ports: ["8080:80"]`) and handle SSL at the application level if required.
+    *   *Self-hosting Tip*: Use the service's internal configuration or a sidecar proxy if the app doesn't support native SSL.
 3.  **AI Dependencies**: If using Antigravity or OpenClaw, ensure the `ollama` service is also included in your compose file.
 
 ---
