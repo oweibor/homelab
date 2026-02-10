@@ -145,7 +145,7 @@ trap cleanup EXIT
 # PRE-CHECKS & USER VALIDATION
 # ============================================
 if [ "$EUID" -ne 0 ]; then 
-    log_error "Please run as root: sudo ./complete-homelab-setup.sh"
+    log_error "Please run as root: sudo ./setup.sh"
     exit 1
 fi
 
@@ -153,7 +153,7 @@ fi
 ACTUAL_USER="${SUDO_USER:-}"
 if [ -z "$ACTUAL_USER" ] || [ "$ACTUAL_USER" = "root" ]; then
     log_error "Cannot determine non-root user. Do not run directly as root."
-    log_error "Usage: sudo ./complete-homelab-setup.sh"
+    log_error "Usage: sudo ./setup.sh"
     exit 1
 fi
 
@@ -1064,9 +1064,9 @@ echo ""
 echo ""
 
 # ============================================
-# STEP 11: AUTOMATED MAINTENANCE
+# STEP 12: AUTOMATED MAINTENANCE
 # ============================================
-show_step_header "11" "Setting up Automated Maintenance"
+show_step_header "12" "Setting up Automated Maintenance"
 
 # Ensure maintenance scripts are executable
 chmod +x "$HOMELAB_DIR/check-ssl-expiry.sh"
