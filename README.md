@@ -826,6 +826,23 @@ docker compose restart homeassistant
 </details>
 
 <details>
+<summary><b>Locked out of Plex / Server not claimed</b></summary>
+
+**Symptoms:** "No soup for you!", "You do not have permission to access this server," or Plex asking you to "Claim" it in settings but failing.
+
+**Solution:**
+```bash
+# 1. Visit https://www.plex.tv/claim/ and copy the code
+# 2. Add it to your .env file:
+#    PLEX_CLAIM=claim-xxxxxxxxxxxxxxxxx
+# 3. Restart the Plex container:
+docker compose up -d plex
+
+# Note: Claim codes expire after 4 minutes!
+```
+</details>
+
+<details>
 <summary><b>Permission denied errors (Plex/Samba)</b></summary>
 
 **Symptoms:** "Permission denied", "Cannot write to directory"
