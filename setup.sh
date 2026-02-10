@@ -872,7 +872,7 @@ fi
 echo "TZ=$TZ" >> "$ENV_FILE"
 
 # Ollama Model
-OLLAMA_MODEL="${OLLAMA_MODEL:-llama3.2:1b llama3.2:3b}"
+OLLAMA_MODEL="${OLLAMA_MODEL:-llama3.2:1b llama3.2:3b qwen2.5-coder:3b}"
 echo "OLLAMA_MODEL=$OLLAMA_MODEL" >> "$ENV_FILE"
 
 # Plex Claim
