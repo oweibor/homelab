@@ -165,8 +165,11 @@ graph TB
     end
 
     subgraph HostNet[Host Network - Intel N100]
+        direction TB
         HA[Home Assistant<br/>Port 8123<br/>Bluetooth/USB]
         Plex[Plex Media Server<br/>Port 32400<br/>QuickSync HW Accel]
+        DockerSock[("/var/run/docker.sock")]
+        MediaData[("/media/media")]
     end
 
     subgraph DockerBridge[Docker Bridge Network: homelab]
@@ -198,12 +201,21 @@ graph TB
     WebUI --> Ollama
     Antigravity --> Ollama
     OpenClaw --> Ollama
-    OpenClaw -.->|Docker Socket| HostNet
+    
+    %% System Integrations
+    OpenClaw -.->|Control| DockerSock
+    Traefik -.->|Discover| DockerSock
+    Watchtower -.->|Update| DockerSock
+    
+    Plex ---|Mount| MediaData
+    Samba ---|Share| MediaData
 
     style Traefik fill:#00897B
     style Ollama fill:#7B1FA2
     style HA fill:#03A9F4
     style Plex fill:#E5A00D
+    style MediaData fill:#546E7A,color:#fff
+    style DockerSock fill:#F4511E,color:#fff
 ```
 
 ### Why Mixed Networking?
@@ -410,7 +422,7 @@ docker compose -f docker-compose-custom.yml up -d
 
 ### Step 1: Configure DNS/Hosts File
 
-All services use `.homelab.local` domains for easy access. You need to map these to your server's IP. For Example,  if your server IP is 192.168.1.100
+All services use `.homelab.local` domains for easy access. You need to map these to your server's IP (Dont forget to replace the 192.168.1.100 in the steps with your server's IP).
 
 #### Option A: Automated (Recommended)
 
