@@ -16,6 +16,17 @@ log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
+# Function to send n8n notification
+send_n8n_notification() {
+    local level=$1
+    local message=$2
+    if [ -n "${N8N_WEBHOOK_URL:-}" ]; then
+        curl -s -X POST -H "Content-Type: application/json" \
+            -d "{\"level\": \"$level\", \"message\": \"$message\", \"service\": \"SSL Check\", \"hostname\": \"$(hostname)\"}" \
+            "$N8N_WEBHOOK_URL" > /dev/null || log_warn "Failed to send n8n notification"
+    fi
+}
+
 # Get the actual user who ran sudo (if run with sudo)
 ACTUAL_USER="${SUDO_USER:-$(whoami)}"
 USER_HOME=$(getent passwd "$ACTUAL_USER" | cut -d: -f6)
@@ -67,6 +78,7 @@ echo ""
 if [ $DAYS_UNTIL_EXPIRY -lt 0 ]; then
     log_error "Certificate has EXPIRED!"
     log_error "Expired $((-$DAYS_UNTIL_EXPIRY)) days ago"
+    send_n8n_notification "CRITICAL" "SSL Certificate for homelab.local has EXPIRED $((-$DAYS_UNTIL_EXPIRY)) days ago!"
     echo ""
     log_warn "To renew the certificate, run:"
     echo "  cd $HOMELAB_DIR"
@@ -79,6 +91,7 @@ if [ $DAYS_UNTIL_EXPIRY -lt 0 ]; then
 elif [ $DAYS_UNTIL_EXPIRY -lt $WARNING_DAYS ]; then
     log_warn "Certificate expires in $DAYS_UNTIL_EXPIRY days!"
     log_warn "Consider renewing soon."
+    send_n8n_notification "WARNING" "SSL Certificate for homelab.local expires in $DAYS_UNTIL_EXPIRY days."
     echo ""
     log_info "To renew the certificate, run:"
     echo "  cd $HOMELAB_DIR"
