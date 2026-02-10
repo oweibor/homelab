@@ -231,74 +231,18 @@ graph TB
 
 ### Core Services
 
-<table>
-  <tr>
-    <th>Service</th>
-    <th>Purpose</th>
-    <th>Default Port</th>
-    <th>Secure URL</th>
-  </tr>
-  <tr>
-    <td><b>🧠 Ollama</b></td>
-    <td>Local LLM inference engine</td>
-    <td>11434</td>
-    <td>API only</td>
-  </tr>
-  <tr>
-    <td><b>💬 Open WebUI</b></td>
-    <td>ChatGPT-like interface</td>
-    <td>3000</td>
-    <td>https://chat.homelab.local</td>
-  </tr>
-  <tr>
-    <td><b>🤖 Antigravity</b></td>
-    <td>AI-powered code editor</td>
-    <td>6080</td>
-    <td>https://antigravity.homelab.local</td>
-  </tr>
-  <tr>
-    <td><b>🦾 OpenClaw</b></td>
-    <td>Autonomous AI agent</td>
-    <td>3005</td>
-    <td>https://openclaw.homelab.local</td>
-  </tr>
-  <tr>
-    <td><b>🏡 Home Assistant</b></td>
-    <td>Smart home platform</td>
-    <td>8123</td>
-    <td>https://ha.homelab.local</td>
-  </tr>
-  <tr>
-    <td><b>🎬 Plex</b></td>
-    <td>Media server (4K transcoding)</td>
-    <td>32400</td>
-    <td>https://plex.homelab.local</td>
-  </tr>
-  <tr>
-    <td><b>🔄 n8n</b></td>
-    <td>Workflow automation</td>
-    <td>5678</td>
-    <td>https://n8n.homelab.local</td>
-  </tr>
-  <tr>
-    <td><b>📁 Samba</b></td>
-    <td>Network file sharing</td>
-    <td>445</td>
-    <td>smb://&lt;IP&gt;/Media</td>
-  </tr>
-  <tr>
-    <td><b>🔒 Traefik</b></td>
-    <td>Reverse proxy & SSL</td>
-    <td>80, 443</td>
-    <td>https://traefik.homelab.local</td>
-  </tr>
-  <tr>
-    <td><b>🔄 Watchtower</b></td>
-    <td>Auto-update containers</td>
-    <td>N/A</td>
-    <td>Background service</td>
-  </tr>
-</table>
+| Service | Purpose | Default Port | Secure URL |
+|---------|---------|--------------|------------|
+| **🧠 Ollama** | Local LLM inference engine | 11434 | API only |
+| **💬 Open WebUI** | ChatGPT-like interface | 3000 | https://chat.homelab.local |
+| **🤖 Antigravity** | AI-powered code editor | 6080 | https://antigravity.homelab.local |
+| **🦾 OpenClaw** | Autonomous AI agent | 3005 | https://openclaw.homelab.local |
+| **🏡 Home Assistant** | Smart home platform | 8123 | https://ha.homelab.local |
+| **🎬 Plex** | Media server (4K transcoding) | 32400 | https://plex.homelab.local |
+| **🔄 n8n** | Workflow automation | 5678 | https://n8n.homelab.local |
+| **📁 Samba** | Network file sharing | 445 | smb://&lt;IP&gt;/Media |
+| **🔒 Traefik** | Reverse proxy & SSL | 80, 443 | https://traefik.homelab.local |
+| **🔄 Watchtower** | Auto-update containers | N/A | Background service |
 
 ---
 
@@ -467,16 +411,7 @@ For automatic resolution on all devices:
 
 ### Step 2: Access Services
 
-| Service | Secure URL | Direct Access | Credentials |
-|---------|-----------|---------------|-------------|
-| **Traefik Dashboard** | https://traefik.homelab.local | N/A | See `traefik/dynamic.yaml` |
-| **Home Assistant** | https://ha.homelab.local | http://&lt;IP&gt;:8123 | Setup wizard |
-| **Plex** | https://plex.homelab.local | http://&lt;IP&gt;:32400/web | Plex account |
-| **n8n** | https://n8n.homelab.local | http://&lt;IP&gt;:5678 | `~/homelab/n8n/.env` |
-| **Open WebUI** | https://chat.homelab.local | http://&lt;IP&gt;:3000 | Create account |
-| **Antigravity** | https://antigravity.homelab.local | http://&lt;IP&gt;:6080 | `~/homelab/antigravity/.env` |
-| **OpenClaw** | https://openclaw.homelab.local | http://&lt;IP&gt;:3005 | `~/homelab/openclaw/.env` |
-| **Samba Share** | N/A | smb://&lt;IP&gt;/Media | `~/homelab/samba/.env` |
+Refer to the [Service Catalog](#-service-catalog) table above for a full list of secure URLs and default ports.
 
 ---
 
@@ -484,9 +419,12 @@ For automatic resolution on all devices:
 
 #### Home Assistant
 1. Navigate to https://ha.homelab.local
-2. Create your admin account
-3. Complete the setup wizard
-4. Enable Bluetooth integration for device discovery
+2. Create your admin account and complete the setup wizard.
+3. Enable Bluetooth integration for device discovery.
+4. **Activate HACS (Community Store)**:
+   - Navigate to **Settings** > **Devices & Services** > **Add Integration**.
+   - Search for **HACS** (pre-installed by our script).
+   - Follow instructions to link your GitHub account.
 
 #### Plex
 1. Go to https://plex.homelab.local
@@ -838,7 +776,7 @@ docker compose restart homeassistant
 # 3. Restart the Plex container:
 docker compose up -d plex
 
-# Note: Claim codes expire after 4 minutes! Soyou have to copy, paste and restart the container quickly. 
+# Note: Claim codes expire after 4 minutes! So you have to copy, paste and restart the container quickly. 
 ```
 </details>
 
@@ -1017,12 +955,6 @@ Turn your smart home into an AI-powered assistant:
    - **Natural Commands**: "I'm cold" → Increase temperature
    - **Daily Briefing**: Morning summary of sensor data
 
-4. **HACS (Community Store)**
-   HACS is pre-installed by the `setup.sh` script. To activate it:
-   1.  Navigate to **Settings** > **Devices & Services** > **Add Integration**.
-   2.  Search for **HACS**.
-   3.  Follow the on-screen instructions to link your GitHub account.
-   4.  Wait for HACS to finish its initial data download.
 
 ### n8n Workflow Examples
 
