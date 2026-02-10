@@ -70,7 +70,6 @@ For the best experience on **Intel N100 (8GB - 16GB RAM)**, we recommend these m
 | :--- | :--- | :--- | :--- |
 | **Llama 3.2 (1B/3B)** | General Chat / Assistant | Reasoning, concise replies, low latency. | ~1.3GB - 2GB |
 | **Qwen 2.5-Coder (3B)** | Coding / Agentic Tasks | Python proficiency, instruction following, logic. | ~2.1GB |
-| **Mistral (7B)** | Complex Tasks (16GB RAM req) | Better long-form writing and knowledge. | ~4.1GB |
 
 > [!TIP]
 > **Pro Tip**: Use `Llama 3.2 (3B)` as your default daily driver for Home Assistant voice logs, and `Qwen 2.5-Coder` exclusively for the Antigravity editor or OpenClaw tasks.
