@@ -654,7 +654,7 @@ echo $(htpasswd -nB admin) | sed -e s/\\$/\\$\\$/g
 The setup includes automated maintenance features:
 
 1. **Container Updates** (Watchtower)
-   - Runs daily at 3 AM
+   - Runs weekly on Sundays at 3 AM
    - Automatically updates all containers
    - Graceful container restarts
    - Rollback on failure
@@ -838,7 +838,7 @@ docker compose restart homeassistant
 # 3. Restart the Plex container:
 docker compose up -d plex
 
-# Note: Claim codes expire after 4 minutes!
+# Note: Claim codes expire after 4 minutes! Soyou have to copy, paste and restart the container quickly. 
 ```
 </details>
 
