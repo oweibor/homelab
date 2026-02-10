@@ -1193,6 +1193,9 @@ If you find this project useful, please consider giving it a star! It helps othe
 - **Email**: For security issues only
 
 ---
+
+## 📊 Repository Metrics
+
 ![Alt](https://repobeats.axiom.co/api/embed/101aeb90eeb2a88b1b53d5448b9e42a0d090c0a5.svg "Repobeats analytics image")
 
 <div align="center">
