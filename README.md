@@ -331,6 +331,18 @@ docker compose exec ollama ollama pull qwen2.5-coder:3b
 
 ---
 
+### 🛡️ Migration & Data Safety (Important)
+
+If you are migrating from an old setup and already have a `homelab/media` folder:
+
+1. **Place your folder**: Ensure your existing `homelab` folder is in the user home directory (e.g., `/home/user/homelab`).
+2. **Run setup**: Run the `setup.sh` as normal.
+3. **Data Integrity**: The script will recognize the folder exists, **keep all your movies/shows intact**, and simply ensure the new Docker stack has the correct permissions to serve them.
+
+> **In summary**: Your media files are 100% safe and will NOT be deleted.
+
+---
+
 ### Scenario C: Selective Services Only
 
 **For users who only want specific components (e.g., just the AI stack).**
