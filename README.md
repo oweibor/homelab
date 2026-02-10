@@ -1017,6 +1017,13 @@ Turn your smart home into an AI-powered assistant:
    - **Natural Commands**: "I'm cold" → Increase temperature
    - **Daily Briefing**: Morning summary of sensor data
 
+4. **HACS (Community Store)**
+   HACS is pre-installed by the `setup.sh` script. To activate it:
+   1.  Navigate to **Settings** > **Devices & Services** > **Add Integration**.
+   2.  Search for **HACS**.
+   3.  Follow the on-screen instructions to link your GitHub account.
+   4.  Wait for HACS to finish its initial data download.
+
 ### n8n Workflow Examples
 
 #### 1. AI-Powered Home Automation

@@ -709,6 +709,25 @@ show_success_banner "Directory structure created at $HOMELAB_DIR"
 echo ""
 
 # ============================================
+# PRE-INSTALL HACS (Home Assistant Community Store)
+# ============================================
+log_info "Pre-installing HACS (Community Store)..."
+HACS_DIR="$HOMELAB_DIR/homeassistant/custom_components/hacs"
+mkdir -p "$HACS_DIR"
+if ! curl -sfL https://github.com/hacs/integration/releases/latest/download/hacs.zip -o "$HOMELAB_DIR/hacs.zip"; then
+    log_warn "Failed to download HACS. You may need to install it manually later."
+else
+    # Install unzip if missing (required for HACS)
+    if ! command -v unzip >/dev/null 2>&1; then
+        apt-get install -y unzip >/dev/null 2>&1
+    fi
+    unzip -qo "$HOMELAB_DIR/hacs.zip" -d "$HACS_DIR"
+    rm "$HOMELAB_DIR/hacs.zip"
+    chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/homeassistant/custom_components"
+    log_success "HACS files staged in custom_components."
+fi
+
+# ============================================
 # STEP 7: GENERATE SERVICE CREDENTIALS
 # ============================================
 show_step_header "7" "Generating Service Credentials"
