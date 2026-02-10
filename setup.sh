@@ -1040,6 +1040,21 @@ if ! curl -m 5 -sf http://localhost:5678 >/dev/null 2>&1; then
     FAILED_CHECKS+=("n8n (5678)")
 fi
 
+# Check Open WebUI (3000)
+if ! curl -m 5 -sf http://localhost:3000 >/dev/null 2>&1; then
+    FAILED_CHECKS+=("Open WebUI (3000)")
+fi
+
+# Check Antigravity (6080)
+if ! curl -m 5 -sf http://localhost:6080 >/dev/null 2>&1; then
+    FAILED_CHECKS+=("Antigravity (6080)")
+fi
+
+# Check OpenClaw (3005)
+if ! curl -m 5 -sf http://localhost:3005 >/dev/null 2>&1; then
+    FAILED_CHECKS+=("OpenClaw (3005)")
+fi
+
 # Check Samba (445) - TCP check since it's not HTTP
 # Using bash's built-in TCP capability to avoid needing netcat
 if ! timeout 2 bash -c '</dev/tcp/localhost/445' >/dev/null 2>&1; then
