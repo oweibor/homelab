@@ -647,20 +647,22 @@ htop
 
 ### Backup Strategy
 
-```bash
-# Backup critical configurations
-cd ~/homelab
-tar -czf homelab-backup-$(date +%Y%m%d).tar.gz \
-  homeassistant/ \
-  plex/config/ \
-  n8n/ \
-  traefik/ \
-  .env \
-  */.env
+Our setup includes an **Automated Weekly Backup** (configured in `setup.sh`) that runs every Sunday at 2 AM. It compresses all critical service configurations and `.env` files while preserving disk space by rotating old archives.
 
-# Restore from backup
-tar -xzf homelab-backup-YYYYMMDD.tar.gz -C ~/homelab/
+#### Manual Backup
+To trigger a backup manually:
+```bash
+cd ~/homelab
+./backup-homelab.sh
 ```
+
+#### Restore from Backup
+1. Stop all containers: `docker compose down`
+2. Extract the backup archive:
+```bash
+tar -xzf backups/homelab-backup-YYYYMMDD.tar.gz -C ~/homelab/
+```
+3. Restart services: `docker compose up -d`
 
 ### SSL Certificate Renewal
 

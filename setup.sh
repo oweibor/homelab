@@ -1105,11 +1105,17 @@ show_step_header "12" "Setting up Automated Maintenance"
 # Ensure maintenance scripts are executable
 chmod +x "$HOMELAB_DIR/check-ssl-expiry.sh"
 chmod +x "$HOMELAB_DIR/update.sh"
+chmod +x "$HOMELAB_DIR/backup-homelab.sh"
 
 # Register weekly SSL check cron job (Every Sunday at midnight)
 CRON_JOB="0 0 * * 0 $HOMELAB_DIR/check-ssl-expiry.sh >/dev/null 2>&1"
 (crontab -l 2>/dev/null | grep -v "check-ssl-expiry.sh"; echo "$CRON_JOB") | crontab -
 log_success "Weekly SSL monitoring cron job registered."
+
+# Register weekly Homelab backup cron job (Every Sunday at 2 AM)
+BACKUP_CRON="0 2 * * 0 $HOMELAB_DIR/backup-homelab.sh >/dev/null 2>&1"
+(crontab -l 2>/dev/null | grep -v "backup-homelab.sh"; echo "$BACKUP_CRON") | crontab -
+log_success "Weekly automated backup cron job registered (Sundays at 2 AM)."
 
 
 # ============================================
