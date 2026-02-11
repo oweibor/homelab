@@ -78,13 +78,13 @@ This project provides:
 ### 🔒 **Enterprise Security**
 - **Automated SSL/TLS**: Traefik reverse proxy with certificate management
 - **Sandboxed Execution**: Docker isolation for all services
-- **Weekly Health Checks**: Automated monitoring and alerting
+- **Advanced Healthchecks**: Real-time Docker & Traefik monitoring to prevent "Bad Gateway" errors
 - **Credential Vaulting**: Secure password generation and storage
 
 ### ⚡ **Performance & Reliability**
 - **CPU Optimization**: Pre-configured C-states for N100 stability
 - **Auto-Updates**: Watchtower keeps containers current
-- **Resource Monitoring**: Built-in health checks and logging
+- **Intelligent Routing**: Traefik only directs traffic to services that are fully healthy
 - **Low Power Consumption**: Optimized for 24/7 operation (sub-10W idle)
 
 ---
