@@ -1085,6 +1085,14 @@ if ! su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose ps --format '{{
     FAILED_CHECKS+=("Watchtower (Container not running)")
 fi
 
+# Check Docker Proxy (2375)
+if ! curl -m 5 -sf http://localhost:2375 >/dev/null 2>&1; then
+    # Note: Curl might fail if strictly checking root but the port should be open to the server
+    if ! timeout 2 bash -c '</dev/tcp/localhost/2375' >/dev/null 2>&1; then
+        FAILED_CHECKS+=("Docker Proxy (2375)")
+    fi
+fi
+
 if [ ${#FAILED_CHECKS[@]} -gt 0 ]; then
     log_warn "The following services are not responding:"
     printf '  - %s\n' "${FAILED_CHECKS[@]}"

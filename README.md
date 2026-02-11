@@ -180,6 +180,7 @@ graph TB
             WebUI[Open WebUI<br/>Chat Interface]
             Antigravity[Antigravity<br/>Agent IDE<br/>VNC 6080]
             OpenClaw[OpenClaw<br/>AI Agent<br/>Port 3005]
+            Proxy[Docker Proxy<br/>Security Layer]
         end
         
         subgraph AutoStack[Automation]
@@ -203,7 +204,10 @@ graph TB
     OpenClaw --> Ollama
     
     %% System Integrations
-    OpenClaw -.->|Control| DockerSock
+    OpenClaw -->|TCP| Proxy
+    Proxy -->|Socket| DockerSock
+    
+    %% System Integrations
     Traefik -.->|Discover| DockerSock
     Watchtower -.->|Update| DockerSock
     
@@ -242,6 +246,7 @@ graph TB
 | **🔄 n8n** | Workflow automation | 5678 | https://n8n.homelab.local |
 | **📁 Samba** | Network file sharing | 445 | smb://&lt;IP&gt;/Media |
 | **🔒 Traefik** | Reverse proxy & SSL | 80, 443 | https://traefik.homelab.local |
+| **🛡️ Docker Proxy** | Security layer for AI agents | 2375 (Internal) | Internal Only |
 | **🔄 Watchtower** | Auto-update containers | N/A | Background service |
 
 ---
