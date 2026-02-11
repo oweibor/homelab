@@ -214,8 +214,8 @@ graph TB
     Plex ---|Mount| MediaData
     Samba ---|Share| MediaData
 
-    style Traefik fill:#00897B
-    style Ollama fill:#7B1FA2
+    style Traefik fill:#3ff4ad
+    style Ollama fill:#e5a8ff
     style HA fill:#03A9F4
     style Plex fill:#E5A00D
     style MediaData fill:#546E7A,color:#fff
