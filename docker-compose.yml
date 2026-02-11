@@ -139,6 +139,8 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    depends_on:
+      - ollama
 
   n8n:
     image: n8nio/n8n:latest
@@ -290,6 +292,7 @@ services:
       - "traefik.http.services.openclaw.loadbalancer.server.port=3000"
     depends_on:
       - ollama
+      - docker-proxy
     logging:
       driver: "json-file"
       options:
