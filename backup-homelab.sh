@@ -4,11 +4,12 @@
 # ==========================================================
 # Scope: Backs up critical service configurations and env files.
 # Exclusion: Excludes media files and transcodes to save space.
-# Rotation: Keeps the last 4 weekly backups.
-# ==========================================================
+set -euo pipefail
 
-USER_HOME=$(eval echo "~$SUDO_USER")
-HOMELAB_DIR="${USER_HOME}/homelab"
+# Get the actual user who ran sudo
+ACTUAL_USER="${SUDO_USER:-$(whoami)}"
+USER_HOME=$(getent passwd "$ACTUAL_USER" | cut -d: -f6)
+HOMELAB_DIR="${HOMELAB_DIR:-$USER_HOME/homelab}"
 BACKUP_DIR="${HOMELAB_DIR}/backups"
 LOG_FILE="${HOMELAB_DIR}/logs/backup.log"
 TIMESTAMP=$(date +%Y%m%d)
@@ -53,6 +54,11 @@ fi
 # 2. Rotation policy (Keep last 4 weekly backups)
 log "Cleaning up old backups (keeping last 4)..."
 cd "$BACKUP_DIR" || exit 1
-ls -1t homelab-backup-*.tar.gz | tail -n +5 | xargs -r rm
+# Safer rotation using a loop and sorted file list
+# shellcheck disable=SC2012
+ls -1t homelab-backup-*.tar.gz 2>/dev/null | tail -n +5 | while read -r old_backup; do
+    log "Removing old backup: $old_backup"
+    rm -f "$old_backup"
+done
 
 log "Weekly backup complete."
