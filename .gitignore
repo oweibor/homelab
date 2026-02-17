@@ -18,3 +18,14 @@ homeassistant/
 n8n/
 samba/
 open-webui/
+
+# Monitoring Data
+grafana/data/
+prometheus/data/
+
+# Tailscale State
+tailscale/
+
+# mkcert CA & Client Certs (sensitive)
+certs-for-clients/
+traefik/certs/

@@ -76,15 +76,25 @@ This project provides:
 - **Workflow Automation**: n8n for connecting services and creating custom automations
 
 ### 🔒 **Enterprise Security**
-- **Automated SSL/TLS**: Traefik reverse proxy with certificate management
-- **Sandboxed Execution**: Docker isolation for all services
-- **Advanced Healthchecks**: Real-time Docker & Traefik monitoring to prevent "Bad Gateway" errors
-- **Credential Vaulting**: Secure password generation and storage
+- **Zero-Trust Docker Socket**: Traefik routes through a read-only Docker Socket Proxy — no raw socket exposure
+- **Locally-Trusted SSL**: mkcert generates wildcard `*.homelab.local` certs trusted by your OS — zero browser warnings
+- **OWASP Security Headers**: Global HSTS, NoSniff, X-Frame-Options, Referrer-Policy, Permissions-Policy on all routes
+- **Sandboxed Execution**: Docker isolation with credential vaulting for all services
+
+### 🌐 **Remote Access & Networking**
+- **Tailscale VPN**: Zero-config encrypted mesh network — access your homelab from anywhere, no port forwarding
+- **Traefik Reverse Proxy**: Intelligent routing with SSL termination and health-based load balancing
+- **Subnet Advertising**: Tailscale exposes your entire LAN to your mesh devices
+
+### 📊 **Full Observability**
+- **Prometheus**: Metrics collection with 30-day retention
+- **Grafana Dashboards**: Pre-built dashboard for CPU, memory, containers, and Traefik request rates
+- **cAdvisor + Node Exporter**: Per-container and host-level resource monitoring
 
 ### ⚡ **Performance & Reliability**
 - **CPU Optimization**: Pre-configured C-states for N100 stability
 - **Auto-Updates**: Watchtower keeps containers current
-- **Intelligent Routing**: Traefik only directs traffic to services that are fully healthy
+- **Advanced Healthchecks**: Real-time Docker & Traefik monitoring to prevent "Bad Gateway" errors
 - **Low Power Consumption**: Optimized for 24/7 operation (sub-10W idle)
 
 ---
@@ -205,11 +215,20 @@ graph TB
     
     %% System Integrations
     OpenClaw -->|TCP| Proxy
+    Traefik -->|TCP| Proxy
     Proxy -->|Socket| DockerSock
     
-    %% System Integrations
-    Traefik -.->|Discover| DockerSock
+    %% Watchtower (direct socket)
     Watchtower -.->|Update| DockerSock
+    
+    %% Remote Access
+    Tailscale[Tailscale<br/>VPN Mesh] -.->|Mesh| Traefik
+    
+    %% Observability
+    Prometheus[Prometheus<br/>Metrics] --> cAdvisor[cAdvisor]
+    Prometheus --> NodeExp[Node Exporter]
+    Grafana[Grafana<br/>Dashboards] --> Prometheus
+    Traefik -->|Route| Grafana
     
     Plex ---|Mount| MediaData
     Samba ---|Share| MediaData
@@ -246,8 +265,13 @@ graph TB
 | **🔄 n8n** | Workflow automation | 5678 | https://n8n.homelab.local |
 | **📁 Samba** | Network file sharing | 445 | smb://&lt;IP&gt;/Media |
 | **🔒 Traefik** | Reverse proxy & SSL | 80, 443 | https://traefik.homelab.local |
-| **🛡️ Docker Proxy** | Security layer for AI agents | 2375 (Internal) | Internal Only |
+| **🛡️ Docker Proxy** | Zero-trust Docker API gateway | 2375 (Internal) | Internal Only |
 | **🔄 Watchtower** | Auto-update containers | N/A | Background service |
+| **🌐 Tailscale** | Encrypted mesh VPN | N/A | `tailscale status` |
+| **📊 Prometheus** | Metrics collection engine | 9090 | https://prometheus.homelab.local |
+| **📈 Grafana** | Metrics dashboards | 3001 | https://grafana.homelab.local |
+| **📦 cAdvisor** | Container metrics exporter | 8080 (Internal) | Internal Only |
+| **💻 Node Exporter** | Host system metrics | 9100 (Internal) | Internal Only |
 
 ---
 

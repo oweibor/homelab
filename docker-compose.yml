@@ -7,16 +7,18 @@ services:
       - "--configFile=/etc/traefik/traefik.yaml"
     networks:
       - homelab
+      - proxy
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik:/etc/traefik
     environment:
       - TZ=${TZ}
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      - docker-proxy
 
   watchtower:
     image: containrrr/watchtower
@@ -95,6 +97,7 @@ services:
       - "traefik.http.routers.ollama.rule=Host(`ollama.homelab.local`)"
       - "traefik.http.routers.ollama.entrypoints=websecure"
       - "traefik.http.routers.ollama.tls=true"
+      - "traefik.http.routers.ollama.middlewares=secure-headers@file"
       - "traefik.http.services.ollama.loadbalancer.server.port=11434"
     environment:
       - TZ=${TZ}
@@ -125,6 +128,7 @@ services:
       - "traefik.http.routers.chat.rule=Host(`chat.homelab.local`)"
       - "traefik.http.routers.chat.entrypoints=websecure"
       - "traefik.http.routers.chat.tls=true"
+      - "traefik.http.routers.chat.middlewares=secure-headers@file"
       - "traefik.http.services.chat.loadbalancer.server.port=8080"
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
@@ -157,6 +161,7 @@ services:
       - "traefik.http.routers.n8n.rule=Host(`n8n.homelab.local`)"
       - "traefik.http.routers.n8n.entrypoints=websecure"
       - "traefik.http.routers.n8n.tls=true"
+      - "traefik.http.routers.n8n.middlewares=secure-headers@file"
       - "traefik.http.services.n8n.loadbalancer.server.port=5678"
     environment:
       - N8N_BASIC_AUTH_ACTIVE=true
@@ -233,6 +238,7 @@ services:
       - "traefik.http.routers.antigravity.rule=Host(`antigravity.homelab.local`)"
       - "traefik.http.routers.antigravity.entrypoints=websecure"
       - "traefik.http.routers.antigravity.tls=true"
+      - "traefik.http.routers.antigravity.middlewares=secure-headers@file"
       - "traefik.http.services.antigravity.loadbalancer.server.port=6080"
     depends_on:
       - ollama
@@ -242,20 +248,28 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Secure Docker Socket Proxy (Mitigates container escape risk)
+  # Secure Docker Socket Proxy (Zero-Trust Docker API gateway)
+  # Only exposes read-only container/service/network discovery.
+  # Traefik and OpenClaw connect here instead of the raw Docker socket.
   docker-proxy:
     image: tecnativa/docker-socket-proxy:latest
     container_name: docker-proxy
     restart: unless-stopped
     networks:
+      - proxy
       - homelab
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
+      # Read-only discovery for Traefik
       - CONTAINERS=1
-      - POST=1
-      - LOGS=1
-      - EXEC=1
+      - SERVICES=1
+      - NETWORKS=1
+      - TASKS=1
+      # Write access disabled (zero-trust)
+      - POST=0
+      - EXEC=0
+      - LOGS=0
     logging:
       driver: "json-file"
       options:
@@ -289,6 +303,7 @@ services:
       - "traefik.http.routers.openclaw.rule=Host(`openclaw.homelab.local`)"
       - "traefik.http.routers.openclaw.entrypoints=websecure"
       - "traefik.http.routers.openclaw.tls=true"
+      - "traefik.http.routers.openclaw.middlewares=secure-headers@file"
       - "traefik.http.services.openclaw.loadbalancer.server.port=3000"
     depends_on:
       - ollama
@@ -299,10 +314,155 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # Tailscale: Zero-Config Encrypted Remote Access
+  # Access your entire homelab from anywhere without port forwarding
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: tailscale
+    hostname: homelab
+    restart: unless-stopped
+    networks:
+      - homelab
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - TS_AUTHKEY=${TAILSCALE_AUTHKEY}
+      - TS_EXTRA_ARGS=--advertise-exit-node --advertise-routes=192.168.1.0/24 --accept-dns=false
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TZ=${TZ}
+    volumes:
+      - tailscale_state:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # ============================================================
+  # OBSERVABILITY STACK (Prometheus + Grafana + Exporters)
+  # ============================================================
+
+  # Prometheus: Metrics Collection Engine
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    networks:
+      - homelab
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=30d"
+      - "--storage.tsdb.retention.size=5GB"
+    environment:
+      - TZ=${TZ}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.homelab.local`)"
+      - "traefik.http.routers.prometheus.entrypoints=websecure"
+      - "traefik.http.routers.prometheus.tls=true"
+      - "traefik.http.routers.prometheus.middlewares=secure-headers@file"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Grafana: Metrics Visualization & Dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    networks:
+      - homelab
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=https://grafana.homelab.local
+      - TZ=${TZ}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.homelab.local`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls=true"
+      - "traefik.http.routers.grafana.middlewares=secure-headers@file"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+    depends_on:
+      - prometheus
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # cAdvisor: Container Resource Metrics Exporter
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+    networks:
+      - homelab
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # Node Exporter: Host System Metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/rootfs"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
 volumes:
   ollama_models:
+  tailscale_state:
+  prometheus_data:
+  grafana_data:
 
 
 networks:
   homelab:
     driver: bridge
+  proxy:
+    driver: bridge
+    internal: true # No external access — socket proxy only

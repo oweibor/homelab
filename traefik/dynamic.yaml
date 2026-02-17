@@ -1,5 +1,25 @@
 http:
   middlewares:
+    # Global Security Headers (Top 5 OWASP recommendations)
+    secure-headers:
+      headers:
+        # Force HTTPS for 2 years (protects against downgrade attacks)
+        stsSeconds: 63072000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        # Prevent MIME-type sniffing (blocks content-type attacks)
+        contentTypeNosniff: true
+        # Prevent clickjacking (blocks iframe embedding)
+        frameDeny: true
+        # Control referrer leakage across origins
+        referrerPolicy: "strict-origin-when-cross-origin"
+        # Disable sensitive browser APIs by default
+        permissionsPolicy: "camera=(), microphone=(), geolocation=(), payment=()"
+        # Additional hardening
+        browserXssFilter: true
+        customResponseHeaders:
+          X-Robots-Tag: "noindex, nofollow"
+
     traefik-auth:
       basicAuth:
         users:
@@ -14,6 +34,7 @@ http:
       entryPoints:
         - websecure
       middlewares:
+        - secure-headers
         - traefik-auth
       tls: {}
     
@@ -22,6 +43,8 @@ http:
       service: homeassistant
       entryPoints:
         - websecure
+      middlewares:
+        - secure-headers
       tls: {}
 
     plex:
@@ -29,6 +52,8 @@ http:
       service: plex
       entryPoints:
         - websecure
+      middlewares:
+        - secure-headers
       tls: {}
 
   services:

@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 🔐 Security Overhaul
+- **Zero-Trust Docker Socket Proxy**: Traefik no longer mounts the raw Docker socket. All container discovery routes through `docker-proxy` with read-only permissions (POST=0, EXEC=0, LOGS=0). Dedicated internal `proxy` network isolates the socket from external access.
+- **mkcert Locally-Trusted SSL**: Replaced OpenSSL self-signed certs with mkcert. Generates wildcard `*.homelab.local` certificates trusted by the host OS — **zero browser warnings**. Includes OpenSSL fallback for air-gapped environments. Client CA export script (`scripts/export-ca.sh`) for trusting certs on phones and laptops.
+- **Global Security Headers**: Applied OWASP Top 5 security headers to all Traefik-proxied services:
+  - `Strict-Transport-Security` (HSTS, 2 years with preload)
+  - `X-Content-Type-Options: nosniff`
+  - `X-Frame-Options: SAMEORIGIN` (anti-clickjacking)
+  - `Referrer-Policy: strict-origin-when-cross-origin`
+  - `Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()`
+
+### 🌐 Remote Access
+- **Tailscale Integration**: Zero-config encrypted mesh VPN via `tailscale/tailscale` container. Advertises the local subnet as routes and acts as an exit node — access your entire homelab from anywhere without port forwarding. Persistent state via Docker volume.
+
+### 📊 Observability Stack
+- **Prometheus**: Metrics collection engine with 30-day retention. Scrapes Traefik, cAdvisor, node-exporter, and Ollama.
+- **Grafana**: Beautiful metrics dashboards at `grafana.homelab.local`. Pre-provisioned with Prometheus datasource and a custom "Homelab Infrastructure Overview" dashboard (CPU/memory per container, host gauges, network traffic, Traefik request rates).
+- **cAdvisor**: Container-level resource metrics (CPU, memory, network, disk I/O per container).
+- **Node Exporter**: Host-level system metrics (CPU, memory, disk, network).
+- **Traefik Metrics**: Enabled Prometheus metrics endpoint on port 8082 for request rate and latency tracking.
+
+### 🤖 AI Orchestration
+- **Kilo CLI**: Agentic AI orchestration from the terminal. Setup script installs Node.js 20 LTS and `@kilocode/cli` globally. Leverages local Ollama for private, offline AI agent workflows.
+
 ### Added
 - **Reliability & Health Monitoring**:
   - Native Docker healthchecks for all bridge network services (Ollama, n8n, etc.)

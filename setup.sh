@@ -656,9 +656,12 @@ if [ ! -f "$SYSCTL_CONF" ]; then
     tee "$SYSCTL_CONF" >/dev/null <<EOF
 vm.dirty_ratio=10
 vm.dirty_background_ratio=5
+# IP forwarding for Tailscale subnet routing
+net.ipv4.ip_forward=1
+net.ipv6.conf.all.forwarding=1
 EOF
     sysctl -p "$SYSCTL_CONF" >/dev/null
-    log_info "Sysctl optimizations applied"
+    log_info "Sysctl optimizations applied (includes IP forwarding for Tailscale)"
 fi
 
 # GRUB C-state optimization (N100 stability)
@@ -764,7 +767,7 @@ else
     source "$N8N_ENV"
 fi
 
-# Traefik & SSL Setup
+# Traefik & SSL Setup (mkcert for locally-trusted certificates)
 TRAEFIK_DIR="$HOMELAB_DIR/traefik"
 mkdir -p "$TRAEFIK_DIR/certs"
 
@@ -776,18 +779,60 @@ else
     log_warn "Traefik configuration directory not found in source!"
 fi
 
-# Generate Self-Signed Certs
+# Install mkcert for locally-trusted SSL (no browser warnings)
 CERT_KEY="$TRAEFIK_DIR/certs/homelab.local.key"
 CERT_CRT="$TRAEFIK_DIR/certs/homelab.local.crt"
 
 if [ ! -f "$CERT_KEY" ] || [ ! -f "$CERT_CRT" ]; then
-    log_info "Generating self-signed SSL certificates..."
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-        -keyout "$CERT_KEY" \
-        -out "$CERT_CRT" \
-        -subj "/CN=homelab.local/O=Homelab/C=US" >/dev/null 2>&1
-    chmod 600 "$CERT_KEY"
-    log_info "SSL certificates generated"
+    MKCERT_INSTALLED=false
+
+    # Install mkcert dependencies
+    apt install -y -qq libnss3-tools 2>/dev/null || true
+
+    # Install mkcert binary
+    if ! command -v mkcert &>/dev/null; then
+        log_info "Installing mkcert for locally-trusted SSL..."
+        MKCERT_VERSION="v1.4.4"
+        MKCERT_URL="https://github.com/FiloSottile/mkcert/releases/download/${MKCERT_VERSION}/mkcert-${MKCERT_VERSION}-linux-amd64"
+        if curl -sfL "$MKCERT_URL" -o /usr/local/bin/mkcert; then
+            chmod +x /usr/local/bin/mkcert
+            MKCERT_INSTALLED=true
+            log_info "mkcert installed successfully"
+        else
+            log_warn "Failed to download mkcert. Falling back to OpenSSL."
+        fi
+    else
+        MKCERT_INSTALLED=true
+        log_info "mkcert already installed"
+    fi
+
+    if [ "$MKCERT_INSTALLED" = true ]; then
+        # Install root CA into system trust store
+        CAROOT="$TRAEFIK_DIR/certs/ca" mkcert -install 2>/dev/null || true
+        log_info "Generating locally-trusted SSL certificates with mkcert..."
+        CAROOT="$TRAEFIK_DIR/certs/ca" mkcert \
+            -key-file "$CERT_KEY" \
+            -cert-file "$CERT_CRT" \
+            "*.homelab.local" "homelab.local" "localhost" "127.0.0.1" >/dev/null 2>&1
+        chmod 600 "$CERT_KEY"
+
+        # Copy root CA for easy client distribution
+        CA_DIR="$HOMELAB_DIR/certs-for-clients"
+        mkdir -p "$CA_DIR"
+        cp "$TRAEFIK_DIR/certs/ca/rootCA.pem" "$CA_DIR/homelab-ca.crt" 2>/dev/null || true
+        chown -R "$ACTUAL_USER:$ACTUAL_USER" "$CA_DIR"
+        log_info "✅ Locally-trusted SSL certificates generated (zero browser warnings)"
+        log_info "📁 Client CA available at: $CA_DIR/homelab-ca.crt"
+    else
+        # Fallback: OpenSSL self-signed (will show browser warnings)
+        log_warn "Using OpenSSL fallback (browsers will show security warnings)"
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+            -keyout "$CERT_KEY" \
+            -out "$CERT_CRT" \
+            -subj "/CN=homelab.local/O=Homelab/C=US" >/dev/null 2>&1
+        chmod 600 "$CERT_KEY"
+        log_info "Self-signed SSL certificates generated (OpenSSL fallback)"
+    fi
 else
     log_info "Using existing SSL certificates"
 fi
@@ -817,6 +862,31 @@ if [ ! -f "$OPENCLAW_ENV" ]; then
 else
     log_info "Using existing OpenClaw credentials"
     source "$OPENCLAW_ENV"
+fi
+
+# ============================================
+# KILO CLI: Agentic AI Orchestration from Terminal
+# ============================================
+log_info "Setting up Kilo CLI (AI agent orchestration)..."
+
+# Install Node.js 20 LTS if not present
+if ! command -v node &>/dev/null; then
+    log_info "Installing Node.js 20 LTS..."
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >/dev/null 2>&1
+    apt install -y -qq nodejs >/dev/null 2>&1
+    log_info "Node.js $(node --version) installed"
+else
+    log_info "Node.js already installed: $(node --version)"
+fi
+
+# Install Kilo CLI globally
+if ! command -v kilo &>/dev/null; then
+    log_info "Installing Kilo CLI..."
+    npm install -g @kilocode/cli >/dev/null 2>&1 && \
+        log_info "Kilo CLI installed: $(kilo --version 2>/dev/null || echo 'installed')" || \
+        log_warn "Kilo CLI installation failed. Install manually: npm install -g @kilocode/cli"
+else
+    log_info "Kilo CLI already installed"
 fi
 
 # ============================================
