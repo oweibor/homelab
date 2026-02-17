@@ -14,8 +14,11 @@ All notable changes to this project will be documented in this file.
   - `Referrer-Policy: strict-origin-when-cross-origin`
   - `Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()`
 
-### 🌐 Remote Access
-- **Tailscale Integration**: Zero-config encrypted mesh VPN via `tailscale/tailscale` container. Advertises the local subnet as routes and acts as an exit node — access your entire homelab from anywhere without port forwarding. Persistent state via Docker volume.
+### 🌐 NetBird (Replaces Tailscale)
+- **Self-Hosted Mesh VPN**: Complete NetBird stack (Management, Signal, Dashboard, Coturn) running locally.
+- **Embedded IdP**: Zero cloud dependency. Authentication is handled by the local management server.
+- **Local Dashboard**: Full management UI at `https://netbird.homelab.local`.
+> **Note**: Remote access from outside the LAN requires port forwarding and a public domain. Defined setup is for **local mesh networking only**.
 
 ### 📊 Observability Stack
 - **Prometheus**: Metrics collection engine with 30-day retention. Scrapes Traefik, cAdvisor, node-exporter, and Ollama.

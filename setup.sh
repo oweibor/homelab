@@ -656,12 +656,12 @@ if [ ! -f "$SYSCTL_CONF" ]; then
     tee "$SYSCTL_CONF" >/dev/null <<EOF
 vm.dirty_ratio=10
 vm.dirty_background_ratio=5
-# IP forwarding for Tailscale subnet routing
+# IP forwarding for NetBird/Tailscale subnet routing
 net.ipv4.ip_forward=1
 net.ipv6.conf.all.forwarding=1
 EOF
     sysctl -p "$SYSCTL_CONF" >/dev/null
-    log_info "Sysctl optimizations applied (includes IP forwarding for Tailscale)"
+    log_info "Sysctl optimizations applied (includes IP forwarding for NetBird)"
 fi
 
 # GRUB C-state optimization (N100 stability)
@@ -696,7 +696,7 @@ echo ""
 show_step_header "6" "Creating Homelab Directory Structure"
 
 HOMELAB_DIR="$USER_HOME/homelab"
-mkdir -p "$HOMELAB_DIR"/{homeassistant,plex/config,plex/transcode,media,n8n,samba,backups,open-webui,traefik,antigravity/workspace,antigravity/config,openclaw}
+mkdir -p "$HOMELAB_DIR"/{homeassistant,plex/config,plex/transcode,media,n8n,samba,backups,open-webui,traefik,antigravity/workspace,antigravity/config,openclaw,netbird}
 
 # Set permissions
 PUID=$(id -u "$ACTUAL_USER")

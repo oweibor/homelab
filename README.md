@@ -82,9 +82,10 @@ This project provides:
 - **Sandboxed Execution**: Docker isolation with credential vaulting for all services
 
 ### 🌐 **Remote Access & Networking**
-- **Tailscale VPN**: Zero-config encrypted mesh network — access your homelab from anywhere, no port forwarding
+- **Self-Hosted NetBird**: 100% local mesh VPN stack with embedded IdP (No cloud dependency)
 - **Traefik Reverse Proxy**: Intelligent routing with SSL termination and health-based load balancing
-- **Subnet Advertising**: Tailscale exposes your entire LAN to your mesh devices
+- **Local Dashboard**: Full NetBird management UI running locally at `https://netbird.homelab.local`
+> **Warning**: Remote access from outside your home requires Port Forwarding & Public Domain.
 
 ### 📊 **Full Observability**
 - **Prometheus**: Metrics collection with 30-day retention
@@ -222,7 +223,9 @@ graph TB
     Watchtower -.->|Update| DockerSock
     
     %% Remote Access
-    Tailscale[Tailscale<br/>VPN Mesh] -.->|Mesh| Traefik
+    NetBird[NetBird<br/>Self-Hosted VPN] -.->|API/Dash| Traefik
+    NetBird -- Peer --> Signal[Signal]
+    NetBird -- NAT --> Coturn[Coturn]
     
     %% Observability
     Prometheus[Prometheus<br/>Metrics] --> cAdvisor[cAdvisor]
@@ -267,7 +270,7 @@ graph TB
 | **🔒 Traefik** | Reverse proxy & SSL | 80, 443 | https://traefik.homelab.local |
 | **🛡️ Docker Proxy** | Zero-trust Docker API gateway | 2375 (Internal) | Internal Only |
 | **🔄 Watchtower** | Auto-update containers | N/A | Background service |
-| **🌐 Tailscale** | Encrypted mesh VPN | N/A | `tailscale status` |
+| **🦅 NetBird** | Self-hosted VPN & Mesh | 80/443 (Dash), 10000+ (UDP) | https://netbird.homelab.local |
 | **📊 Prometheus** | Metrics collection engine | 9090 | https://prometheus.homelab.local |
 | **📈 Grafana** | Metrics dashboards | 3001 | https://grafana.homelab.local |
 | **📦 cAdvisor** | Container metrics exporter | 8080 (Internal) | Internal Only |

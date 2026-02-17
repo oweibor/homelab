@@ -23,8 +23,9 @@ open-webui/
 grafana/data/
 prometheus/data/
 
-# Tailscale State
-tailscale/
+# NetBird Data
+netbird.env
+netbird/
 
 # mkcert CA & Client Certs (sensitive)
 certs-for-clients/

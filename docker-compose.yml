@@ -314,26 +314,97 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Tailscale: Zero-Config Encrypted Remote Access
-  # Access your entire homelab from anywhere without port forwarding
-  tailscale:
-    image: tailscale/tailscale:latest
-    container_name: tailscale
-    hostname: homelab
+  # ============================================================
+  # NETBIRD SELF-HOSTED STACK (Management + Dashboard + Signal)
+  # ============================================================
+
+  # NetBird Management: Coordination Server (with Embedded IdP)
+  netbird-management:
+    image: netbirdio/management:latest
+    container_name: netbird-management
     restart: unless-stopped
     networks:
       - homelab
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    environment:
-      - TS_AUTHKEY=${TAILSCALE_AUTHKEY}
-      - TS_EXTRA_ARGS=--advertise-exit-node --advertise-routes=192.168.1.0/24 --accept-dns=false
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TZ=${TZ}
+    depends_on:
+      - docker-proxy
     volumes:
-      - tailscale_state:/var/lib/tailscale
-      - /dev/net/tun:/dev/net/tun
+      - netbird_mgmt:/var/lib/netbird
+      - netbird_letsencrypt:/etc/letsencrypt
+    environment:
+      - NETBIRD_STORE_ENGINE=sqlite
+      - NETBIRD_DATA_DIR=/var/lib/netbird
+      - NETBIRD_LETSENCRYPT_DOMAIN=none
+      - NETBIRD_MGMT_API_ENDPOINT=https://netbird.homelab.local:443
+      - NETBIRD_MGMT_GRPC_API_ENDPOINT=https://netbird.homelab.local:33073
+      - NETBIRD_mgmt_API_PORT=443
+      - NETBIRD_mgmt_GRPC_API_PORT=33073
+      - NETBIRD_IDP_TYPE=self-hosted
+      - TZ=${TZ}
+    labels:
+      - "traefik.enable=true"
+      # Management API & Dashboard routing
+      - "traefik.http.routers.netbird-api.rule=Host(`netbird.homelab.local`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.netbird-api.entrypoints=websecure"
+      - "traefik.http.routers.netbird-api.tls=true"
+      - "traefik.http.services.netbird-api.loadbalancer.server.port=443"
+      - "traefik.http.services.netbird-api.loadbalancer.server.scheme=https"
+      # gRPC routing needs distinct setup, simplified for HTTP/1.1 proxying here
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # NetBird Signal: Peer Discovery Messaging
+  netbird-signal:
+    image: netbirdio/signal:latest
+    container_name: netbird-signal
+    restart: unless-stopped
+    networks:
+      - homelab
+    volumes:
+      - netbird_signal:/var/lib/netbird
+    ports:
+      - "10000:80" # Signal HTTP port
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # NetBird Dashboard: Web UI
+  netbird-dashboard:
+    image: netbirdio/dashboard:latest
+    container_name: netbird-dashboard
+    restart: unless-stopped
+    networks:
+      - homelab
+    environment:
+      - NETBIRD_MGMT_API_ENDPOINT=https://netbird.homelab.local:443
+      - NETBIRD_MGMT_GRPC_API_ENDPOINT=https://netbird.homelab.local:33073
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.netbird.rule=Host(`netbird.homelab.local`)"
+      - "traefik.http.routers.netbird.entrypoints=websecure"
+      - "traefik.http.routers.netbird.tls=true"
+      - "traefik.http.services.netbird.loadbalancer.server.port=80"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # Coturn: STUN/TURN for NAT Traversal
+  coturn:
+    image: coturn/coturn:latest
+    container_name: coturn
+    restart: unless-stopped
+    network_mode: host # Best performance for STUN/TURN
+    command:
+      - -n
+      - --log-file=stdout
+      - --min-port=49152
+      - --max-port=65535
     logging:
       driver: "json-file"
       options:
@@ -455,7 +526,9 @@ services:
 
 volumes:
   ollama_models:
-  tailscale_state:
+  netbird_mgmt:
+  netbird_signal:
+  netbird_letsencrypt:
   prometheus_data:
   grafana_data:
 
