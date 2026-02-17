@@ -889,6 +889,30 @@ else
     log_info "Kilo CLI already installed"
 fi
 
+# Configure Kilo for local Ollama
+KILO_CONFIG_DIR="$USER_HOME/.config/kilocode"
+KILO_CONFIG_FILE="$KILO_CONFIG_DIR/kilocode.json"
+
+if [ ! -f "$KILO_CONFIG_FILE" ]; then
+    log_info "Configuring Kilo CLI for local Ollama..."
+    mkdir -p "$KILO_CONFIG_DIR"
+    # Default to qwen2.5-coder:3b for coding tasks
+    cat > "$KILO_CONFIG_FILE" <<EOF
+{
+  "apiProvider": "ollama",
+  "ollama": {
+    "baseUrl": "http://localhost:11434",
+    "model": "qwen2.5-coder:3b",
+    "numCtx": 32768
+  }
+}
+EOF
+    chown -R "$ACTUAL_USER:$ACTUAL_USER" "$USER_HOME/.config"
+    log_info "Kilo CLI configured (Model: qwen2.5-coder:3b)"
+else
+    log_info "Kilo CLI configuration already exists"
+fi
+
 # ============================================
 # STEP 8: DOCKER COMPOSE CONFIGURATION
 # ============================================
