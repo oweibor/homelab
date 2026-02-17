@@ -631,7 +631,22 @@ echo $(htpasswd -nB admin) | sed -e s/\\$/\\$\\$/g
 
 ## 🛠️ Maintenance & Updates
 
-### Automated Maintenance
+### 🤖 **AI & Smart Home Integration**
+The stack includes a fully integrated AI agent system:
+1.  **OpenClaw**: Autonomous agent that can control your Smart Home and write code.
+    - **Models**:
+        - **Coding**: `qwen2.5-coder:3b` (High precision)
+        - **Chat/Planning**: `llama3.2:3b` (General reasoning)
+        - **Status Checks**: `llama3.2:1b` (Ultra-fast)
+    - **Skills**:
+        - **Home Assistant**: Control lights, switches, and scenes. **Requires Long-Lived Access Token**.
+2.  **Kilo CLI**: Terminal-based agent linked to your local Ollama instance.
+    - **Usage**: Run `kilo "Refactor setup.sh"` in your terminal.
+3.  **Setup**:
+    - Go to **Home Assistant Profile** -> **Security** -> **Create Long-Lived Access Token**.
+    - Run `./setup.sh` and paste the token when prompted.
+
+### 💾 **Backups & Maintenance**
 
 The setup includes automated maintenance features:
 

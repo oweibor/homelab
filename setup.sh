@@ -912,6 +912,67 @@ EOF
 else
     log_info "Kilo CLI configuration already exists"
 fi
+# ============================================
+# OPENCLAW SKILL CONFIGURATION
+# ============================================
+log_info "Configuring OpenClaw Skills & Models..."
+
+OPENCLAW_CONFIG_DIR="$HOMELAB_DIR/openclaw/config"
+OPENCLAW_CONFIG_FILE="$OPENCLAW_CONFIG_DIR/openclaw.json"
+mkdir -p "$OPENCLAW_CONFIG_DIR"
+
+# 1. Home Assistant Token
+OPENCLAW_ENV="$HOMELAB_DIR/openclaw/.env"
+HA_TOKEN=""
+
+if [ -f "$OPENCLAW_ENV" ] && grep -q "HOME_ASSISTANT_TOKEN" "$OPENCLAW_ENV"; then
+    source "$OPENCLAW_ENV"
+    HA_TOKEN="$HOME_ASSISTANT_TOKEN"
+    log_info "Using existing Home Assistant token"
+else
+    echo ""
+    log_info "To enable Smart Home control, OpenClaw needs a Home Assistant Token."
+    log_info "1. Go to your Profile in Home Assistant."
+    log_info "2. Scroll to 'Long-Lived Access Tokens'."
+    log_info "3. Create a token named 'OpenClaw'."
+    echo -n "Enter Token (or press Enter to skip): "
+    read -r HA_TOKEN
+    
+    if [ -n "$HA_TOKEN" ]; then
+        echo "HOME_ASSISTANT_TOKEN=$HA_TOKEN" >> "$OPENCLAW_ENV"
+        log_success "Token saved."
+    else
+        log_warn "Top skipped. Smart Home skills will be disabled."
+    fi
+fi
+
+# 2. Generate OpenClaw Config (Model Routing)
+# Maps intents to specific local models
+cat > "$OPENCLAW_CONFIG_FILE" <<EOF
+{
+  "llm": {
+    "provider": "ollama",
+    "base_url": "http://ollama:11434",
+    "timeout": 120000
+  },
+  "agent": {
+    "models": {
+      "primary": "qwen2.5-coder:3b",
+      "general": "llama3.2:3b", 
+      "fast": "llama3.2:1b"
+    },
+    "skills": {
+      "home_assistant": {
+        "enabled": $(if [ -n "$HA_TOKEN" ]; then echo "true"; else echo "false"; fi),
+        "url": "http://homeassistant:8123",
+        "token": "$HA_TOKEN"
+      }
+    }
+  }
+}
+EOF
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/openclaw/config"
+log_info "OpenClaw configured: Coding=qwen2.5-coder, General=llama3.2"
 
 # ============================================
 # STEP 8: DOCKER COMPOSE CONFIGURATION

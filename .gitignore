@@ -18,6 +18,7 @@ homeassistant/
 n8n/
 samba/
 open-webui/
+openclaw/config/
 
 # Monitoring Data
 grafana/data/
