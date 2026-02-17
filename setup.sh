@@ -696,7 +696,7 @@ echo ""
 show_step_header "6" "Creating Homelab Directory Structure"
 
 HOMELAB_DIR="$USER_HOME/homelab"
-mkdir -p "$HOMELAB_DIR"/{homeassistant,plex/config,plex/transcode,media,n8n,samba,backups,open-webui,traefik,antigravity/workspace,antigravity/config,openclaw,netbird}
+mkdir -p "$HOMELAB_DIR"/{homeassistant,plex/config,plex/transcode,media,n8n,samba,backups,open-webui,traefik,antigravity/workspace,antigravity/config,openclaw/data,openclaw/config,netbird}
 
 # Set permissions
 PUID=$(id -u "$ACTUAL_USER")
@@ -947,25 +947,36 @@ else
 fi
 
 # 2. Generate OpenClaw Config (Model Routing)
-# Maps intents to specific local models
 cat > "$OPENCLAW_CONFIG_FILE" <<EOF
 {
-  "llm": {
-    "provider": "ollama",
-    "base_url": "http://ollama:11434",
-    "timeout": 120000
+  "models": {
+    "mode": "merge",
+    "providers": [
+      {
+        "id": "ollama",
+        "type": "openai-completions",
+        "baseUrl": "http://ollama:11434/v1",
+        "models": [
+          "qwen2.5-coder:3b",
+          "llama3.2:3b",
+          "llama3.2:1b"
+        ]
+      }
+    ]
   },
-  "agent": {
-    "models": {
-      "primary": "qwen2.5-coder:3b",
-      "general": "llama3.2:3b", 
-      "fast": "llama3.2:1b"
-    },
-    "skills": {
-      "home_assistant": {
-        "enabled": $(if [ -n "$HA_TOKEN" ]; then echo "true"; else echo "false"; fi),
-        "url": "http://homeassistant:8123",
-        "token": "$HA_TOKEN"
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "ollama/qwen2.5-coder:3b",
+        "general": "ollama/llama3.2:3b",
+        "fast": "ollama/llama3.2:1b"
+      },
+      "skills": {
+        "home_assistant": {
+          "enabled": $(if [ -n "$HA_TOKEN" ]; then echo "true"; else echo "false"; fi),
+          "url": "http://homeassistant:8123",
+          "token": "$HA_TOKEN"
+        }
       }
     }
   }
@@ -1062,10 +1073,18 @@ elif [ -f "$HOMELAB_DIR/antigravity/.env" ]; then
 fi
 
 # OpenClaw Token
+# OpenClaw Token
 if [ -n "${OPENCLAW_TOKEN:-}" ]; then
     echo "OPENCLAW_TOKEN=$OPENCLAW_TOKEN" >> "$ENV_FILE"
 elif [ -f "$HOMELAB_DIR/openclaw/.env" ]; then
     grep "OPENCLAW_TOKEN" "$HOMELAB_DIR/openclaw/.env" >> "$ENV_FILE"
+fi
+
+# Home Assistant Token
+if [ -n "${HOME_ASSISTANT_TOKEN:-}" ]; then
+    echo "HOME_ASSISTANT_TOKEN=$HOME_ASSISTANT_TOKEN" >> "$ENV_FILE"
+elif [ -f "$HOMELAB_DIR/openclaw/.env" ]; then
+    grep "HOME_ASSISTANT_TOKEN" "$HOMELAB_DIR/openclaw/.env" >> "$ENV_FILE"
 fi
 
 chmod 600 "$ENV_FILE"

@@ -645,6 +645,7 @@ The stack includes a fully integrated AI agent system:
 3.  **Setup**:
     - Go to **Home Assistant Profile** -> **Security** -> **Create Long-Lived Access Token**.
     - Run `./setup.sh` and paste the token when prompted.
+    - **Note**: The token is injected into the OpenClaw environment. If Smart Home control isn't working, ask OpenClaw: *"Install the Home Assistant skill"*.
 
 ### 💾 **Backups & Maintenance**
 

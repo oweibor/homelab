@@ -20,6 +20,12 @@ All notable changes to this project will be documented in this file.
 - **Local Dashboard**: Full management UI at `https://netbird.homelab.local`.
 > **Note**: Remote access from outside the LAN requires port forwarding and a public domain. Defined setup is for **local mesh networking only**.
 
+### 🤖 AI Integration (New)
+- **OpenClaw**: Fully configured autonomous agent.
+  - **Model Routing**: `qwen2.5-coder:3b` (Coding), `llama3.2:3b` (General Skills).
+  - **Smart Home**: Integrated with Home Assistant via Long-Lived Access Token.
+  - **Status Check**: New verification script `scripts/test-ai-stack.sh`.
+
 ### 📊 Observability Stack
 - **Prometheus**: Metrics collection engine with 30-day retention. Scrapes Traefik, cAdvisor, node-exporter, and Ollama.
 - **Grafana**: Beautiful metrics dashboards at `grafana.homelab.local`. Pre-provisioned with Prometheus datasource and a custom "Homelab Infrastructure Overview" dashboard (CPU/memory per container, host gauges, network traffic, Traefik request rates).

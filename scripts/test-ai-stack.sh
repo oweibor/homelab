@@ -33,4 +33,16 @@ else
     echo "❌ OpenClaw Dashboard NOT reachable!" | tee -a "$LOG_FILE"
 fi
 
+# 4. Verify OpenClaw Config
+CONFIG_FILE="./openclaw/config/openclaw.json"
+if [ -f "$CONFIG_FILE" ]; then
+    if grep -q "qwen2.5-coder:3b" "$CONFIG_FILE"; then
+         echo "✅ OpenClaw Config found & correct (Coding Model: qwen2.5)." | tee -a "$LOG_FILE"
+    else
+         echo "❌ OpenClaw Config exists but MISSING model 'qwen2.5-coder:3b'!" | tee -a "$LOG_FILE"
+    fi
+else
+    echo "❌ OpenClaw Config NOT found at $CONFIG_FILE" | tee -a "$LOG_FILE"
+fi
+
 echo "Test Complete. Check $LOG_FILE for details." | tee -a "$LOG_FILE"
