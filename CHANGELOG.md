@@ -9,7 +9,8 @@ All notable changes to this project will be documented in this file.
 - **OpenClaw Network**: Standardized internal and external ports to `18789` for consistent routing, healthchecks, and setup summary.
 - **Samba Networking**: Corrected port 139 mapping from UDP to TCP for NetBIOS Session service compatibility.
 - **Watchtower Proxy**: Updated Docker socket mount to read-write for `docker-proxy-watchtower` to allow automated container updates and image management.
-- **NetBird Mesh**: Corrected the Dashboard endpoint port to `33071` and removed unnecessary Docker proxy dependencies and network isolation for the management service.
+- **NetBird Mesh**: Corrected the Dashboard endpoint port to `33071` and removed unnecessary Docker proxy dependencies for the management service.
+- **Grafana Security**: Implemented automated secure password generation in `setup.sh` (stored in `grafana/.env`) and expanded completion summary.
 
 ## [1.0.0] - 2026-02-18
 
