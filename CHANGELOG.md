@@ -9,6 +9,8 @@ All notable changes to this project will be documented in this file.
 - **OpenClaw Network**: Standardized internal and external ports to `18789` for consistent routing, healthchecks, and setup summary.
 - **NetBird Management**: Resolved double TLS termination. The container now listens on HTTP (Port 80) internally, with Traefik handling SSL termination exclusively.
 - **open-webui**: Pinned image to stable release `v0.8.3` to prevent unplanned breaking changes from the `:main` tag.
+- **n8n Modernization**: Pruned orphaned `N8N_USER` and `N8N_PASS` variables from the setup logic as credentials are now managed in-app.
+- **Infrastructure Persistence**: Standardized the monitoring stack (Grafana/Prometheus) with local bind mounts for consistent data management.
 - **NetBird Signal**: Moved behind Traefik with gRPC (`h2c`) support on `netbird.homelab.local`, removing direct port exposure for better security.
 - **Samba Networking**: Corrected port 139 mapping from UDP to TCP for NetBIOS Session service compatibility.
 
