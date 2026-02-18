@@ -25,6 +25,11 @@ All notable changes to this project will be documented in this file.
   - **Model Routing**: `qwen2.5-coder:3b` (Coding), `llama3.2:3b` (General Skills).
   - **Smart Home**: Integrated with Home Assistant via Long-Lived Access Token.
   - **Status Check**: New verification script `scripts/test-ai-stack.sh`.
+  - **Critical Fix**: Corrected directory structure to single volume (`./openclaw` -> `/home/node/.openclaw`) to match internal agent layout.
+
+### 📊 Observability Stack (Enhanced)
+- **Configuration Generation**: `setup.sh` now automatically generates `prometheus.yml` and Grafana provisioning files.
+- **Metrics**: Default scrape targets configured for Docker containers.
 
 ### 📊 Observability Stack
 - **Prometheus**: Metrics collection engine with 30-day retention. Scrapes Traefik, cAdvisor, node-exporter, and Ollama.

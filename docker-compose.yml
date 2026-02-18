@@ -287,12 +287,11 @@ services:
     ports:
       - "3005:3000"
     volumes:
-      - ./openclaw/data:/app/data
-      - ./openclaw/config:/app/config
+      - ./openclaw:/home/node/.openclaw
     environment:
       - OLLAMA_API_BASE=http://ollama:11434
       - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_TOKEN}
-      - OPENCLAW_CONFIG_PATH=/app/config/openclaw.json
+      - OPENCLAW_CONFIG_PATH=/home/node/.openclaw/openclaw.json
       - HOME_ASSISTANT_TOKEN=${HOME_ASSISTANT_TOKEN}
       - DOCKER_HOST=tcp://docker-proxy:2375
       - TZ=${TZ}
@@ -437,6 +436,8 @@ services:
       - "--storage.tsdb.retention.size=5GB"
     environment:
       - TZ=${TZ}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.prometheus.rule=Host(`prometheus.homelab.local`)"
@@ -469,6 +470,8 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=https://grafana.homelab.local
       - TZ=${TZ}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.rule=Host(`grafana.homelab.local`)"

@@ -917,7 +917,7 @@ fi
 # ============================================
 log_info "Configuring OpenClaw Skills & Models..."
 
-OPENCLAW_CONFIG_DIR="$HOMELAB_DIR/openclaw/config"
+OPENCLAW_CONFIG_DIR="$HOMELAB_DIR/openclaw"
 OPENCLAW_CONFIG_FILE="$OPENCLAW_CONFIG_DIR/openclaw.json"
 mkdir -p "$OPENCLAW_CONFIG_DIR"
 
@@ -982,8 +982,80 @@ cat > "$OPENCLAW_CONFIG_FILE" <<EOF
   }
 }
 EOF
-chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/openclaw/config"
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/openclaw"
 log_info "OpenClaw configured: Coding=qwen2.5-coder, General=llama3.2"
+
+# ============================================
+# OBSERVABILITY CONFIGURATION (Prometheus & Grafana)
+# ============================================
+log_info "Configuring Observability Stack..."
+
+# 1. Prometheus Config
+PROMETHEUS_DIR="$HOMELAB_DIR/prometheus"
+mkdir -p "$PROMETHEUS_DIR"
+cat > "$PROMETHEUS_DIR/prometheus.yml" <<EOF
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['host.docker.internal:9100']
+
+  - job_name: 'traefik'
+    static_configs:
+      - targets: ['traefik:8082']
+
+  - job_name: 'ollama'
+    static_configs:
+      - targets: ['ollama:11434']
+EOF
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$PROMETHEUS_DIR"
+
+# 2. Grafana Provisioning
+GRAFANA_DIR="$HOMELAB_DIR/grafana"
+mkdir -p "$GRAFANA_DIR/provisioning/datasources"
+mkdir -p "$GRAFANA_DIR/provisioning/dashboards"
+mkdir -p "$GRAFANA_DIR/dashboards"
+
+# Datasource: Prometheus
+cat > "$GRAFANA_DIR/provisioning/datasources/datasource.yml" <<EOF
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    url: http://prometheus:9090
+    access: proxy
+    isDefault: true
+EOF
+
+# Dashboard Provider
+cat > "$GRAFANA_DIR/provisioning/dashboards/dashboards.yml" <<EOF
+apiVersion: 1
+
+providers:
+  - name: 'Default'
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    options:
+      path: /var/lib/grafana/dashboards
+EOF
+
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$GRAFANA_DIR"
+log_info "Observability configured: Prometheus + Grafana Provisioning"
 
 # ============================================
 # STEP 8: DOCKER COMPOSE CONFIGURATION
