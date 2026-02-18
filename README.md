@@ -75,16 +75,19 @@ This project provides:
 - **Bluetooth Support**: BLE device integration with optimized N100 drivers
 - **Workflow Automation**: n8n for connecting services and creating custom automations
 
-### 🔒 **Enterprise Security**
-- **Zero-Trust Docker Socket**: Traefik routes through a read-only Docker Socket Proxy — no raw socket exposure
-- **Locally-Trusted SSL**: mkcert generates wildcard `*.homelab.local` certs trusted by your OS — zero browser warnings
-- **OWASP Security Headers**: Global HSTS, NoSniff, X-Frame-Options, Referrer-Policy, Permissions-Policy on all routes
-- **Sandboxed Execution**: Docker isolation with credential vaulting for all services
+### 🔒 Enterprise Security
+- **100% Zero-Trust Docker API**: All containers are isolated from the host's raw Docker socket.
+    - **Read-Only Proxy**: Traefik and OpenClaw use a restricted gateway (`docker-proxy`).
+    - **Write-Capable Proxy**: Watchtower uses a dedicated, isolated gateway (`docker-proxy-watchtower`).
+- **Locally-Trusted SSL**: `mkcert` generates wildcard `*.homelab.local` certs trusted by your OS — zero browser warnings.
+- **OWASP Security Headers**: Global HSTS, NoSniff, X-Frame-Options, Referrer-Policy, Permissions-Policy on all routes.
+- **Sandboxed Execution**: Docker isolation with credential vaulting for all services.
 
-### 🌐 **Remote Access & Networking**
-- **Self-Hosted NetBird**: 100% local mesh VPN stack with embedded IdP (No cloud dependency)
-- **Traefik Reverse Proxy**: Intelligent routing with SSL termination and health-based load balancing
-- **Local Dashboard**: Full NetBird management UI running locally at `https://netbird.homelab.local`
+### 🌐 Remote Access & Networking
+- **Self-Hosted NetBird**: 100% local mesh VPN stack with embedded IdP (No cloud dependency).
+- **Traefik Reverse Proxy**: Intelligent routing with SSL termination and health-based load balancing.
+- **Dedicated Port (33071)**: NetBird Management API & Dashboard endpoint to avoid 443 conflicts.
+- **gRPC Coordination (33073)**: Explicitly exposed port for peer discovery.
 > **Warning**: Remote access from outside your home requires Port Forwarding & Public Domain.
 
 ### 📊 **Full Observability**
@@ -202,6 +205,11 @@ graph TB
         Samba[Samba<br/>File Sharing<br/>Port 445]
     end
 
+    subgraph DockerSecurity[Security Layer]
+        ProxyRO[Docker Proxy<br/>Read-Only<br/>CONTAINERS=1]
+        ProxyRW[Docker Proxy<br/>Write-Access<br/>POST=1]
+    end
+
     User -->|HTTPS| Traefik
     Traefik -->|Route| WebUI
     Traefik -->|Route| HA
@@ -215,23 +223,24 @@ graph TB
     OpenClaw --> Ollama
     
     %% System Integrations
-    OpenClaw -->|TCP| Proxy
-    Traefik -->|TCP| Proxy
-    Proxy -->|Socket| DockerSock
+    OpenClaw -->|TCP| ProxyRO
+    Traefik -->|TCP| ProxyRO
+    ProxyRO -->|Socket| DockerSock
     
-    %% Watchtower (direct socket)
-    Watchtower -.->|Update| DockerSock
+    %% Watchtower Zero-Trust
+    Watchtower --> ProxyRW
+    ProxyRW -->|Socket| DockerSock
     
     %% Remote Access
-    NetBird[NetBird<br/>Self-Hosted VPN] -.->|API/Dash| Traefik
+    NetBird[NetBird<br/>Port 33071/33073] -.->|API/Dash| Traefik
     NetBird -- Peer --> Signal[Signal]
     NetBird -- NAT --> Coturn[Coturn]
     
     %% Observability
-    Prometheus[Prometheus<br/>Metrics] --> cAdvisor[cAdvisor]
+    Prometheus[Prometheus] --> cAdvisor[cAdvisor]
     Prometheus --> NodeExp[Node Exporter]
-    Grafana[Grafana<br/>Dashboards] --> Prometheus
-    Traefik -->|Route| Grafana
+    Prometheus --> Traefik
+    Grafana[Grafana] --> Prometheus
     
     Plex ---|Mount| MediaData
     Samba ---|Share| MediaData
@@ -268,12 +277,12 @@ graph TB
 | **🔄 n8n** | Workflow automation | 5678 | https://n8n.homelab.local |
 | **📁 Samba** | Network file sharing | 445 | smb://&lt;IP&gt;/Media |
 | **🔒 Traefik** | Reverse proxy & SSL | 80, 443 | https://traefik.homelab.local |
-| **🛡️ Docker Proxy** | Zero-trust Docker API gateway | 2375 (Internal) | Internal Only |
-| **🔄 Watchtower** | Auto-update containers | N/A | Background service |
-| **🦅 NetBird** | Self-hosted VPN & Mesh | 80/443 (Dash), 10000+ (UDP) | https://netbird.homelab.local |
-| **📊 Prometheus** | Metrics collection engine | 9090 | https://prometheus.homelab.local |
+| **🛡️ Docker Proxy** | Read-Only API gateway | 2375 (Internal) | Internal Only |
+| **🔄 Watchtower** | Auto-update containers | Proxy-Gated | Background service |
+| **🦅 NetBird** | Self-hosted VPN Stack | 33071, 33073 | https://netbird.homelab.local:33071 |
+| **📊 Prometheus** | Metrics engine | 9090 | https://prometheus.homelab.local |
 | **📈 Grafana** | Metrics dashboards | 3001 | https://grafana.homelab.local |
-| **📦 cAdvisor** | Container metrics exporter | 8080 (Internal) | Internal Only |
+| **📦 cAdvisor** | Container metrics | 8080 (Internal) | Internal Only |
 | **💻 Node Exporter** | Host system metrics | 9100 (Internal) | Internal Only |
 
 ---
@@ -442,6 +451,9 @@ Add these lines (replace `192.168.1.100` with your server IP):
 192.168.1.100 chat.homelab.local
 192.168.1.100 antigravity.homelab.local
 192.168.1.100 openclaw.homelab.local
+192.168.1.100 netbird.homelab.local
+192.168.1.100 prometheus.homelab.local
+192.168.1.100 grafana.homelab.local
 ```
 
 #### Option C: Network-Wide DNS (Advanced)
@@ -601,12 +613,16 @@ cat ~/homelab/antigravity/.env
 cat ~/homelab/openclaw/.env
 ```
 
-### SSL/TLS Certificates
+### SSL/TLS Certificates (mkcert)
+- **Locally-Trusted SSL**: `setup.sh` integrates `mkcert` to generate wildcard certificates trusted by your host system.
+- **Zero Browser Warnings**: Accessing `*.homelab.local` over HTTPS will show a green lock after running the CA trust script.
+- **CA Export**: Use `scripts/export-ca.sh` to get the root CA certificate for installation on mobile devices or other computers.
+- **Files**: Certs are stored in `~/homelab/traefik/certs/`.
 
-- **Self-signed certificates** are auto-generated in `~/homelab/traefik/certs/`
-- Valid for 1 year
-- Renewed automatically via weekly cron job
-- For production, replace with Let's Encrypt certificates
+### 🛡️ Docker Socket Security (100% Zero-Trust)
+- **Socket Isolation**: No container has direct access to the raw `/var/run/docker.sock`.
+- **Read-Only (Traefik/OpenClaw)**: Routed through `docker-proxy` with `POST=0`.
+- **Write-Access (Watchtower)**: Restricted to a dedicated `docker-proxy-watchtower` instance on an isolated network.
 
 ### Traefik Dashboard Access
 
@@ -651,11 +667,11 @@ The stack includes a fully integrated AI agent system:
 
 The setup includes automated maintenance features:
 
-1. **Container Updates** (Watchtower)
-   - Runs weekly on Sundays at 3 AM
-   - Automatically updates all containers
-   - Graceful container restarts
-   - Rollback on failure
+1. **Automated Updates** (Watchtower)
+   - **Zero-Trust Enabled**: Updates are performed via the dedicated `docker-proxy-watchtower`.
+   - **Schedule**: Every Sunday at 3 AM.
+   - **Cleanup**: Automatically removes old images to save disk space.
+   - **Rollback**: Graceful restarts and failure protection.
 
 2. **SSL Certificate Monitoring**
    - Weekly health check (Sundays at midnight)
