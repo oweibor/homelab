@@ -359,6 +359,9 @@ services:
       - homelab
     depends_on:
       - docker-proxy
+    ports:
+      - "33071:443" # API / Dashboard
+      - "33073:33073" # gRPC
     volumes:
       - netbird_mgmt:/var/lib/netbird
       - netbird_letsencrypt:/etc/letsencrypt
@@ -366,10 +369,10 @@ services:
       - NETBIRD_STORE_ENGINE=sqlite
       - NETBIRD_DATA_DIR=/var/lib/netbird
       - NETBIRD_LETSENCRYPT_DOMAIN=none
-      - NETBIRD_MGMT_API_ENDPOINT=https://netbird.homelab.local:443
+      - NETBIRD_MGMT_API_ENDPOINT=https://netbird.homelab.local:33071
       - NETBIRD_MGMT_GRPC_API_ENDPOINT=https://netbird.homelab.local:33073
-      - NETBIRD_mgmt_API_PORT=443
-      - NETBIRD_mgmt_GRPC_API_PORT=33073
+      - NETBIRD_MGMT_API_PORT=443
+      - NETBIRD_MGMT_GRPC_API_PORT=33073
       - NETBIRD_IDP_TYPE=self-hosted
       - TZ=${TZ}
     labels:
