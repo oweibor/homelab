@@ -1156,8 +1156,15 @@ OLLAMA_MODEL="${OLLAMA_MODEL:-llama3.2:1b llama3.2:3b qwen2.5-coder:3b}"
 echo "OLLAMA_MODEL=$OLLAMA_MODEL" >> "$ENV_FILE"
 
 # Plex Claim
-if [ -n "${PLEX_CLAIM:-}" ]; then
-    echo "PLEX_CLAIM=$PLEX_CLAIM" >> "$ENV_FILE"
+echo ""
+log_info "Plex server claim token (from https://plex.tv/claim, expires in 4 minutes)"
+log_warn "Leave blank if this server is already claimed or you'll claim it later."
+read -p "PLEX_CLAIM (or Enter to skip): " PLEX_CLAIM_INPUT
+if [ -n "${PLEX_CLAIM_INPUT:-}" ]; then
+    echo "PLEX_CLAIM=$PLEX_CLAIM_INPUT" >> "$ENV_FILE"
+else
+    echo "PLEX_CLAIM=" >> "$ENV_FILE"
+    log_warn "Plex claim skipped. Claim manually via Plex web UI after startup."
 fi
 
 # Antigravity VNC Password
@@ -1354,8 +1361,8 @@ if ! curl -m 5 -sf http://localhost:9090 >/dev/null 2>&1; then
 fi
 
 # Check NetBird Management (33071)
-if ! curl -m 5 -sf -k https://localhost:33071/api/health >/dev/null 2>&1; then
-    # Management API is HTTPS self-signed, use -k
+if ! curl -m 5 -sf http://localhost:33071/api/health >/dev/null 2>&1; then
+    # Management API is now HTTP on port 80 internally mapped to 33071 locally
     FAILED_CHECKS+=("NetBird Mgmt (33071)")
 fi
 
