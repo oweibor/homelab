@@ -87,7 +87,7 @@ This project provides:
 - **Self-Hosted NetBird**: 100% local mesh VPN stack with embedded IdP (No cloud dependency).
 - **Traefik Reverse Proxy**: Intelligent routing with SSL termination and health-based load balancing.
 - **Dedicated Port (33071)**: NetBird Management API & Dashboard endpoint to avoid 443 conflicts.
-- **gRPC Coordination (33073)**: Explicitly exposed port for peer discovery.
+- **gRPC Coordination (Signal)**: Signal messaging is securely routed via Traefik gRPC (`h2c`) at `netbird.homelab.local`.
 > **Warning**: Remote access from outside your home requires Port Forwarding & Public Domain.
 
 ### 📊 **Full Observability**
@@ -233,7 +233,8 @@ graph TB
     
     %% Remote Access
     NetBird[NetBird<br/>Port 33071/33073] -.->|API/Dash| Traefik
-    NetBird -- Peer --> Signal[Signal]
+    Traefik -->|gRPC| Signal[Signal]
+    NetBird -- Peer --> Signal
     NetBird -- NAT --> Coturn[Coturn]
     
     %% Observability
@@ -275,11 +276,12 @@ graph TB
 | **🏡 Home Assistant** | Smart home platform | 8123 | https://ha.homelab.local |
 | **🎬 Plex** | Media server (4K transcoding) | 32400 | https://plex.homelab.local |
 | **🔄 n8n** | Workflow automation | 5678 | https://n8n.homelab.local |
-| **📁 Samba** | Network file sharing | 445 | smb://&lt;IP&gt;/Media |
+| **📁 Samba** | Network file sharing | 139 (TCP), 445 | smb://&lt;IP&gt;/Media |
 | **🔒 Traefik** | Reverse proxy & SSL | 80, 443 | https://traefik.homelab.local |
 | **🛡️ Docker Proxy** | Read-Only API gateway | 2375 (Internal) | Internal Only |
 | **🔄 Watchtower** | Auto-update containers | Proxy-Gated | Background service |
 | **🦅 NetBird** | Self-hosted VPN Stack | 33071, 33073 | https://netbird.homelab.local:33071 |
+| **📡 Signal** | Peer Discovery | Traefik-Proxied | Internal Only |
 | **📊 Prometheus** | Metrics engine | 9090 | https://prometheus.homelab.local |
 | **📈 Grafana** | Metrics dashboards | 3001 | https://grafana.homelab.local |
 | **📦 cAdvisor** | Container metrics | 8080 (Internal) | Internal Only |
@@ -497,9 +499,8 @@ Refer to the [Service Catalog](#-service-catalog) table above for a full list of
 
 #### n8n
 1. Access https://n8n.homelab.local
-2. Log in with credentials from `~/homelab/n8n/.env`
-3. Create your first workflow
-4. Connect to Ollama using `http://ollama:11434`
+2. Create your owner account during first launch (multi-user management enabled).
+3. Connect to Ollama using `http://ollama:11434`
 
 ---
 
@@ -591,9 +592,10 @@ All automatically generated passwords are stored securely:
 ```
 ~/homelab/
 ├── samba/.env          # SAMBA_USER, SAMBA_PASS
-├── n8n/.env            # N8N_USER, N8N_PASS
+├── n8n/.env            # Internal context (credentials managed in UI)
 ├── antigravity/.env    # ANTIGRAVITY_VNC_PASSWORD
 ├── openclaw/.env       # OPENCLAW_TOKEN
+├── netbird/.env        # TURN_SECRET, TURN_REALM
 ├── grafana/.env        # GF_ADMIN_PASSWORD
 └── .env                # Main environment variables
 ```
