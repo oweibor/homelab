@@ -1117,15 +1117,6 @@ echo "RENDER_GID=$RENDER_GID" >> "$ENV_FILE"
 
 # --- Add Credentials (referenced from Samba/n8n logic above) ---
 # N8N
-if [ -n "${N8N_USER:-}" ] && [ -n "${N8N_PASS:-}" ]; then
-    echo "N8N_USER=$N8N_USER" >> "$ENV_FILE"
-    echo "N8N_PASS=$N8N_PASS" >> "$ENV_FILE"
-elif [ -f "$HOMELAB_DIR/n8n/.env" ]; then
-    # Fallback to reading the files we just created/verified in Step 7
-    grep "N8N_USER" "$HOMELAB_DIR/n8n/.env" >> "$ENV_FILE"
-    grep "N8N_PASS" "$HOMELAB_DIR/n8n/.env" >> "$ENV_FILE"
-fi
-
 # SAMBA
 if [ -n "${SAMBA_USER:-}" ] && [ -n "${SAMBA_PASS:-}" ]; then
     echo "SAMBA_USER=$SAMBA_USER" >> "$ENV_FILE"
