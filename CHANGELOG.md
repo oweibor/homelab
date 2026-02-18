@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.1] - 2026-02-18
+
+### 🔧 Fixes
+- **OpenClaw Environment**: Updated `OLLAMA_API_BASE` to `OLLAMA_HOST` for correct agent identification.
+- **OpenClaw Network**: Standardized internal and external ports to `18789` for consistent routing and healthchecks.
+- **OpenClaw Filesystem**: Simplified directory structure in `setup.sh` to a single `./openclaw` volume.
+- **NetBird Mesh**: Corrected the Dashboard endpoint port to `33071` to resolve synchronization issues with the management server.
+
 ## [1.0.0] - 2026-02-18
 
 ### 🔐 Security Overhaul

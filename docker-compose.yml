@@ -314,18 +314,18 @@ services:
       - homelab
       - proxy
     ports:
-      - "3005:3000"
+      - "18789:18789"
     volumes:
       - ./openclaw:/home/node/.openclaw
     environment:
-      - OLLAMA_API_BASE=http://ollama:11434
+      - OLLAMA_HOST=http://ollama:11434
       - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_TOKEN}
       - OPENCLAW_CONFIG_PATH=/home/node/.openclaw/openclaw.json
       - HOME_ASSISTANT_TOKEN=${HOME_ASSISTANT_TOKEN}
       - DOCKER_HOST=tcp://docker-proxy:2375
       - TZ=${TZ}
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:3000" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:18789" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -336,7 +336,7 @@ services:
       - "traefik.http.routers.openclaw.entrypoints=websecure"
       - "traefik.http.routers.openclaw.tls=true"
       - "traefik.http.routers.openclaw.middlewares=secure-headers@file"
-      - "traefik.http.services.openclaw.loadbalancer.server.port=3000"
+      - "traefik.http.services.openclaw.loadbalancer.server.port=18789"
     depends_on:
       - ollama
       - docker-proxy
@@ -415,7 +415,7 @@ services:
     networks:
       - homelab
     environment:
-      - NETBIRD_MGMT_API_ENDPOINT=https://netbird.homelab.local:443
+      - NETBIRD_MGMT_API_ENDPOINT=https://netbird.homelab.local:33071
       - NETBIRD_MGMT_GRPC_API_ENDPOINT=https://netbird.homelab.local:33073
     labels:
       - "traefik.enable=true"

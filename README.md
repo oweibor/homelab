@@ -193,7 +193,7 @@ graph TB
             Ollama[Ollama<br/>LLM Engine<br/>Port 11434]
             WebUI[Open WebUI<br/>Chat Interface]
             Antigravity[Antigravity<br/>Agent IDE<br/>VNC 6080]
-            OpenClaw[OpenClaw<br/>AI Agent<br/>Port 3005]
+            OpenClaw[OpenClaw<br/>AI Agent<br/>Port 18789]
             Proxy[Docker Proxy<br/>Security Layer]
         end
         
@@ -271,7 +271,7 @@ graph TB
 | **🧠 Ollama** | Local LLM inference engine | 11434 | API only |
 | **💬 Open WebUI** | ChatGPT-like interface | 3000 | https://chat.homelab.local |
 | **🤖 Antigravity** | AI-powered code editor | 6080 | https://antigravity.homelab.local |
-| **🦾 OpenClaw** | Autonomous AI agent | 3005 | https://openclaw.homelab.local |
+| **🦾 OpenClaw** | Autonomous AI agent | 18789 | https://openclaw.homelab.local |
 | **🏡 Home Assistant** | Smart home platform | 8123 | https://ha.homelab.local |
 | **🎬 Plex** | Media server (4K transcoding) | 32400 | https://plex.homelab.local |
 | **🔄 n8n** | Workflow automation | 5678 | https://n8n.homelab.local |
