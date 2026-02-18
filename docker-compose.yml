@@ -498,7 +498,7 @@ services:
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASSWORD:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=https://grafana.homelab.local
       - TZ=${TZ}

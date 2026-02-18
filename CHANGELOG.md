@@ -6,8 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ### 🔧 Fixes
 - **OpenClaw Environment**: Updated `OLLAMA_API_BASE` to `OLLAMA_HOST` for correct agent identification.
-- **OpenClaw Network**: Standardized internal and external ports to `18789` for consistent routing and healthchecks.
-- **OpenClaw Filesystem**: Simplified directory structure in `setup.sh` to a single `./openclaw` volume.
+- **OpenClaw Network**: Standardized internal and external ports to `18789` for consistent routing, healthchecks, and setup summary.
+- **Grafana Security**: Implemented automated secure password generation in `setup.sh` (stored in `grafana/.env`) and removed the insecure default fallback.
+- **Setup Summary Expansion**: Greatly expanded the completion summary and health checks to include NetBird, Grafana, and Prometheus, providing a complete overview of the deployed stack.
 - **NetBird Mesh**: Corrected the Dashboard endpoint port to `33071` to resolve synchronization issues with the management server.
 
 ## [1.0.0] - 2026-02-18

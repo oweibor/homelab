@@ -765,6 +765,19 @@ else
     source "$N8N_ENV"
 fi
 
+# Grafana credentials
+GRAFANA_ENV="$HOMELAB_DIR/grafana/.env"
+if [ ! -f "$GRAFANA_ENV" ]; then
+    GF_ADMIN_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 20)
+    echo "GF_ADMIN_PASSWORD=$GF_ADMIN_PASSWORD" > "$GRAFANA_ENV"
+    chmod 600 "$GRAFANA_ENV"
+    chown "$ACTUAL_USER:$ACTUAL_USER" "$GRAFANA_ENV"
+    log_info "Grafana admin credentials generated"
+else
+    log_info "Using existing Grafana admin credentials"
+    source "$GRAFANA_ENV"
+fi
+
 # Traefik & SSL Setup (mkcert for locally-trusted certificates)
 TRAEFIK_DIR="$HOMELAB_DIR/traefik"
 mkdir -p "$TRAEFIK_DIR/certs"
@@ -1117,6 +1130,13 @@ elif [ -f "$HOMELAB_DIR/samba/.env" ]; then
     grep "SAMBA_PASS" "$HOMELAB_DIR/samba/.env" >> "$ENV_FILE"
 fi
 
+# GRAFANA
+if [ -n "${GF_ADMIN_PASSWORD:-}" ]; then
+    echo "GF_ADMIN_PASSWORD=$GF_ADMIN_PASSWORD" >> "$ENV_FILE"
+elif [ -f "$HOMELAB_DIR/grafana/.env" ]; then
+    grep "GF_ADMIN_PASSWORD" "$HOMELAB_DIR/grafana/.env" >> "$ENV_FILE"
+fi
+
 # --- Add Configuration Variables ---
 # Timezone
 if [ -n "${TIMEZONE:-}" ]; then
@@ -1313,9 +1333,25 @@ if ! curl -m 5 -sf http://localhost:6080 >/dev/null 2>&1; then
     FAILED_CHECKS+=("Antigravity (6080)")
 fi
 
-# Check OpenClaw (3005)
-if ! curl -m 5 -sf http://localhost:3005 >/dev/null 2>&1; then
-    FAILED_CHECKS+=("OpenClaw (3005)")
+# Check OpenClaw (18789)
+if ! curl -m 5 -sf http://localhost:18789 >/dev/null 2>&1; then
+    FAILED_CHECKS+=("OpenClaw (18789)")
+fi
+
+# Check Grafana (3001)
+if ! curl -m 5 -sf http://localhost:3001 >/dev/null 2>&1; then
+    FAILED_CHECKS+=("Grafana (3001)")
+fi
+
+# Check Prometheus (9090)
+if ! curl -m 5 -sf http://localhost:9090 >/dev/null 2>&1; then
+    FAILED_CHECKS+=("Prometheus (9090)")
+fi
+
+# Check NetBird Management (33071)
+if ! curl -m 5 -sf -k https://localhost:33071/api/health >/dev/null 2>&1; then
+    # Management API is HTTPS self-signed, use -k
+    FAILED_CHECKS+=("NetBird Mgmt (33071)")
 fi
 
 # Check Samba (445) - TCP check since it's not HTTP
@@ -1394,7 +1430,10 @@ printf "  │  - n8n:             %-39s │\n" "http://${CONFIGURED_IP:-localhos
 printf "  │  - Ollama API:      %-39s │\n" "http://${CONFIGURED_IP:-localhost}:11434"
 printf "  │  - Open WebUI:        %-39s │\n" "http://${CONFIGURED_IP:-localhost}:3000"
 printf "  │  - Antigravity:     %-39s │\n" "http://${CONFIGURED_IP:-localhost}:6080"
-printf "  │  - OpenClaw Agent:  %-39s │\n" "http://${CONFIGURED_IP:-localhost}:3005"
+printf "  │  - OpenClaw Agent:  %-39s │\n" "http://${CONFIGURED_IP:-localhost}:18789"
+printf "  │  - NetBird Dash:    %-39s │\n" "https://${CONFIGURED_IP:-localhost}:33071"
+printf "  │  - Grafana Dash:    %-39s │\n" "http://${CONFIGURED_IP:-localhost}:3001"
+printf "  │  - Prometheus:      %-39s │\n" "http://${CONFIGURED_IP:-localhost}:9090"
 printf "  │  - Samba Media:     %-39s │\n" "smb://${CONFIGURED_IP:-localhost}/Media"
 echo "  ├─────────────────────────────────────────────────────────────┤"
 echo "  │  REVERSE PROXY (HTTPS)                                      │"
@@ -1405,11 +1444,16 @@ printf "  │  - n8n:             %-39s │\n" "https://n8n.homelab.local"
 printf "  │  - Open WebUI:        %-39s │\n" "https://chat.homelab.local"
 printf "  │  - Antigravity:     %-39s │\n" "https://antigravity.homelab.local"
 printf "  │  - OpenClaw:        %-39s │\n" "https://openclaw.homelab.local"
+printf "  │  - NetBird Dash:    %-39s │\n" "https://netbird.homelab.local:33071"
+printf "  │  - Grafana Dash:    %-39s │\n" "https://grafana.homelab.local"
+printf "  │  - Prometheus:      %-39s │\n" "https://prometheus.homelab.local"
   echo "  ├─────────────────────────────────────────────────────────────┤"
 echo "  │  * NOTE: Add these domains to your local 'hosts' file:      │"
 printf "  │    %-56s │\n" "${CONFIGURED_IP:-192.168.x.x} ha.homelab.local"
 printf "  │    %-56s │\n" "traefik.homelab.local antigravity.homelab.local"
-printf "  │    %-56s │\n" "openclaw.homelab.local plex.homelab.local"
+printf "  │    %-56s │\n" "openclaw.homelab.local netbird.homelab.local"
+printf "  │    %-56s │\n" "grafana.homelab.local prometheus.homelab.local"
+printf "  │    %-56s │\n" "plex.homelab.local ha.homelab.local n8n.homelab.local"
   echo "  └─────────────────────────────────────────────────────────────┘"
 echo ""
 
