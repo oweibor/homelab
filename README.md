@@ -594,6 +594,7 @@ All automatically generated passwords are stored securely:
 ├── n8n/.env            # N8N_USER, N8N_PASS
 ├── antigravity/.env    # ANTIGRAVITY_VNC_PASSWORD
 ├── openclaw/.env       # OPENCLAW_TOKEN
+├── grafana/.env        # GF_ADMIN_PASSWORD
 └── .env                # Main environment variables
 ```
 
@@ -611,6 +612,9 @@ cat ~/homelab/antigravity/.env
 
 # OpenClaw
 cat ~/homelab/openclaw/.env
+
+# Grafana Admin
+cat ~/homelab/grafana/.env
 ```
 
 ### SSL/TLS Certificates (mkcert)
