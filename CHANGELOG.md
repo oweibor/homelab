@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### 🔐 Security Overhaul
-- **Zero-Trust Docker Socket Proxy**: Traefik no longer mounts the raw Docker socket. All container discovery routes through `docker-proxy` with read-only permissions (POST=0, EXEC=0, LOGS=0). Dedicated internal `proxy` network isolates the socket from external access.
+- **Zero-Trust Docker Architecture**: Finalized 100% isolation of the Docker socket. Application containers (Traefik, OpenClaw) use a read-only proxy, and high-privilege services (Watchtower) are now migrated to a dedicated write-proxy.
+- **Dedicated Watchtower Proxy**: introduced `docker-proxy-watchtower` with scoped `POST` and `IMAGES` permissions on a private `watchtower-net` network.
+
+### 🛡️ Traefik Security (Phase 4)
+- **Automatic HTTPS**: Wildcard SSL certificates via `mkcert` and Traefik.
+- **Secure Headers**: Global OWASP-compliant headers (HSTS, CSP-lite, X-Frame-Options) applied to all services.
+- **Restricted Socket Access**: Traefik migrated to `docker-proxy`.
 - **mkcert Locally-Trusted SSL**: Replaced OpenSSL self-signed certs with mkcert. Generates wildcard `*.homelab.local` certificates trusted by the host OS — **zero browser warnings**. Includes OpenSSL fallback for air-gapped environments. Client CA export script (`scripts/export-ca.sh`) for trusting certs on phones and laptops.
 - **Global Security Headers**: Applied OWASP Top 5 security headers to all Traefik-proxied services:
   - `Strict-Transport-Security` (HSTS, 2 years with preload)

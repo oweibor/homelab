@@ -26,9 +26,11 @@ services:
     restart: unless-stopped
     networks:
       - homelab
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - watchtower-net
+    depends_on:
+      - docker-proxy-watchtower
     environment:
+      - DOCKER_HOST=tcp://docker-proxy-watchtower:2375
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_SCHEDULE=0 0 3 * * SUN
       - TZ=${TZ}
@@ -270,6 +272,33 @@ services:
       - POST=0
       - EXEC=0
       - LOGS=0
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # Dedicated Write-Proxy for Watchtower (Architectural Isolation)
+  # This instance has POST and IMAGES enabled to allow automated updates.
+  # Isolated on watchtower-net to prevent access from other containers.
+  docker-proxy-watchtower:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: docker-proxy-watchtower
+    restart: unless-stopped
+    networks:
+      - watchtower-net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - CONTAINERS=1
+      - SERVICES=1
+      - NETWORKS=1
+      - TASKS=1
+      - IMAGES=1 # ✅ Added - allows image operations
+      - POST=1 # ✅ Changed - allows container updates
+      - LOGS=1 # ✅ Added - useful for debugging
+      - EXEC=0 # Keep disabled
+      - BUILD=0 # Keep disabled
     logging:
       driver: "json-file"
       options:
@@ -546,3 +575,6 @@ networks:
   proxy:
     driver: bridge
     internal: true # No external access — socket proxy only
+  watchtower-net:
+    driver: bridge
+    internal: true # Private network for Watchtower <-> Proxy isolation
