@@ -778,6 +778,21 @@ else
     source "$GRAFANA_ENV"
 fi
 
+# NetBird TURN credentials
+NETBIRD_ENV="$HOMELAB_DIR/netbird/.env"
+if [ ! -f "$NETBIRD_ENV" ]; then
+    TURN_SECRET=$(openssl rand -hex 16)
+    TURN_REALM="homelab.local"
+    echo "TURN_SECRET=$TURN_SECRET" > "$NETBIRD_ENV"
+    echo "TURN_REALM=$TURN_REALM" >> "$NETBIRD_ENV"
+    chmod 600 "$NETBIRD_ENV"
+    chown "$ACTUAL_USER:$ACTUAL_USER" "$NETBIRD_ENV"
+    log_info "NetBird TURN credentials generated"
+else
+    log_info "Using existing NetBird TURN credentials"
+    source "$NETBIRD_ENV"
+fi
+
 # Traefik & SSL Setup (mkcert for locally-trusted certificates)
 TRAEFIK_DIR="$HOMELAB_DIR/traefik"
 mkdir -p "$TRAEFIK_DIR/certs"
@@ -1135,6 +1150,15 @@ if [ -n "${GF_ADMIN_PASSWORD:-}" ]; then
     echo "GF_ADMIN_PASSWORD=$GF_ADMIN_PASSWORD" >> "$ENV_FILE"
 elif [ -f "$HOMELAB_DIR/grafana/.env" ]; then
     grep "GF_ADMIN_PASSWORD" "$HOMELAB_DIR/grafana/.env" >> "$ENV_FILE"
+fi
+
+# NETBIRD TURN
+if [ -n "${TURN_SECRET:-}" ]; then
+    echo "TURN_SECRET=$TURN_SECRET" >> "$ENV_FILE"
+    echo "TURN_REALM=$TURN_REALM" >> "$ENV_FILE"
+elif [ -f "$HOMELAB_DIR/netbird/.env" ]; then
+    grep "TURN_SECRET" "$HOMELAB_DIR/netbird/.env" >> "$ENV_FILE"
+    grep "TURN_REALM" "$HOMELAB_DIR/netbird/.env" >> "$ENV_FILE"
 fi
 
 # --- Add Configuration Variables ---

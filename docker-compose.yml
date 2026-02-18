@@ -166,10 +166,8 @@ services:
       - "traefik.http.routers.n8n.middlewares=secure-headers@file"
       - "traefik.http.services.n8n.loadbalancer.server.port=5678"
     environment:
-      - N8N_BASIC_AUTH_ACTIVE=true
-      - N8N_BASIC_AUTH_USER=${N8N_USER}
-      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASS}
-      - N8N_SECURE_COOKIE=false
+      - N8N_USER_MANAGEMENT_DISABLED=false
+      - N8N_SECURE_COOKIE=true
       - TZ=${TZ}
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:5678/healthz" ]
@@ -373,6 +371,9 @@ services:
       - NETBIRD_MGMT_API_PORT=443
       - NETBIRD_MGMT_GRPC_API_PORT=33073
       - NETBIRD_IDP_TYPE=self-hosted
+      - NETBIRD_TURN_HOST=coturn
+      - NETBIRD_TURN_PORT=3478
+      - NETBIRD_TURN_SECRET=${TURN_SECRET}
       - TZ=${TZ}
     labels:
       - "traefik.enable=true"
@@ -398,8 +399,13 @@ services:
       - homelab
     volumes:
       - netbird_signal:/var/lib/netbird
-    ports:
-      - "10000:80" # Signal HTTP port
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.netbird-signal.rule=Host(`netbird.homelab.local`) && PathPrefix(`/signalexchange.SignalExchange/`)"
+      - "traefik.http.routers.netbird-signal.entrypoints=websecure"
+      - "traefik.http.routers.netbird-signal.tls=true"
+      - "traefik.http.services.netbird-signal.loadbalancer.server.port=80"
+      - "traefik.http.services.netbird-signal.loadbalancer.server.scheme=h2c"
     logging:
       driver: "json-file"
       options:
@@ -437,6 +443,10 @@ services:
     command:
       - -n
       - --log-file=stdout
+      - --lt-cred-mech
+      - --use-auth-secret
+      - --static-auth-secret=${TURN_SECRET}
+      - --realm=${TURN_REALM}
       - --min-port=49152
       - --max-port=65535
     logging:

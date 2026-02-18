@@ -7,10 +7,10 @@ All notable changes to this project will be documented in this file.
 ### 🔧 Fixes
 - **OpenClaw Environment**: Updated `OLLAMA_API_BASE` to `OLLAMA_HOST` for correct agent identification.
 - **OpenClaw Network**: Standardized internal and external ports to `18789` for consistent routing, healthchecks, and setup summary.
+- **NetBird Signal**: Moved behind Traefik with gRPC (`h2c`) support on `netbird.homelab.local`, removing direct port exposure for better security.
+- **Coturn Security**: Implemented static authentication secrets and realm configuration in `setup.sh` and `docker-compose.yml` to enable functional TURN relay services.
+- **n8n Modernization**: Removed deprecated basic auth variables in favor of built-in User Management and enabled `N8N_SECURE_COOKIE` for enhanced security.
 - **Samba Networking**: Corrected port 139 mapping from UDP to TCP for NetBIOS Session service compatibility.
-- **Watchtower Proxy**: Updated Docker socket mount to read-write for `docker-proxy-watchtower` to allow automated container updates and image management.
-- **NetBird Mesh**: Corrected the Dashboard endpoint port to `33071` and removed unnecessary Docker proxy dependencies for the management service.
-- **Grafana Security**: Implemented automated secure password generation in `setup.sh` (stored in `grafana/.env`) and expanded completion summary.
 
 ## [1.0.0] - 2026-02-18
 
