@@ -7,9 +7,9 @@ All notable changes to this project will be documented in this file.
 ### 🔧 Fixes
 - **OpenClaw Environment**: Updated `OLLAMA_API_BASE` to `OLLAMA_HOST` for correct agent identification.
 - **OpenClaw Network**: Standardized internal and external ports to `18789` for consistent routing, healthchecks, and setup summary.
-- **Grafana Security**: Implemented automated secure password generation in `setup.sh` (stored in `grafana/.env`) and removed the insecure default fallback.
-- **Setup Summary Expansion**: Greatly expanded the completion summary and health checks to include NetBird, Grafana, and Prometheus, providing a complete overview of the deployed stack.
-- **NetBird Mesh**: Corrected the Dashboard endpoint port to `33071` to resolve synchronization issues with the management server.
+- **Samba Networking**: Corrected port 139 mapping from UDP to TCP for NetBIOS Session service compatibility.
+- **Watchtower Proxy**: Updated Docker socket mount to read-write for `docker-proxy-watchtower` to allow automated container updates and image management.
+- **NetBird Mesh**: Corrected the Dashboard endpoint port to `33071` and removed unnecessary Docker proxy dependencies and network isolation for the management service.
 
 ## [1.0.0] - 2026-02-18
 

@@ -190,7 +190,8 @@ services:
     networks:
       - homelab
     ports:
-      - "137-139:137-139/udp"
+      - "137-138:137-138/udp"
+      - "139:139"
       - "445:445"
     environment:
       - USERID=${PUID}
@@ -357,8 +358,6 @@ services:
     restart: unless-stopped
     networks:
       - homelab
-    depends_on:
-      - docker-proxy
     ports:
       - "33071:443" # API / Dashboard
       - "33073:33073" # gRPC
