@@ -411,7 +411,7 @@ fi
 log_success "Using network interface: $INTERFACE"
 
 # Get current network configuration
-FULL_IP=$(ip -o -4 addr show "$INTERFACE" | awk '{print $4}')
+FULL_IP=$(ip -o -4 addr show "$INTERFACE" | awk '{print $4}' | head -n1)
 CURRENT_IP=${FULL_IP%/*}
 
 if [ -z "${CURRENT_IP:-}" ]; then
@@ -1115,8 +1115,8 @@ echo "PUID=$PUID" >> "$ENV_FILE"
 echo "PGID=$PGID" >> "$ENV_FILE"
 echo "RENDER_GID=$RENDER_GID" >> "$ENV_FILE"
 
-# --- Add Credentials (referenced from Samba/n8n logic above) ---
-# N8N
+# --- Add Credentials (referenced from Samba logic above) ---
+
 # SAMBA
 if [ -n "${SAMBA_USER:-}" ] && [ -n "${SAMBA_PASS:-}" ]; then
     echo "SAMBA_USER=$SAMBA_USER" >> "$ENV_FILE"
@@ -1188,7 +1188,7 @@ log_info "Environment configuration generated at $ENV_FILE"
 
 # Validate required environment variables
 log_info "Validating environment configuration..."
-REQUIRED_VARS=("PUID" "PGID" "TZ" "N8N_USER" "N8N_PASS" "SAMBA_USER" "SAMBA_PASS" "ANTIGRAVITY_VNC_PASSWORD" "OPENCLAW_TOKEN")
+REQUIRED_VARS=("PUID" "PGID" "TZ" "SAMBA_USER" "SAMBA_PASS" "ANTIGRAVITY_VNC_PASSWORD" "OPENCLAW_TOKEN")
 MISSING_VARS=()
 
 for var in "${REQUIRED_VARS[@]}"; do
