@@ -487,8 +487,9 @@ Refer to the [Service Catalog](#-service-catalog) table above for a full list of
 #### Plex
 1. Go to https://plex.homelab.local
 2. Sign in with your Plex account
-3. Set up libraries pointing to `/data/media/` mount
-4. Enable hardware transcoding in Settings → Transcoder
+3. **MANDATORY**: Claim your server! If the server is not automatically found, go to [Plex Claim](https://www.plex.tv/claim/), get a code, and add it to `PLEX_CLAIM` in your `.env`.
+4. Set up libraries pointing to `/data/media/` mount
+5. Enable hardware transcoding in Settings → Transcoder
 
 #### Open WebUI
 1. Visit https://chat.homelab.local
@@ -499,8 +500,9 @@ Refer to the [Service Catalog](#-service-catalog) table above for a full list of
 
 #### n8n
 1. Access https://n8n.homelab.local
-2. Create your owner account during first launch (multi-user management enabled).
-3. Connect to Ollama using `http://ollama:11434`
+2. Create your owner account during first launch.
+3. **Note**: n8n now uses built-in user management. Credentials are no longer managed via environment variables.
+4. Connect to Ollama using `http://ollama:11434`
 
 ---
 

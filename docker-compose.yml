@@ -470,7 +470,7 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
+      - ./prometheus/data:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.retention.time=30d"
@@ -502,7 +502,7 @@ services:
     ports:
       - "3001:3000"
     volumes:
-      - grafana_data:/var/lib/grafana
+      - ./grafana/data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     environment:
@@ -573,12 +573,10 @@ services:
         max-file: "2"
 
 volumes:
-  ollama_models:
+  ollama_models: # Large models kept in named volume for performance
   netbird_mgmt:
   netbird_signal:
   netbird_letsencrypt:
-  prometheus_data:
-  grafana_data:
 
 
 networks:

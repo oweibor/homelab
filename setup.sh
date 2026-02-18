@@ -696,7 +696,7 @@ echo ""
 show_step_header "6" "Creating Homelab Directory Structure"
 
 HOMELAB_DIR="$USER_HOME/homelab"
-mkdir -p "$HOMELAB_DIR"/{homeassistant,plex/config,plex/transcode,media,n8n,samba,backups,open-webui,traefik,antigravity/workspace,antigravity/config,openclaw,netbird}
+mkdir -p "$HOMELAB_DIR"/{homeassistant,plex/config,plex/transcode,media,n8n,samba,backups,open-webui,traefik,antigravity/workspace,antigravity/config,openclaw,netbird,grafana/data,prometheus/data}
 
 # Set permissions
 PUID=$(id -u "$ACTUAL_USER")
@@ -750,20 +750,10 @@ else
     source "$SAMBA_ENV"
 fi
 
-# n8n credentials
-N8N_ENV="$HOMELAB_DIR/n8n/.env"
-if [ ! -f "$N8N_ENV" ]; then
-    N8N_USER="admin"
-    N8N_PASS=$(openssl rand -base64 24 | tr -d '/+=' | head -c 20)
-    echo "N8N_USER=$N8N_USER" > "$N8N_ENV"
-    echo "N8N_PASS=$N8N_PASS" >> "$N8N_ENV"
-    chmod 600 "$N8N_ENV"
-    chown "$ACTUAL_USER:$ACTUAL_USER" "$N8N_ENV"
-    log_info "n8n credentials generated"
-else
-    log_info "Using existing n8n credentials"
-    source "$N8N_ENV"
-fi
+# n8n directory (credentials managed via UI)
+N8N_DIR="$HOMELAB_DIR/n8n"
+mkdir -p "$N8N_DIR"
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$N8N_DIR"
 
 # Grafana credentials
 GRAFANA_ENV="$HOMELAB_DIR/grafana/.env"
