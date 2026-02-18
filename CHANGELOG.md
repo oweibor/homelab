@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-02-18
+
 ### 🔐 Security Overhaul
 - **Zero-Trust Docker Architecture**: Finalized 100% isolation of the Docker socket. Application containers (Traefik, OpenClaw) use a read-only proxy, and high-privilege services (Watchtower) are now migrated to a dedicated write-proxy.
 - **Dedicated Watchtower Proxy**: introduced `docker-proxy-watchtower` with scoped `POST` and `IMAGES` permissions on a private `watchtower-net` network.
