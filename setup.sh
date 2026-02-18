@@ -739,7 +739,6 @@ show_step_header "7" "Generating Service Credentials"
 SAMBA_ENV="$HOMELAB_DIR/samba/.env"
 if [ ! -f "$SAMBA_ENV" ]; then
     SAMBA_USER="$ACTUAL_USER"
-    # Stronger password
     SAMBA_PASS=$(openssl rand -base64 24 | tr -d '/+=' | head -c 20)
     echo "SAMBA_USER=$SAMBA_USER" > "$SAMBA_ENV"
     echo "SAMBA_PASS=$SAMBA_PASS" >> "$SAMBA_ENV"
@@ -755,7 +754,6 @@ fi
 N8N_ENV="$HOMELAB_DIR/n8n/.env"
 if [ ! -f "$N8N_ENV" ]; then
     N8N_USER="admin"
-    # Stronger password
     N8N_PASS=$(openssl rand -base64 24 | tr -d '/+=' | head -c 20)
     echo "N8N_USER=$N8N_USER" > "$N8N_ENV"
     echo "N8N_PASS=$N8N_PASS" >> "$N8N_ENV"
@@ -926,7 +924,7 @@ OPENCLAW_ENV="$HOMELAB_DIR/openclaw/.env"
 HA_TOKEN=""
 
 if [ -f "$OPENCLAW_ENV" ] && grep -q "HOME_ASSISTANT_TOKEN" "$OPENCLAW_ENV"; then
-    source "$OPENCLAW_ENV"
+    # Already sourced in Step 7, no need to source again
     HA_TOKEN="$HOME_ASSISTANT_TOKEN"
     log_info "Using existing Home Assistant token"
 else

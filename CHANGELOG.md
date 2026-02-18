@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 - **Zero-Trust Docker Architecture**: Finalized 100% isolation of the Docker socket. Application containers (Traefik, OpenClaw) use a read-only proxy, and high-privilege services (Watchtower) are now migrated to a dedicated write-proxy.
 - **Dedicated Watchtower Proxy**: introduced `docker-proxy-watchtower` with scoped `POST` and `IMAGES` permissions on a private `watchtower-net` network.
 - **NetBird Management Correction**: Fixed environment variable casing (`mgmt` -> `MGMT`), resolved the port 443 conflict with Traefik by mapping API to 33071, and explicitly exposed gRPC port 33073.
+- **Setup Script Hardening**: Improved variable persistence in `setup.sh` by ensuring all generated credentials (Samba, n8n, OpenClaw) are correctly sourced and available in the script context. Enforced strict `600` permissions on all sensitive environment files.
 
 ### 🛡️ Traefik Security (Phase 4)
 - **Automatic HTTPS**: Wildcard SSL certificates via `mkcert` and Traefik.
