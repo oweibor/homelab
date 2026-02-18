@@ -116,7 +116,7 @@ services:
         max-file: "3"
 
   open-webui:
-    image: ghcr.io/open-webui/open-webui:main
+    image: ghcr.io/open-webui/open-webui:v0.8.3
     container_name: open-webui
     restart: unless-stopped
     networks:
@@ -368,7 +368,7 @@ services:
       - NETBIRD_LETSENCRYPT_DOMAIN=none
       - NETBIRD_MGMT_API_ENDPOINT=https://netbird.homelab.local:33071
       - NETBIRD_MGMT_GRPC_API_ENDPOINT=https://netbird.homelab.local:33073
-      - NETBIRD_MGMT_API_PORT=443
+      - NETBIRD_MGMT_API_PORT=80
       - NETBIRD_MGMT_GRPC_API_PORT=33073
       - NETBIRD_IDP_TYPE=self-hosted
       - NETBIRD_TURN_HOST=coturn
@@ -381,8 +381,8 @@ services:
       - "traefik.http.routers.netbird-api.rule=Host(`netbird.homelab.local`) && PathPrefix(`/api`)"
       - "traefik.http.routers.netbird-api.entrypoints=websecure"
       - "traefik.http.routers.netbird-api.tls=true"
-      - "traefik.http.services.netbird-api.loadbalancer.server.port=443"
-      - "traefik.http.services.netbird-api.loadbalancer.server.scheme=https"
+      - "traefik.http.services.netbird-api.loadbalancer.server.port=80"
+      - "traefik.http.services.netbird-api.loadbalancer.server.scheme=http"
       # gRPC routing needs distinct setup, simplified for HTTP/1.1 proxying here
     logging:
       driver: "json-file"

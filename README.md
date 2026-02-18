@@ -1174,7 +1174,7 @@ We welcome contributions! Here's how you can help:
 ### Pull Requests
 1. Fork the repository
 2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Test thoroughly on N100 hardware
+3. Test thoroughly on your hardware
 4. Update documentation
 5. Submit PR with clear description
 
