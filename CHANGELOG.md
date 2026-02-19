@@ -2,7 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.1] - 2026-02-18
+## [1.1.0] - 2026-02-19
+
+### 🚀 Massive Architectural Expansion
+- **ONLYOFFICE & Nextcloud Integration**: Added a fully integrated, self-hosted office suite. Nextcloud acts as the file hub and AI Assistant, while ONLYOFFICE provides professional document editing.
+- **Nextcloud AI Assistant**: Pre-configured to bridge with the local Ollama instance for secure, private AI document analysis.
+- **Jellyfin Media Server**: Integrated Jellyfin as a high-performance, open-source alternative to Plex, featuring full Intel QuickSync hardware acceleration support for the N100.
+- **Advanced Reverse Proxy Support**: Implemented specialized Traefik headers for ONLYOFFICE and Nextcloud to support seamless iframe embedding and CORS safety.
+
+### 🛡️ Security & Performance Optimizations
+- **Global Frame Protection Update**: Relaxed `frameDeny` from `true` to `SAMEORIGIN` in the global `secure-headers` middleware. This correctly unblocks Home Assistant and n8n internal iframes while still preventing third-party clickjacking.
+- **Environment Synchronization**: `setup.sh` now persists `ACTUAL_USER` in `.env`, resolving critical path resolution issues for Nextcloud data volumes.
+- **Ollama Memory Optimization**: Added `OLLAMA_KEEP_ALIVE=5m` to ensure large AI models are unloaded from system RAM after 5 minutes of inactivity, maximizing performance on low-power hardware.
+
+### 🔧 Fixes
+- **ONLYOFFICE Connectivity**: Fixed a critical typo in the `StorageUrl` configuration that prevented document updates from saving back to Nextcloud.
+- **Jellyfin Accessibility**: Added host port mapping for `8096` to allow direct access during initial setup before Traefik is fully configured.
+- **Template Cleanup**: Removed orphaned `N8N_USER` and `N8N_PASS` variables from `.env.example`.
+- **Config Resiliency**: Consolidated all TLS store configurations into `dynamic.yaml` for a cleaner separation from static Traefik infrastructure.
+
 
 ### 🔧 Fixes
 - **OpenClaw Environment**: Updated `OLLAMA_API_BASE` to `OLLAMA_HOST` for correct agent identification.

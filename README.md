@@ -7,6 +7,9 @@
 [![Home Assistant](https://img.shields.io/badge/Home--Assistant-41BDF5?logo=homeassistant&logoColor=white)](https://www.home-assistant.io/)
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-E53935?logo=lobster&logoColor=white)](https://openclaw.ai/)
 [![Ollama](https://img.shields.io/badge/Ollama-000000?logo=ollama&logoColor=white)](https://ollama.com/)
+[![Nextcloud](https://img.shields.io/badge/Nextcloud-0082C9?logo=nextcloud&logoColor=white)](https://nextcloud.com/)
+[![ONLYOFFICE](https://img.shields.io/badge/ONLYOFFICE-FF6F39?logo=onlyoffice&logoColor=white)](https://onlyoffice.com/)
+[![Jellyfin](https://img.shields.io/badge/Jellyfin-00A4DC?logo=jellyfin&logoColor=white)](https://jellyfin.org/)
 
 
 > **Transform your Intel N100 mini PC into a production-grade, privacy-first homelab in under 15 minutes.**
@@ -194,15 +197,16 @@ graph TB
             WebUI[Open WebUI<br/>Chat Interface]
             Antigravity[Antigravity<br/>Agent IDE<br/>VNC 6080]
             OpenClaw[OpenClaw<br/>AI Agent<br/>Port 18789]
+            OnlyOffice[ONLYOFFICE Docs<br/>Editor Engine]
+            Nextcloud[Nextcloud<br/>File Hub / AI Asst]
             Proxy[Docker Proxy<br/>Security Layer]
         end
         
-        subgraph AutoStack[Automation]
-            n8n[n8n<br/>Workflows<br/>Port 5678]
-            Watchtower[Watchtower<br/>Auto-Updates]
+        subgraph MediaStack[Media & Entertainment]
+            Plex[Plex Media Server<br/>Port 32400]
+            Jellyfin[Jellyfin Media Server<br/>Port 8096]
+            Samba[Samba<br/>File Sharing]
         end
-        
-        Samba[Samba<br/>File Sharing<br/>Port 445]
     end
 
     subgraph DockerSecurity[Security Layer]
@@ -221,6 +225,8 @@ graph TB
     WebUI --> Ollama
     Antigravity --> Ollama
     OpenClaw --> Ollama
+    Nextcloud -->|API| Ollama
+    Nextcloud --> OnlyOffice
     
     %% System Integrations
     OpenClaw -->|TCP| ProxyRO
@@ -286,6 +292,9 @@ graph TB
 | **📈 Grafana** | Metrics dashboards | 3001 | https://grafana.homelab.local |
 | **📦 cAdvisor** | Container metrics | 8080 (Internal) | Internal Only |
 | **💻 Node Exporter** | Host system metrics | 9100 (Internal) | Internal Only |
+| **☁️ Nextcloud** | File hub & AI Assistant | 8080 | https://nextcloud.homelab.local |
+| **📄 ONLYOFFICE** | Document editor engine | 9980 | https://office.homelab.local |
+| **🍿 Jellyfin** | Open-source media server | 8096 | https://jellyfin.homelab.local |
 
 ---
 

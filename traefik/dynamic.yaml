@@ -9,14 +9,35 @@ http:
         stsPreload: true
         # Prevent MIME-type sniffing (blocks content-type attacks)
         contentTypeNosniff: true
-        # Prevent clickjacking (blocks iframe embedding)
-        frameDeny: true
+        # Prevent clickjacking (blocks third-party iframe embedding)
+        customFrameOptionsValue: "SAMEORIGIN"
         # Control referrer leakage across origins
         referrerPolicy: "strict-origin-when-cross-origin"
         # Disable sensitive browser APIs by default
         permissionsPolicy: "camera=(), microphone=(), geolocation=(), payment=()"
         # Additional hardening
         browserXssFilter: true
+        customResponseHeaders:
+          X-Robots-Tag: "noindex, nofollow"
+
+    # OnlyOffice requires relaxed frame policy and large body size
+    onlyoffice-headers:
+      headers:
+        stsSeconds: 63072000
+        stsIncludeSubdomains: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        customFrameOptionsValue: "SAMEORIGIN"
+        referrerPolicy: "strict-origin-when-cross-origin"
+    
+    # Nextcloud-specific headers
+    nextcloud-headers:
+      headers:
+        stsSeconds: 63072000
+        stsIncludeSubdomains: true
+        contentTypeNosniff: true
+        customFrameOptionsValue: "SAMEORIGIN"
+        referrerPolicy: "no-referrer"
         customResponseHeaders:
           X-Robots-Tag: "noindex, nofollow"
 
@@ -56,6 +77,24 @@ http:
         - secure-headers
       tls: {}
 
+    onlyoffice:
+      rule: "Host(`office.homelab.local`)"
+      service: onlyoffice
+      entryPoints:
+        - websecure
+      middlewares:
+        - onlyoffice-headers
+      tls: {}
+
+    nextcloud:
+      rule: "Host(`nextcloud.homelab.local`)"
+      service: nextcloud
+      entryPoints:
+        - websecure
+      middlewares:
+        - nextcloud-headers
+      tls: {}
+
   services:
     homeassistant:
       loadBalancer:
@@ -74,6 +113,16 @@ http:
           path: /
           interval: 30s
           timeout: 5s
+
+    onlyoffice:
+      loadBalancer:
+        servers:
+          - url: "http://onlyoffice:80"
+
+    nextcloud:
+      loadBalancer:
+        servers:
+          - url: "http://nextcloud:80"
 
 tls:
   stores:

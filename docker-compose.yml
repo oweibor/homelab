@@ -583,6 +583,126 @@ services:
         max-size: "5m"
         max-file: "2"
 
+  # Jellyfin: Open Source Media Server
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    networks:
+      - homelab
+    ports:
+      - "8096:8096"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8096/healthcheck" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    volumes:
+      - ./jellyfin/config:/config
+      - ./jellyfin/cache:/cache
+      - ./media:/data
+    devices:
+      - /dev/dri:/dev/dri # Intel N100 QuickSync Acceleration
+    group_add:
+      - "${RENDER_GID}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.homelab.local`)"
+      - "traefik.http.routers.jellyfin.entrypoints=websecure"
+      - "traefik.http.routers.jellyfin.tls=true"
+      - "traefik.http.routers.jellyfin.middlewares=secure-headers@file"
+      - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================
+  # ONLYOFFICE DOCUMENT SERVER
+  # ============================================================
+
+  onlyoffice:
+    image: onlyoffice/documentserver:latest
+    container_name: onlyoffice
+    restart: unless-stopped
+    networks:
+      - homelab
+    ports:
+      - "9980:80"
+    volumes:
+      - ./onlyoffice/logs:/var/log/onlyoffice
+      - ./onlyoffice/data:/var/www/onlyoffice/Data
+      - ./onlyoffice/lib:/var/lib/onlyoffice
+      - ./onlyoffice/db:/var/lib/postgresql
+      # Mount the local cert for internal TLS validation if needed
+      - ./traefik/certs/homelab.local.crt:/etc/ssl/certs/homelab.local.crt:ro
+    environment:
+      - JWT_ENABLED=true
+      - JWT_SECRET=${ONLYOFFICE_JWT_SECRET}
+      - JWT_HEADER=AuthorizationJwt
+      - TZ=${TZ}
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost/healthcheck" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.onlyoffice.rule=Host(`office.homelab.local`)"
+      - "traefik.http.routers.onlyoffice.entrypoints=websecure"
+      - "traefik.http.routers.onlyoffice.tls=true"
+      - "traefik.http.routers.onlyoffice.middlewares=onlyoffice-headers@file"
+      - "traefik.http.services.onlyoffice.loadbalancer.server.port=80"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Nextcloud: File Management Backend for OnlyOffice
+  nextcloud:
+    image: nextcloud:stable
+    container_name: nextcloud
+    restart: unless-stopped
+    networks:
+      - homelab
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nextcloud/data:/var/www/html
+      # Re-use the existing media directory (mount read-only for safety or rw if shared)
+      - ./media:/var/www/html/data/${ACTUAL_USER}/files/Media:ro
+    environment:
+      - NEXTCLOUD_ADMIN_USER=admin
+      - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
+      - NEXTCLOUD_TRUSTED_DOMAINS=nextcloud.homelab.local localhost
+      - TZ=${TZ}
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost/status.php" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nextcloud.rule=Host(`nextcloud.homelab.local`)"
+      - "traefik.http.routers.nextcloud.entrypoints=websecure"
+      - "traefik.http.routers.nextcloud.tls=true"
+      - "traefik.http.routers.nextcloud.middlewares=nextcloud-headers@file"
+      - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 volumes:
   ollama_models: # Large models kept in named volume for performance
   netbird_mgmt:
