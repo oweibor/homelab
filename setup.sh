@@ -696,10 +696,9 @@ echo ""
 show_step_header "6" "Creating Homelab Directory Structure"
 
 HOMELAB_DIR="$USER_HOME/homelab"
-mkdir -p "$HOMELAB_DIR"/{homeassistant,plex/config,plex/transcode,jellyfin/config,jellyfin/cache,onlyoffice/{logs,data,lib,db},nextcloud/data,media,n8n,samba,backups,open-webui,traefik,antigravity/workspace,antigravity/config,openclaw,netbird,grafana/data,prometheus/data}
+mkdir -p "$HOMELAB_DIR"/{homeassistant,plex/config,plex/transcode,jellyfin/config,jellyfin/cache,onlyoffice/{logs,data,lib,db},nextcloud/data,media,n8n,samba,backups,open-webui,traefik,antigravity/workspace,antigravity/config,openclaw,netbird,grafana/data,prometheus/data,homepage}
 chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/onlyoffice"
 chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/nextcloud"
-mkdir -p "$HOMELAB_DIR/homepage"
 chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/homepage"
 
 # Set permissions
@@ -752,6 +751,14 @@ if [ ! -f "$SAMBA_ENV" ]; then
 else
     log_info "Using existing Samba credentials"
     source "$SAMBA_ENV"
+fi
+
+# Homepage widget tokens — initialized empty, must be obtained post-install
+if ! grep -q "PLEX_TOKEN" "$ENV_FILE"; then
+    echo "PLEX_TOKEN=" >> "$ENV_FILE"
+    echo "JELLYFIN_API_KEY=" >> "$ENV_FILE"
+    log_warn "Homepage widgets: PLEX_TOKEN and JELLYFIN_API_KEY initialized in .env."
+    log_warn "  You must obtain these tokens post-install and add them manually."
 fi
 
 # n8n directory (credentials managed via UI)

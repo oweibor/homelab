@@ -12,7 +12,7 @@
 [![Jellyfin](https://img.shields.io/badge/Jellyfin-00A4DC?logo=jellyfin&logoColor=white)](https://jellyfin.org/)
 
 
-> **19+ self-hosted services. One 15-minute setup. No cloud required. Private AI · 4K Media · Smart Home · Collaborative Docs · Mesh VPN — all on a $50 mini PC. if it can run smooth on this hardware, imagine what it can do on yours.**
+> A complete, private, and secure homelab stack — from AI agents to media servers — all on a $150 mini PC. if it can run smooth on this hardware, imagine what it can do on yours.**
 
 A fully automated, silicon-optimized deployment system that combines **Local AI Intelligence**, **4K Media Streaming**, and **Private Smart Home Automation** into a single, seamless platform. Built specifically for the Intel N100 architecture with QuickSync hardware acceleration and optimized power management.
 
@@ -470,6 +470,7 @@ Add these lines (replace `192.168.1.100` with your server IP):
 192.168.1.100 netbird.homelab.local
 192.168.1.100 prometheus.homelab.local
 192.168.1.100 grafana.homelab.local
+192.168.1.100 home.homelab.local
 ```
 
 #### Option C: Network-Wide DNS (Advanced)
@@ -523,6 +524,20 @@ Refer to the [Service Catalog](#-service-catalog) table above for a full list of
 ### Step 4: Finalize Office Integration (MANDATORY)
 
 Connect ONLYOFFICE to the Nextcloud backend by running the automated configuration script from your server terminal:
+
+#### Nextcloud
+- Initial login: `admin` / `admin` (Change immediately!).
+- Run `sudo bash configure-onlyoffice.sh` to link Office editing.
+
+#### Homepage
+1. Access https://home.homelab.local — all services should appear automatically.
+2. To enable live Plex widget data:
+   - Plex Web → Account → Settings → Troubleshooting → Show Token.
+   - Add `PLEX_TOKEN=<token>` to `~/homelab/.env`.
+3. To enable Jellyfin widget data:
+   - Jellyfin Dashboard → Administration → API Keys → Add Key.
+   - Add `JELLYFIN_API_KEY=<key>` to `~/homelab/.env`.
+4. After updating `.env`, restart dashboard: `docker compose up -d homepage`.
 
 ```bash
 cd ~/homelab

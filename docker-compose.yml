@@ -629,6 +629,11 @@ services:
     privileged: true
     devices:
       - /dev/kmsg
+    labels:
+      - "homepage.group=Observability"
+      - "homepage.name=cAdvisor"
+      - "homepage.icon=docker.png"
+      - "homepage.description=Container metrics"
     logging:
       driver: "json-file"
       options:
@@ -808,7 +813,6 @@ services:
     restart: unless-stopped
     networks:
       - homelab
-      - proxy
     ports:
       - "3002:3000"
     volumes:
