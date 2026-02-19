@@ -12,7 +12,7 @@
 [![Jellyfin](https://img.shields.io/badge/Jellyfin-00A4DC?logo=jellyfin&logoColor=white)](https://jellyfin.org/)
 
 
-> **Transform your Intel N100 mini PC into a production-grade, privacy-first homelab in under 15 minutes.**
+> **19+ self-hosted services. One 15-minute setup. No cloud required. Private AI · 4K Media · Smart Home · Collaborative Docs · Mesh VPN — all on a $50 mini PC. if it can run smooth on this hardware, imagine what it can do on yours.**
 
 A fully automated, silicon-optimized deployment system that combines **Local AI Intelligence**, **4K Media Streaming**, and **Private Smart Home Automation** into a single, seamless platform. Built specifically for the Intel N100 architecture with QuickSync hardware acceleration and optimized power management.
 
@@ -290,7 +290,7 @@ graph TB
 | **📡 Signal** | Peer Discovery | Traefik-Proxied | Internal Only |
 | **📊 Prometheus** | Metrics engine | 9090 | https://prometheus.homelab.local |
 | **📈 Grafana** | Metrics dashboards | 3001 | https://grafana.homelab.local |
-| **📦 cAdvisor** | Container metrics | 8080 (Internal) | Internal Only |
+| **📦 cAdvisor** | Container metrics | 8080 (Internal Only - No Host Port) | Internal Only |
 | **💻 Node Exporter** | Host system metrics | 9100 (Internal) | Internal Only |
 | **☁️ Nextcloud** | File hub & AI Assistant | 8080 | https://nextcloud.homelab.local |
 | **📄 ONLYOFFICE** | Document editor engine | 9980 | https://office.homelab.local |
@@ -356,12 +356,13 @@ nano .env
 #   PGID=$(id -g)
 #   TZ=Your/Timezone
 #   RENDER_GID=$(getent group render | cut -d: -f3)
-#   N8N_USER=admin
-#   N8N_PASS=<strong-password>
 #   SAMBA_USER=<username>
 #   SAMBA_PASS=<strong-password>
 #   ANTIGRAVITY_VNC_PASSWORD=<password>
 #   OPENCLAW_TOKEN=<random-hex-token>
+#   ONLYOFFICE_JWT_SECRET=<random-hex-token>
+#   NEXTCLOUD_ADMIN_PASSWORD=<strong-password>
+#   ACTUAL_USER=$(whoami)
 
 # 4. Create directory structure
 mkdir -p ~/homelab/{homeassistant,plex/{config,transcode},media,n8n,samba,backups,open-webui,traefik,antigravity/{workspace,config},openclaw}
@@ -462,6 +463,9 @@ Add these lines (replace `192.168.1.100` with your server IP):
 192.168.1.100 chat.homelab.local
 192.168.1.100 antigravity.homelab.local
 192.168.1.100 openclaw.homelab.local
+192.168.1.100 office.homelab.local
+192.168.1.100 nextcloud.homelab.local
+192.168.1.100 jellyfin.homelab.local
 192.168.1.100 netbird.homelab.local
 192.168.1.100 prometheus.homelab.local
 192.168.1.100 grafana.homelab.local
@@ -512,6 +516,18 @@ Refer to the [Service Catalog](#-service-catalog) table above for a full list of
 2. Create your owner account during first launch.
 3. **Note**: n8n now uses built-in user management. Credentials are no longer managed via environment variables.
 4. Connect to Ollama using `http://ollama:11434`
+
+---
+
+### Step 4: Finalize Office Integration (MANDATORY)
+
+Connect ONLYOFFICE to the Nextcloud backend by running the automated configuration script from your server terminal:
+
+```bash
+cd ~/homelab
+./configure-onlyoffice.sh
+```
+> **Note**: This must be run AFTER the containers are fully started.
 
 ---
 
@@ -653,8 +669,8 @@ To generate new credentials:
 # Install htpasswd
 sudo apt install apache2-utils
 
-# Generate password hash
-echo $(htpasswd -nB admin) | sed -e s/\\$/\\$\\$/g
+# Generate password hash (using MD5 to match dynamic.yaml)
+echo $(htpasswd -n admin) | sed -e s/\\$/\\$\\$/g
 # Output: admin:$$2y$$05$$...
 
 # Update traefik/dynamic.yaml with the output
@@ -747,12 +763,22 @@ tar -xzf backups/homelab-backup-YYYYMMDD.tar.gz -C ~/homelab/
 
 ### SSL Certificate Renewal
 
-```bash
-# Manual check
-cd ~/homelab
-./check-ssl-expiry.sh
+The setup uses `mkcert` for locally-trusted SSL. To manually renew or regenerate certificates:
 
-# Force regenerate self-signed certificates
+```bash
+# 1. Navigate to certs directory
+cd ~/homelab/traefik/certs
+
+# 2. Regenerate wildcard certificates using mkcert
+CAROOT=./ca mkcert -key-file homelab.local.key -cert-file homelab.local.crt "*.homelab.local" "homelab.local" "localhost" "127.0.0.1"
+
+# 3. Restart Traefik
+docker compose up -d traefik
+```
+
+#### OpenSSL Fallback (If mkcert is missing)
+If you are in an environment without `mkcert`, you can fall back to self-signed certificates:
+```bash
 cd ~/homelab/traefik/certs
 rm homelab.local.key homelab.local.crt
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \

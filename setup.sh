@@ -986,7 +986,7 @@ else
         echo "HOME_ASSISTANT_TOKEN=$HA_TOKEN" >> "$OPENCLAW_ENV"
         log_success "Token saved."
     else
-        log_warn "Top skipped. Smart Home skills will be disabled."
+        log_warn "Token skipped. Smart Home skills will be disabled."
     fi
 fi
 

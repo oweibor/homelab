@@ -597,7 +597,7 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8096/healthcheck" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8096/health" ]
       interval: 30s
       timeout: 10s
       retries: 5
