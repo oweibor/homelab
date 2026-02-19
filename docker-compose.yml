@@ -19,6 +19,14 @@ services:
       - "host.docker.internal:host-gateway"
     depends_on:
       - docker-proxy
+    labels:
+      - "homepage.group=Network"
+      - "homepage.name=Traefik"
+      - "homepage.icon=traefik.png"
+      - "homepage.href=https://traefik.homelab.local"
+      - "homepage.description=Reverse proxy"
+      - "homepage.widget.type=traefik"
+      - "homepage.widget.url=http://traefik:8082"
 
   watchtower:
     image: containrrr/watchtower
@@ -54,6 +62,15 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
+    labels:
+      - "homepage.group=Home"
+      - "homepage.name=Home Assistant"
+      - "homepage.icon=home-assistant.png"
+      - "homepage.href=https://ha.homelab.local"
+      - "homepage.description=Smart home platform"
+      - "homepage.widget.type=homeassistant"
+      - "homepage.widget.url=http://host.docker.internal:8123"
+      - "homepage.widget.key=${HOME_ASSISTANT_TOKEN}"
     logging:
       driver: "json-file"
       options:
@@ -78,6 +95,15 @@ services:
       - ./plex/config:/config
       - ./media:/data
       - ./plex/transcode:/transcode
+    labels:
+      - "homepage.group=Media"
+      - "homepage.name=Plex"
+      - "homepage.icon=plex.png"
+      - "homepage.href=https://plex.homelab.local"
+      - "homepage.description=4K media server"
+      - "homepage.widget.type=plex"
+      - "homepage.widget.url=http://host.docker.internal:32400"
+      - "homepage.widget.key=${PLEX_TOKEN}"
     logging:
       driver: "json-file"
       options:
@@ -101,6 +127,13 @@ services:
       - "traefik.http.routers.ollama.tls=true"
       - "traefik.http.routers.ollama.middlewares=secure-headers@file"
       - "traefik.http.services.ollama.loadbalancer.server.port=11434"
+      - "homepage.group=AI"
+      - "homepage.name=Ollama"
+      - "homepage.icon=ollama.png"
+      - "homepage.href=https://ollama.homelab.local"
+      - "homepage.description=Local LLM inference engine"
+      - "homepage.widget.type=ollama"
+      - "homepage.widget.url=http://ollama:11434"
     environment:
       - TZ=${TZ}
     healthcheck:
@@ -132,6 +165,11 @@ services:
       - "traefik.http.routers.chat.tls=true"
       - "traefik.http.routers.chat.middlewares=secure-headers@file"
       - "traefik.http.services.chat.loadbalancer.server.port=8080"
+      - "homepage.group=AI"
+      - "homepage.name=Open WebUI"
+      - "homepage.icon=openwebui.png"
+      - "homepage.href=https://chat.homelab.local"
+      - "homepage.description=ChatGPT-like interface"
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
     healthcheck:
@@ -165,6 +203,11 @@ services:
       - "traefik.http.routers.n8n.tls=true"
       - "traefik.http.routers.n8n.middlewares=secure-headers@file"
       - "traefik.http.services.n8n.loadbalancer.server.port=5678"
+      - "homepage.group=Home"
+      - "homepage.name=n8n"
+      - "homepage.icon=n8n.png"
+      - "homepage.href=https://n8n.homelab.local"
+      - "homepage.description=Workflow automation"
     environment:
       - N8N_USER_MANAGEMENT_DISABLED=false
       - N8N_SECURE_COOKIE=true
@@ -241,6 +284,11 @@ services:
       - "traefik.http.routers.antigravity.tls=true"
       - "traefik.http.routers.antigravity.middlewares=secure-headers@file"
       - "traefik.http.services.antigravity.loadbalancer.server.port=6080"
+      - "homepage.group=AI"
+      - "homepage.name=Antigravity"
+      - "homepage.icon=vscode.png"
+      - "homepage.href=https://antigravity.homelab.local"
+      - "homepage.description=AI-powered code editor"
     depends_on:
       - ollama
     logging:
@@ -336,6 +384,11 @@ services:
       - "traefik.http.routers.openclaw.tls=true"
       - "traefik.http.routers.openclaw.middlewares=secure-headers@file"
       - "traefik.http.services.openclaw.loadbalancer.server.port=18789"
+      - "homepage.group=AI"
+      - "homepage.name=OpenClaw"
+      - "homepage.icon=openai.png"
+      - "homepage.href=https://openclaw.homelab.local"
+      - "homepage.description=Autonomous AI agent"
     depends_on:
       - ollama
       - docker-proxy
@@ -439,6 +492,11 @@ services:
       - "traefik.http.routers.netbird.entrypoints=websecure"
       - "traefik.http.routers.netbird.tls=true"
       - "traefik.http.services.netbird.loadbalancer.server.port=80"
+      - "homepage.group=Network"
+      - "homepage.name=NetBird"
+      - "homepage.icon=wireguard.png"
+      - "homepage.href=https://netbird.homelab.local"
+      - "homepage.description=Self-hosted mesh VPN"
     logging:
       driver: "json-file"
       options:
@@ -497,6 +555,13 @@ services:
       - "traefik.http.routers.prometheus.tls=true"
       - "traefik.http.routers.prometheus.middlewares=secure-headers@file"
       - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+      - "homepage.group=Observability"
+      - "homepage.name=Prometheus"
+      - "homepage.icon=prometheus.png"
+      - "homepage.href=https://prometheus.homelab.local"
+      - "homepage.description=Metrics collection"
+      - "homepage.widget.type=prometheus"
+      - "homepage.widget.url=http://prometheus:9090"
     logging:
       driver: "json-file"
       options:
@@ -531,6 +596,15 @@ services:
       - "traefik.http.routers.grafana.tls=true"
       - "traefik.http.routers.grafana.middlewares=secure-headers@file"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "homepage.group=Observability"
+      - "homepage.name=Grafana"
+      - "homepage.icon=grafana.png"
+      - "homepage.href=https://grafana.homelab.local"
+      - "homepage.description=Metrics dashboards"
+      - "homepage.widget.type=grafana"
+      - "homepage.widget.url=http://grafana:3000"
+      - "homepage.widget.username=admin"
+      - "homepage.widget.password=${GF_ADMIN_PASSWORD}"
     depends_on:
       - prometheus
     logging:
@@ -617,6 +691,14 @@ services:
       - "traefik.http.routers.jellyfin.tls=true"
       - "traefik.http.routers.jellyfin.middlewares=secure-headers@file"
       - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
+      - "homepage.group=Media"
+      - "homepage.name=Jellyfin"
+      - "homepage.icon=jellyfin.png"
+      - "homepage.href=https://jellyfin.homelab.local"
+      - "homepage.description=Open source media server"
+      - "homepage.widget.type=jellyfin"
+      - "homepage.widget.url=http://jellyfin:8096"
+      - "homepage.widget.key=${JELLYFIN_API_KEY}"
     logging:
       driver: "json-file"
       options:
@@ -660,6 +742,11 @@ services:
       - "traefik.http.routers.onlyoffice.tls=true"
       - "traefik.http.routers.onlyoffice.middlewares=onlyoffice-headers@file"
       - "traefik.http.services.onlyoffice.loadbalancer.server.port=80"
+      - "homepage.group=Documents"
+      - "homepage.name=ONLYOFFICE"
+      - "homepage.icon=onlyoffice.png"
+      - "homepage.href=https://office.homelab.local"
+      - "homepage.description=Collaborative document editor"
     logging:
       driver: "json-file"
       options:
@@ -697,6 +784,53 @@ services:
       - "traefik.http.routers.nextcloud.tls=true"
       - "traefik.http.routers.nextcloud.middlewares=nextcloud-headers@file"
       - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
+      - "homepage.group=Documents"
+      - "homepage.name=Nextcloud"
+      - "homepage.icon=nextcloud.png"
+      - "homepage.href=https://nextcloud.homelab.local"
+      - "homepage.description=Private file sync"
+      - "homepage.widget.type=nextcloud"
+      - "homepage.widget.url=http://nextcloud:80"
+      - "homepage.widget.username=admin"
+      - "homepage.widget.password=${NEXTCLOUD_ADMIN_PASSWORD}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================
+  # HOMEPAGE — Service Dashboard
+  # ============================================================
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    restart: unless-stopped
+    networks:
+      - homelab
+      - proxy
+    ports:
+      - "3002:3000"
+    volumes:
+      - ./homepage:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - TZ=${TZ}
+      - PUID=${PUID}
+      - PGID=${PGID}
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3000" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.homepage.rule=Host(`home.homelab.local`)"
+      - "traefik.http.routers.homepage.entrypoints=websecure"
+      - "traefik.http.routers.homepage.tls=true"
+      - "traefik.http.routers.homepage.middlewares=secure-headers@file"
+      - "traefik.http.services.homepage.loadbalancer.server.port=3000"
     logging:
       driver: "json-file"
       options:

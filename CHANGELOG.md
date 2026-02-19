@@ -6,9 +6,11 @@ All notable changes to this project will be documented in this file.
 
 ### 🚀 Massive Architectural Expansion
 - **ONLYOFFICE & Nextcloud Integration**: Added a fully integrated, self-hosted office suite. Nextcloud acts as the file hub and AI Assistant, while ONLYOFFICE provides professional document editing.
+- **Homepage Dashboard**: Added central service dashboard (`ghcr.io/gethomepage/homepage`) with Docker auto-discovery and service widgets (Plex, Jellyfin, Ollama, etc.).
 - **Nextcloud AI Assistant**: Pre-configured to bridge with the local Ollama instance for secure, private AI document analysis.
 - **Jellyfin Media Server**: Integrated Jellyfin as a high-performance, open-source alternative to Plex, featuring full Intel QuickSync hardware acceleration support for the N100.
 - **Advanced Reverse Proxy Support**: Implemented specialized Traefik headers for ONLYOFFICE and Nextcloud to support seamless iframe embedding and CORS safety.
+- **Enhanced Monitoring**: Refined Jellyfin health checks and Ollama RAM optimization.
 
 ### 🛡️ Security & Performance Optimizations
 - **Global Frame Protection Update**: Relaxed `frameDeny` from `true` to `SAMEORIGIN` in the global `secure-headers` middleware. This correctly unblocks Home Assistant and n8n internal iframes while still preventing third-party clickjacking.

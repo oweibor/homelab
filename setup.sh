@@ -699,6 +699,8 @@ HOMELAB_DIR="$USER_HOME/homelab"
 mkdir -p "$HOMELAB_DIR"/{homeassistant,plex/config,plex/transcode,jellyfin/config,jellyfin/cache,onlyoffice/{logs,data,lib,db},nextcloud/data,media,n8n,samba,backups,open-webui,traefik,antigravity/workspace,antigravity/config,openclaw,netbird,grafana/data,prometheus/data}
 chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/onlyoffice"
 chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/nextcloud"
+mkdir -p "$HOMELAB_DIR/homepage"
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/homepage"
 
 # Set permissions
 PUID=$(id -u "$ACTUAL_USER")
@@ -1415,6 +1417,11 @@ if ! curl -m 10 -sf http://localhost:8080/status.php >/dev/null 2>&1; then
     FAILED_CHECKS+=("Nextcloud (8080)")
 fi
 
+# Check Homepage (3002)
+if ! curl -m 5 -sf http://localhost:3002 >/dev/null 2>&1; then
+    FAILED_CHECKS+=("Homepage (3002)")
+fi
+
 # Check Samba (445) - TCP check since it's not HTTP
 # Using bash's built-in TCP capability to avoid needing netcat
 if ! timeout 2 bash -c '</dev/tcp/localhost/445' >/dev/null 2>&1; then
@@ -1490,6 +1497,7 @@ printf "  │  - Plex:            %-39s │\n" "http://${CONFIGURED_IP:-localhos
 printf "  │  - n8n:             %-39s │\n" "http://${CONFIGURED_IP:-localhost}:5678"
 printf "  │  - Ollama API:      %-39s │\n" "http://${CONFIGURED_IP:-localhost}:11434"
 printf "  │  - Open WebUI:        %-39s │\n" "http://${CONFIGURED_IP:-localhost}:3000"
+printf "  │  - Homepage:        %-39s │\n" "http://${CONFIGURED_IP:-localhost}:3002"
 printf "  │  - Antigravity:     %-39s │\n" "http://${CONFIGURED_IP:-localhost}:6080"
 printf "  │  - OpenClaw Agent:  %-39s │\n" "http://${CONFIGURED_IP:-localhost}:18789"
 printf "  │  - NetBird Dash:    %-39s │\n" "https://${CONFIGURED_IP:-localhost}:33071"
@@ -1505,6 +1513,7 @@ printf "  │  - Home Assistant:  %-39s │\n" "https://ha.homelab.local"
 printf "  │  - Plex:            %-39s │\n" "https://plex.homelab.local"
 printf "  │  - n8n:             %-39s │\n" "https://n8n.homelab.local"
 printf "  │  - Open WebUI:        %-39s │\n" "https://chat.homelab.local"
+printf "  │  - Homepage:        %-39s │\n" "https://home.homelab.local"
 printf "  │  - Antigravity:     %-39s │\n" "https://antigravity.homelab.local"
 printf "  │  - OpenClaw:        %-39s │\n" "https://openclaw.homelab.local"
 printf "  │  - NetBird Dash:    %-39s │\n" "https://netbird.homelab.local"
@@ -1519,6 +1528,7 @@ printf "  │    %-56s │\n" "traefik.homelab.local antigravity.homelab.local"
 printf "  │    %-56s │\n" "openclaw.homelab.local netbird.homelab.local"
 printf "  │    %-56s │\n" "grafana.homelab.local prometheus.homelab.local"
 printf "  │    %-56s │\n" "plex.homelab.local ha.homelab.local n8n.homelab.local"
+printf "  │    %-56s │\n" "home.homelab.local office.homelab.local nextcloud.homelab.local"
   echo "  └─────────────────────────────────────────────────────────────┘"
 echo ""
 

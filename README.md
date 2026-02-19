@@ -290,6 +290,7 @@ graph TB
 | **📡 Signal** | Peer Discovery | Traefik-Proxied | Internal Only |
 | **📊 Prometheus** | Metrics engine | 9090 | https://prometheus.homelab.local |
 | **📈 Grafana** | Metrics dashboards | 3001 | https://grafana.homelab.local |
+| **🏠 Homepage** | Service Dashboard | 3002 | [home.homelab.local](https://home.homelab.local) |
 | **📦 cAdvisor** | Container metrics | 8080 (Internal Only - No Host Port) | Internal Only |
 | **💻 Node Exporter** | Host system metrics | 9100 (Internal) | Internal Only |
 | **☁️ Nextcloud** | File hub & AI Assistant | 8080 | https://nextcloud.homelab.local |
