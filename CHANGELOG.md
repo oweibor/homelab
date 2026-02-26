@@ -5,20 +5,23 @@ All notable changes to this project will be documented in this file.
 ## [1.2.0] - 2026-02-26
 
 ### 🦾 Autonomous AI Pipeline (Kilo) - Phase 6
+
 - **OpenClaw x Kilo Wiring**: Successfully linked OpenClaw to the Kilo v9 autonomous loop.
 - **Task Delegation**: Implemented delegation rules in `openclaw.json` for writing code, implementing APIs, and fixing bugs.
 - **Trust Modes**: Introduced `supervised`, `graduated`, and `autonomous` trust levels for fine-grained control over AI autonomy.
 - **Observability**: Implemented `/metrics` endpoint in `kilo-pipeline` and provisioned a custom Grafana dashboard for pipeline performance.
 
 ### 🛡️ System Hardening & Resilience - Phase 7
+
 - **Kill-Switch**: Added `OPENCLAW_KILO_ENABLED` environment variable to bypass the pipeline instantly in emergencies.
-- **Script Resilience**: 
-    - `update.sh`: Added logic to drain `writer_retry` queues and verify service health post-update.
-    - `backup-homelab.sh`: Integrated `/var/kilo` path and Qdrant vector backups.
+- **Script Resilience**:
+  - `update.sh`: Added logic to drain `writer_retry` queues and verify service health post-update.
+  - `backup-homelab.sh`: Integrated `/var/kilo` path and Qdrant vector backups.
 - **Automated Provisioning**: `setup.sh` now automates the creation of `/var/kilo` hierarchy and invariant files.
 - **Disk Alerting**: Added Prometheus/Grafana alerts for `/var/kilo` partitioning and filesystem health.
 
 ### 📓 Obsidian & RAG Integration - Phase 8
+
 - **Nextcloud Vault Sync**: Architected a dual-access vault system where Obsidian notes live in Nextcloud (`~/homelab/nextcloud/data/admin/files/Obsidian`).
 - **AnythingLLM Integration**: Deployed AnythingLLM for Retrieval-Augmented Generation (RAG) over the Obsidian vault, linked to local Ollama embeddings.
 - **Browser-based Editing**: Deployed `linuxserver/obsidian` with KasmVNC security hardening and Traefik SSL routing.
@@ -27,6 +30,7 @@ All notable changes to this project will be documented in this file.
 ## [1.1.0] - 2026-02-19
 
 ### 🚀 Massive Architectural Expansion
+
 - **ONLYOFFICE & Nextcloud Integration**: Added a fully integrated, self-hosted office suite. Nextcloud acts as the file hub and AI Assistant, while ONLYOFFICE provides professional document editing.
 - **Homepage Dashboard**: Added central service dashboard (`ghcr.io/gethomepage/homepage`) with Docker auto-discovery and service widgets (Plex, Jellyfin, Ollama, etc.).
 - **Nextcloud AI Assistant**: Pre-configured to bridge with the local Ollama instance for secure, private AI document analysis.
@@ -35,18 +39,20 @@ All notable changes to this project will be documented in this file.
 - **Enhanced Monitoring**: Refined Jellyfin health checks and Ollama RAM optimization.
 
 ### 🛡️ Security & Performance Optimizations
+
 - **Global Frame Protection Update**: Relaxed `frameDeny` from `true` to `SAMEORIGIN` in the global `secure-headers` middleware. This correctly unblocks Home Assistant and n8n internal iframes while still preventing third-party clickjacking.
 - **Environment Synchronization**: `setup.sh` now persists `ACTUAL_USER` in `.env`, resolving critical path resolution issues for Nextcloud data volumes.
 - **Ollama Memory Optimization**: Added `OLLAMA_KEEP_ALIVE=5m` to ensure large AI models are unloaded from system RAM after 5 minutes of inactivity, maximizing performance on low-power hardware.
 
 ### 🔧 Fixes
+
 - **ONLYOFFICE Connectivity**: Fixed a critical typo in the `StorageUrl` configuration that prevented document updates from saving back to Nextcloud.
 - **Jellyfin Accessibility**: Added host port mapping for `8096` to allow direct access during initial setup before Traefik is fully configured.
 - **Template Cleanup**: Removed orphaned `N8N_USER` and `N8N_PASS` variables from `.env.example`.
 - **Config Resiliency**: Consolidated all TLS store configurations into `dynamic.yaml` for a cleaner separation from static Traefik infrastructure.
 
-
 ### 🔧 Fixes
+
 - **OpenClaw Environment**: Updated `OLLAMA_API_BASE` to `OLLAMA_HOST` for correct agent identification.
 - **OpenClaw Network**: Standardized internal and external ports to `18789` for consistent routing, healthchecks, and setup summary.
 - **NetBird Management**: Resolved double TLS termination. The container now listens on HTTP (Port 80) internally, with Traefik handling SSL termination exclusively.
@@ -59,12 +65,14 @@ All notable changes to this project will be documented in this file.
 ## [1.0.0] - 2026-02-18
 
 ### 🔐 Security Overhaul
+
 - **Zero-Trust Docker Architecture**: Finalized 100% isolation of the Docker socket. Application containers (Traefik, OpenClaw) use a read-only proxy, and high-privilege services (Watchtower) are now migrated to a dedicated write-proxy.
 - **Dedicated Watchtower Proxy**: introduced `docker-proxy-watchtower` with scoped `POST` and `IMAGES` permissions on a private `watchtower-net` network.
 - **NetBird Management Correction**: Fixed environment variable casing (`mgmt` -> `MGMT`), resolved the port 443 conflict with Traefik by mapping API to 33071, and explicitly exposed gRPC port 33073.
 - **Setup Script Hardening**: Improved variable persistence in `setup.sh` by ensuring all generated credentials (Samba, n8n, OpenClaw) are correctly sourced and available in the script context. Enforced strict `600` permissions on all sensitive environment files.
 
 ### 🛡️ Traefik Security (Phase 4)
+
 - **Automatic HTTPS**: Wildcard SSL certificates via `mkcert` and Traefik.
 - **Secure Headers**: Global OWASP-compliant headers (HSTS, CSP-lite, X-Frame-Options) applied to all services.
 - **Restricted Socket Access**: Traefik migrated to `docker-proxy`.
@@ -77,12 +85,15 @@ All notable changes to this project will be documented in this file.
   - `Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()`
 
 ### 🌐 NetBird (Replaces Tailscale)
+
 - **Self-Hosted Mesh VPN**: Complete NetBird stack (Management, Signal, Dashboard, Coturn) running locally.
 - **Embedded IdP**: Zero cloud dependency. Authentication is handled by the local management server.
 - **Local Dashboard**: Full management UI at `https://netbird.homelab.local`.
+
 > **Note**: Remote access from outside the LAN requires port forwarding and a public domain. Defined setup is for **local mesh networking only**.
 
 ### 🤖 AI Integration (New)
+
 - **OpenClaw**: Fully configured autonomous agent.
   - **Model Routing**: `qwen2.5-coder:3b` (Coding), `llama3.2:3b` (General Skills).
   - **Smart Home**: Integrated with Home Assistant via Long-Lived Access Token.
@@ -90,10 +101,12 @@ All notable changes to this project will be documented in this file.
   - **Critical Fix**: Corrected directory structure to single volume (`./openclaw` -> `/home/node/.openclaw`) to match internal agent layout.
 
 ### 📊 Observability Stack (Enhanced)
+
 - **Configuration Generation**: `setup.sh` now automatically generates `prometheus.yml` and Grafana provisioning files.
 - **Metrics**: Default scrape targets configured for Docker containers.
 
 ### 📊 Observability Stack
+
 - **Prometheus**: Metrics collection engine with 30-day retention. Scrapes Traefik, cAdvisor, node-exporter, and Ollama.
 - **Grafana**: Beautiful metrics dashboards at `grafana.homelab.local`. Pre-provisioned with Prometheus datasource and a custom "Homelab Infrastructure Overview" dashboard (CPU/memory per container, host gauges, network traffic, Traefik request rates).
 - **cAdvisor**: Container-level resource metrics (CPU, memory, network, disk I/O per container).
@@ -101,9 +114,11 @@ All notable changes to this project will be documented in this file.
 - **Traefik Metrics**: Enabled Prometheus metrics endpoint on port 8082 for request rate and latency tracking.
 
 ### 🤖 AI Orchestration
+
 - **Kilo CLI**: Agentic AI orchestration from the terminal. Setup script installs Node.js 20 LTS and `@kilocode/cli` globally. Leverages local Ollama for private, offline AI agent workflows.
 
 ### Added
+
 - **Reliability & Health Monitoring**:
   - Native Docker healthchecks for all bridge network services (Ollama, n8n, etc.)
   - Traefik service healthchecks for host-networked services (Home Assistant, Plex)
@@ -138,22 +153,23 @@ All notable changes to this project will be documented in this file.
   - Certificate renewal instructions
 - Initial release of the automated homelab setup script (`setup.sh`).
 - Docker Compose stack including:
-    - Watchtower
-    - Home Assistant (Host Mode)
-    - Plex (Hardware Transcoding enabled)
-    - Ollama (Llama 3.2 1b & 3b pre-configured)
-    - Open WebUI
-    - n8n
-    - Samba
-    - Traefik (Reverse Proxy)
-    - Antigravity (Code Editor)
-    - OpenClaw (AI Agent)
+  - Watchtower
+  - Home Assistant (Host Mode)
+  - Plex (Hardware Transcoding enabled)
+  - Ollama (Llama 3.2 1b & 3b pre-configured)
+  - Open WebUI
+  - n8n
+  - Samba
+  - Traefik (Reverse Proxy)
+  - Antigravity (Code Editor)
+  - OpenClaw (AI Agent)
 - **Reverse Proxy**: Added Traefik with self-signed SSL support for secure local access (`https://*.homelab.local`).
 - **Dashboard**: Added Traefik dashboard for service monitoring.
 - `config.env.template` for easy user configuration.
 - Robust error handling and network safety checks in setup script.
 
 ### Security
+
 - 🔒 Traefik dashboard now secured with basic authentication
 - ✅ Environment variable validation prevents incomplete deployments
 - 📅 SSL certificate monitoring with expiry warnings

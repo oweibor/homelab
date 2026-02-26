@@ -11,7 +11,6 @@
 [![ONLYOFFICE](https://img.shields.io/badge/ONLYOFFICE-FF6F39?logo=onlyoffice&logoColor=white)](https://onlyoffice.com/)
 [![Jellyfin](https://img.shields.io/badge/Jellyfin-00A4DC?logo=jellyfin&logoColor=white)](https://jellyfin.org/)
 
-
 > A complete, private, and secure homelab stack — from autonomous AI agents to media servers — all on a $150 mini PC. If it runs this smooth on budget hardware, imagine what it can do on yours.
 
 A fully automated, silicon-optimized deployment system that combines **Local AI Intelligence**, **4K Media Streaming**, and **Private Smart Home Automation** into a single, seamless platform. Built specifically for the Intel N100 architecture with QuickSync hardware acceleration and optimized power management.
@@ -42,7 +41,9 @@ A fully automated, silicon-optimized deployment system that combines **Local AI 
 ## 🎯 Why This Project?
 
 ### The Problem
+
 Setting up a complete homelab traditionally requires:
+
 - Hours of manual configuration
 - Deep Linux/Docker expertise
 - Trial-and-error hardware optimization
@@ -50,7 +51,9 @@ Setting up a complete homelab traditionally requires:
 - Ongoing maintenance headaches
 
 ### The Solution
+
 This project provides:
+
 - ✅ **One-Command Installation**: Fully automated setup script
 - ✅ **Hardware Optimized**: Pre-configured for N100 QuickSync & power efficiency
 - ✅ **Privacy-First**: 100% local processing - your data never leaves your network
@@ -63,45 +66,53 @@ This project provides:
 ## ✨ Key Features
 
 ### 🧠 **AI-Powered Ecosystem**
+
 - **Local LLM Inference**: Run Llama, Qwen, and other models without cloud dependencies
 - **ChatGPT-like Interface**: Beautiful web UI for conversational AI
 - **Autonomous Coding Agents**: AI-powered code generation and task automation
 - **Agent IDE**: Dedicated development environment for AI-assisted coding
 
 ### 🎬 **Media & Entertainment**
+
 - **4K Hardware Transcoding**: Intel QuickSync-accelerated Plex streaming
 - **Network File Sharing**: Samba integration for seamless media management
 - **Multi-Device Support**: Access your library from any device on your network
 
 ### 🏡 **Productivity & RAG Workflow**
+
 - **Productivity**: Obsidian (Web-based Note Editor), Nextcloud (File Sync)
 - **AI/RAG**: AnythingLLM (Document-based Chat over Obsidian notes)
 - **Home Automation**: Home Assistant, MQTT, n8n
-    - Control 1000+ device types
-    - Bluetooth Support: BLE device integration with optimized N100 drivers
-    - Workflow Automation: n8n for connecting services and creating custom automations
+  - Control 1000+ device types
+  - Bluetooth Support: BLE device integration with optimized N100 drivers
+  - Workflow Automation: n8n for connecting services and creating custom automations
 
 ### 🔒 Enterprise Security
+
 - **100% Zero-Trust Docker API**: All containers are isolated from the host's raw Docker socket.
-    - **Read-Only Proxy**: Traefik and OpenClaw use a restricted gateway (`docker-proxy`).
-    - **Write-Capable Proxy**: Watchtower uses a dedicated, isolated gateway (`docker-proxy-watchtower`).
+  - **Read-Only Proxy**: Traefik and OpenClaw use a restricted gateway (`docker-proxy`).
+  - **Write-Capable Proxy**: Watchtower uses a dedicated, isolated gateway (`docker-proxy-watchtower`).
 - **Locally-Trusted SSL**: `mkcert` generates wildcard `*.homelab.local` certs trusted by your OS — zero browser warnings.
 - **OWASP Security Headers**: Global HSTS, NoSniff, X-Frame-Options, Referrer-Policy, Permissions-Policy on all routes.
 - **Sandboxed Execution**: Docker isolation with credential vaulting for all services.
 
 ### 🌐 Remote Access & Networking
+
 - **Self-Hosted NetBird**: 100% local mesh VPN stack with embedded IdP (No cloud dependency).
 - **Traefik Reverse Proxy**: Intelligent routing with SSL termination and health-based load balancing.
 - **Dedicated Port (33071)**: NetBird Management API & Dashboard endpoint to avoid 443 conflicts.
 - **gRPC Coordination (Signal)**: Signal messaging is securely routed via Traefik gRPC (`h2c`) at `netbird.homelab.local`.
+
 > **Warning**: Remote access from outside your home requires Port Forwarding & Public Domain.
 
 ### 📊 **Full Observability**
+
 - **Prometheus**: Metrics collection with 30-day retention
 - **Grafana Dashboards**: Pre-built dashboard for CPU, memory, containers, and Traefik request rates
 - **cAdvisor + Node Exporter**: Per-container and host-level resource monitoring
 
 ### ⚡ **Performance & Reliability**
+
 - **CPU Optimization**: Pre-configured C-states for N100 stability
 - **Auto-Updates**: Watchtower keeps containers current
 - **Advanced Healthchecks**: Real-time Docker & Traefik monitoring to prevent "Bad Gateway" errors
@@ -112,6 +123,7 @@ This project provides:
 ## 💻 Hardware Requirements
 
 ### Minimum Specifications
+
 | Component | Requirement |
 |-----------|------------|
 | **CPU** | Intel N100 (or N95/N97/N200) |
@@ -121,6 +133,7 @@ This project provides:
 | **OS** | Ubuntu Server 24.04 LTS |
 
 ### Recommended Specifications
+
 | Component | Recommendation |
 |-----------|----------------|
 | **RAM** | 16GB for optimal AI model performance |
@@ -129,6 +142,7 @@ This project provides:
 | **Cooling** | Passive heatsink or low-noise fan |
 
 ### Tested Hardware
+
 - ✅ Beelink Mini S12 Pro (N100, 16GB)
 - ✅ GMKtec NucBox K1 (N100, 12GB)
 - ✅ TRIGKEY Green G4 (N100, 16GB)
@@ -154,6 +168,7 @@ sudo ./setup.sh
 ```
 
 **The script will:**
+
 1. ✅ Update system and install dependencies
 2. ✅ Configure Bluetooth hardware
 3. ✅ Set up static IP networking
@@ -286,29 +301,29 @@ graph TB
 | Service | Purpose | Default Port | Secure URL |
 |---------|---------|--------------|------------|
 | **🧠 Ollama** | Local LLM inference engine | 11434 | API only |
-| **💬 Open WebUI** | ChatGPT-like interface | 3000 | https://chat.homelab.local |
-| **🤖 Antigravity** | AI-powered code editor | 6080 | https://antigravity.homelab.local |
-| **🦾 OpenClaw** | Autonomous AI agent | 18789 | https://openclaw.homelab.local |
-| **🏡 Home Assistant** | Smart home platform | 8123 | https://ha.homelab.local |
-| **🎬 Plex** | Media server (4K transcoding) | 32400 | https://plex.homelab.local |
-| **🔄 n8n** | Workflow automation | 5678 | https://n8n.homelab.local |
+| **💬 Open WebUI** | ChatGPT-like interface | 3000 | <https://chat.homelab.local> |
+| **🤖 Antigravity** | AI-powered code editor | 6080 | <https://antigravity.homelab.local> |
+| **🦾 OpenClaw** | Autonomous AI agent | 18789 | <https://openclaw.homelab.local> |
+| **🏡 Home Assistant** | Smart home platform | 8123 | <https://ha.homelab.local> |
+| **🎬 Plex** | Media server (4K transcoding) | 32400 | <https://plex.homelab.local> |
+| **🔄 n8n** | Workflow automation | 5678 | <https://n8n.homelab.local> |
 | **📁 Samba** | Network file sharing | 139 (TCP), 445 | smb://&lt;IP&gt;/Media |
-| **🔒 Traefik** | Reverse proxy & SSL | 80, 443 | https://traefik.homelab.local |
+| **🔒 Traefik** | Reverse proxy & SSL | 80, 443 | <https://traefik.homelab.local> |
 | **🛡️ Docker Proxy** | Read-Only API gateway | 2375 (Internal) | Internal Only |
 | **🔄 Watchtower** | Auto-update containers | Proxy-Gated | Background service |
-| **🦅 NetBird** | Self-hosted VPN Stack | 33071, 33073 | https://netbird.homelab.local:33071 |
+| **🦅 NetBird** | Self-hosted VPN Stack | 33071, 33073 | <https://netbird.homelab.local:33071> |
 | **📡 Signal** | Peer Discovery | Traefik-Proxied | Internal Only |
-| **📊 Prometheus** | Metrics engine | 9090 | https://prometheus.homelab.local |
-| **📈 Grafana** | Metrics dashboards | 3001 | https://grafana.homelab.local |
+| **📊 Prometheus** | Metrics engine | 9090 | <https://prometheus.homelab.local> |
+| **📈 Grafana** | Metrics dashboards | 3001 | <https://grafana.homelab.local> |
 | **🏠 Homepage** | Service Dashboard | 3002 | [home.homelab.local](https://home.homelab.local) |
 | **📦 cAdvisor** | Container metrics | 8080 (Internal Only - No Host Port) | Internal Only |
 | **💻 Node Exporter** | Host system metrics | 9100 (Internal) | Internal Only |
-| **☁️ Nextcloud** | File hub & AI Assistant | 8080 | https://nextcloud.homelab.local |
-| **📄 ONLYOFFICE** | Document editor engine | 9980 | https://office.homelab.local |
-| **📓 Obsidian** | Web-based note editor | 3000 (Internal) | https://obsidian.homelab.local |
-| **🧠 AnythingLLM** | RAG over Obsidian notes | 3001 (Internal) | https://rag.homelab.local |
-| **🦾 Kilo Pipeline**| Autonomous coding engine | 3100 | https://kilo.homelab.local |
-| **🍿 Jellyfin** | Open-source media server | 8096 | https://jellyfin.homelab.local |
+| **☁️ Nextcloud** | File hub & AI Assistant | 8080 | <https://nextcloud.homelab.local> |
+| **📄 ONLYOFFICE** | Document editor engine | 9980 | <https://office.homelab.local> |
+| **📓 Obsidian** | Web-based note editor | 3000 (Internal) | <https://obsidian.homelab.local> |
+| **🧠 AnythingLLM** | RAG over Obsidian notes | 3001 (Internal) | <https://rag.homelab.local> |
+| **🦾 Kilo Pipeline**| Autonomous coding engine | 3100 | <https://kilo.homelab.local> |
+| **🍿 Jellyfin** | Open-source media server | 8096 | <https://jellyfin.homelab.local> |
 
 ---
 
@@ -317,12 +332,14 @@ graph TB
 ### Scenario A: Fresh Installation (Recommended)
 
 **Prerequisites:**
+
 - Fresh Ubuntu Server 24.04 LTS installation
 - Non-root user with sudo privileges
 - Active internet connection
 - At least 10GB free disk space
 
 **Steps:**
+
 ```bash
 # 1. Update system (optional but recommended)
 sudo apt update && sudo apt upgrade -y
@@ -355,6 +372,7 @@ sudo reboot
 ⚠️ **WARNING**: Do NOT run `setup.sh` on an existing production server. It modifies system-level configurations (Netplan, GRUB).
 
 **Steps:**
+
 ```bash
 # 1. Clone to temporary location
 git clone https://github.com/oweibor/homelab.git ~/homelab-new
@@ -416,6 +434,7 @@ If you are migrating from an old setup and already have a `homelab/media` folder
 **For users who only want specific components (e.g., just the AI stack).**
 
 **Steps:**
+
 ```bash
 # 1. Clone repository
 git clone https://github.com/oweibor/homelab.git ~/homelab-selective
@@ -451,12 +470,14 @@ All services use `.homelab.local` domains for easy access. You need to map these
 #### Option A: Automated (Recommended)
 
 **Windows (PowerShell as Administrator):**
+
 ```powershell
 cd ~/homelab
 .\scripts\client\update-hosts.ps1 -ServerIp "192.168.1.100"
 ```
 
 **macOS / Linux:**
+
 ```bash
 cd ~/homelab
 sudo ./scripts/client/update-hosts.sh 192.168.1.100
@@ -465,10 +486,12 @@ sudo ./scripts/client/update-hosts.sh 192.168.1.100
 #### Option B: Manual Configuration
 
 Edit your hosts file:
+
 - **Windows**: `C:\Windows\System32\drivers\etc\hosts`
 - **macOS/Linux**: `/etc/hosts`
 
 Add these lines (replace `192.168.1.100` with your server IP):
+
 ```text
 # Homelab Services
 192.168.1.100 traefik.homelab.local
@@ -490,6 +513,7 @@ Add these lines (replace `192.168.1.100` with your server IP):
 #### Option C: Network-Wide DNS (Advanced)
 
 For automatic resolution on all devices:
+
 1. Install **Pi-hole** or **AdGuard Home**
 2. Add DNS rewrites for `*.homelab.local` → `<server-IP>`
 3. Point your router's DNS to your Pi-hole/AdGuard instance
@@ -505,7 +529,8 @@ Refer to the [Service Catalog](#-service-catalog) table above for a full list of
 ### Step 3: Initial Service Configuration
 
 #### Home Assistant
-1. Navigate to https://ha.homelab.local
+
+1. Navigate to <https://ha.homelab.local>
 2. Create your admin account and complete the setup wizard.
 3. Enable Bluetooth integration for device discovery.
 4. **Activate HACS (Community Store)**:
@@ -514,21 +539,24 @@ Refer to the [Service Catalog](#-service-catalog) table above for a full list of
    - Follow instructions to link your GitHub account.
 
 #### Plex
-1. Go to https://plex.homelab.local
+
+1. Go to <https://plex.homelab.local>
 2. Sign in with your Plex account
 3. **MANDATORY**: Claim your server! If the server is not automatically found, go to [Plex Claim](https://www.plex.tv/claim/), get a code, and add it to `PLEX_CLAIM` in your `.env`.
 4. Set up libraries pointing to `/data/media/` mount
 5. Enable hardware transcoding in Settings → Transcoder
 
 #### Open WebUI
-1. Visit https://chat.homelab.local
+
+1. Visit <https://chat.homelab.local>
 2. Create your admin account
 3. Go to Settings → Models
 4. Verify Ollama connection (`http://ollama:11434`)
 5. Select default model (e.g., `llama3.2:3b`)
 
 #### n8n
-1. Access https://n8n.homelab.local
+
+1. Access <https://n8n.homelab.local>
 2. Create your owner account during first launch.
 3. **Note**: n8n now uses built-in user management. Credentials are no longer managed via environment variables.
 4. Connect to Ollama using `http://ollama:11434`
@@ -540,11 +568,14 @@ Refer to the [Service Catalog](#-service-catalog) table above for a full list of
 Connect ONLYOFFICE to the Nextcloud backend by running the automated configuration script:
 
 1. Retrieve your admin password:
+
    ```bash
    cat ~/homelab/.env | grep NEXTCLOUD_ADMIN_PASSWORD
    ```
-2. Login to https://nextcloud.homelab.local
+
+2. Login to <https://nextcloud.homelab.local>
 3. Run the configuration script:
+
    ```bash
    cd ~/homelab
    sudo bash configure-onlyoffice.sh
@@ -554,7 +585,7 @@ Connect ONLYOFFICE to the Nextcloud backend by running the automated configurati
 
 ### Step 5: Homepage Dashboard (Discovery & Widgets)
 
-1. Access https://home.homelab.local — all services should appear automatically.
+1. Access <https://home.homelab.local> — all services should appear automatically.
 2. To enable live Plex widget data:
    - Plex Web → Account → Settings → Troubleshooting → Show Token.
    - Add `PLEX_TOKEN=<token>` to `~/homelab/.env`.
@@ -567,7 +598,7 @@ Connect ONLYOFFICE to the Nextcloud backend by running the automated configurati
 
 ### Step 6: RAG Setup (AnythingLLM)
 
-1. Navigate to https://rag.homelab.local
+1. Navigate to <https://rag.homelab.local>
 2. Follow the onboarding wizard:
    - **LLM Provider**: Choose **Ollama**.
    - **Ollama URL**: `http://ollama:11434`
@@ -696,12 +727,14 @@ cat ~/homelab/grafana/.env
 ```
 
 ### SSL/TLS Certificates (mkcert)
+
 - **Locally-Trusted SSL**: `setup.sh` integrates `mkcert` to generate wildcard certificates trusted by your host system.
 - **Zero Browser Warnings**: Accessing `*.homelab.local` over HTTPS will show a green lock after running the CA trust script.
 - **CA Export**: Use `scripts/export-ca.sh` to get the root CA certificate for installation on mobile devices or other computers.
 - **Files**: Certs are stored in `~/homelab/traefik/certs/`.
 
 ### 🛡️ Docker Socket Security (100% Zero-Trust)
+
 - **Socket Isolation**: No container has direct access to the raw `/var/run/docker.sock`.
 - **Read-Only (Traefik/OpenClaw)**: Routed through `docker-proxy` with `POST=0`.
 - **Write-Access (Watchtower)**: Restricted to a dedicated `docker-proxy-watchtower` instance on an isolated network.
@@ -709,11 +742,13 @@ cat ~/homelab/grafana/.env
 ### Traefik Dashboard Access
 
 Protected by basic auth. Credentials are in `traefik/dynamic.yaml`:
+
 ```bash
 cat ~/homelab/traefik/dynamic.yaml | grep users
 ```
 
 To generate new credentials:
+
 ```bash
 # Install htpasswd
 sudo apt install apache2-utils
@@ -730,31 +765,37 @@ echo $(htpasswd -n admin) | sed -e s/\\$/\\$\\$/g
 ## 🛠️ Maintenance & Updates
 
 ### 🤖 **AI & Smart Home Integration**
+
 The stack includes a fully integrated AI agent system:
-1.  **OpenClaw**: Autonomous agent that can control your Smart Home and write code.
+
+1. **OpenClaw**: Autonomous agent that can control your Smart Home and write code.
     - **Models**:
         - **Coding**: `qwen2.5-coder:3b` (High precision)
         - **Chat/Planning**: `llama3.2:3b` (General reasoning)
         - **Status Checks**: `llama3.2:1b` (Ultra-fast)
     - **Skills**:
         - **Home Assistant**: Control lights, switches, and scenes. **Requires Long-Lived Access Token**.
-2.  **Kilo CLI**: Terminal-based agent linked to your local Ollama instance.
+2. **Kilo CLI**: Terminal-based agent linked to your local Ollama instance.
     - **Usage**: Run `kilo "Refactor setup.sh"` in your terminal.
-3.  **Setup**:
+3. **Setup**:
     - Go to **Home Assistant Profile** -> **Security** -> **Create Long-Lived Access Token**.
     - Run `./setup.sh` and paste the token when prompted.
     - **Note**: The token is injected into the OpenClaw environment. If Smart Home control isn't working, ask OpenClaw: *"Install the Home Assistant skill"*.
 
 ### 🦾 **Autonomous AI Pipeline (Kilo)**
+
 The N100 stack includes a sophisticated 9-stage autonomous coding pipeline called **Kilo**. This pipeline allows OpenClaw to delegate complex engineering tasks to a sandboxed environment without manual intervention.
 
 #### **Operational Safety (The Kill-switch)**
+
 If the autonomous pipeline behaves unexpectedly or if you wish to disable it entirely:
+
 - **Environment Variable**: Set `OPENCLAW_KILO_ENABLED=false` in `~/homelab/.env`.
 - **Result**: OpenClaw will handle ALL requests directly using its internal logic, bypassing the Kilo orchestration layer and sandboxed execution.
 - **Update**: Run `docker compose up -d openclaw` to apply the change.
 
 #### **Trust Modes (`TRUST_MODE`)**
+
 Configure the pipeline's autonomy level via the `TRUST_MODE` variable in `.env`:
 
 | Mode | Security Posture | Description |
@@ -764,6 +805,7 @@ Configure the pipeline's autonomy level via the `TRUST_MODE` variable in `.env`:
 | `autonomous`| **Experimental** | Full loop promotion for verified hits. Recommended only for isolated, test-heavy sub-modules. |
 
 #### **Recovery & Resilience**
+
 - **Queue Recovery**: If a task fails or the system reboots, Kilo uses a 5-store persistence layer (`/var/kilo`) to resume from the last valid checkpoint.
 - **Retry Logic**: Failed operations are logged to `/var/kilo/writer_retry`. Running `./update.sh` will prompt to drain this queue before pulling new images.
 
@@ -772,20 +814,24 @@ Configure the pipeline's autonomy level via the `TRUST_MODE` variable in `.env`:
 The homelab includes a browser-based **Obsidian** editor and **AnythingLLM** for RAG over your personal notes.
 
 #### Sync Backbone
+
 - **Synchronization**: Managed by **Nextcloud**. The vault folder lives at `~/homelab/nextcloud/data/admin/files/Obsidian`.
 - **Browser Access**: `https://obsidian.homelab.local` maps the KasmVNC workspace to the Nextcloud vault.
 - **Native App Sync**: Use the Obsidian **Remotely Save** plugin on your phone/laptop pointed at:
   `https://nextcloud.homelab.local/remote.php/dav/files/admin/Obsidian/`
 
 #### Knowledge Engine (AnythingLLM)
+
 - **Context**: AnythingLLM (`https://rag.homelab.local`) indexes the same Nextcloud vault in **Read-Only** mode.
 - **Inference**: Connected to the local **Ollama** service for privacy-preserving AI insights over your own data.
 
 #### Post-Deployment Recommended Plugins
+
 Once logged into the Obsidian web UI, install:
-1.  **Smart Connections**: Point to `http://ollama:11434` for vault-wide semantic search.
-2.  **Local GPT**: For AI-assisted writing using local models.
-3.  **Remotely Save**: To keep the browser editor in sync with your mobile devices via Nextcloud WebDAV.
+
+1. **Smart Connections**: Point to `http://ollama:11434` for vault-wide semantic search.
+2. **Local GPT**: For AI-assisted writing using local models.
+3. **Remotely Save**: To keep the browser editor in sync with your mobile devices via Nextcloud WebDAV.
 
 ### 💾 **Backups & Maintenance**
 
@@ -838,18 +884,23 @@ htop
 Our setup includes an **Automated Weekly Backup** (configured in `setup.sh`) that runs every Sunday at 2 AM. It compresses all critical service configurations and `.env` files while preserving disk space by rotating old archives.
 
 #### Manual Backup
+
 To trigger a backup manually:
+
 ```bash
 cd ~/homelab
 ./backup-homelab.sh
 ```
 
 #### Restore from Backup
+
 1. Stop all containers: `docker compose down`
 2. Extract the backup archive:
+
 ```bash
 tar -xzf backups/homelab-backup-YYYYMMDD.tar.gz -C ~/homelab/
 ```
+
 3. Restart services: `docker compose up -d`
 
 ### SSL Certificate Renewal
@@ -868,7 +919,9 @@ docker compose up -d traefik
 ```
 
 #### OpenSSL Fallback (If mkcert is missing)
+
 If you are in an environment without `mkcert`, you can fall back to self-signed certificates:
+
 ```bash
 cd ~/homelab/traefik/certs
 rm homelab.local.key homelab.local.crt
@@ -891,6 +944,7 @@ docker compose restart traefik
 **Symptoms:** Container exits immediately, "port already in use" errors
 
 **Solution:**
+
 ```bash
 # Check what's using the port
 sudo lsof -i :8123  # Replace 8123 with your port
@@ -901,6 +955,7 @@ sudo systemctl stop <service-name>
 # Or modify port in docker-compose.yml
 # Example: Change plex port from 32400 to 32401
 ```
+
 </details>
 
 <details>
@@ -909,6 +964,7 @@ sudo systemctl stop <service-name>
 **Symptoms:** CPU at 100% during playback, transcoding slow
 
 **Solution:**
+
 ```bash
 # 1. Verify render group
 getent group render
@@ -921,6 +977,7 @@ ls -la /dev/dri/renderD128
 
 # 4. Enable in Plex: Settings → Transcoder → Use hardware acceleration
 ```
+
 </details>
 
 <details>
@@ -929,6 +986,7 @@ ls -la /dev/dri/renderD128
 **Symptoms:** "connection refused", "timeout" during model pull
 
 **Solution:**
+
 ```bash
 # 1. Check Ollama is running
 docker compose ps ollama
@@ -945,6 +1003,7 @@ docker compose exec ollama ollama pull llama3.2:3b
 # 5. Check disk space
 df -h
 ```
+
 </details>
 
 <details>
@@ -953,6 +1012,7 @@ df -h
 **Symptoms:** No Bluetooth devices found, integration errors
 
 **Solution:**
+
 ```bash
 # 1. Check Bluetooth service
 sudo systemctl status bluetooth
@@ -973,6 +1033,7 @@ systemctl status dbus
 # 6. Restart Home Assistant
 docker compose restart homeassistant
 ```
+
 </details>
 
 <details>
@@ -981,6 +1042,7 @@ docker compose restart homeassistant
 **Symptoms:** "No soup for you!", "You do not have permission to access this server," or Plex asking you to "Claim" it in settings but failing.
 
 **Solution:**
+
 ```bash
 # 1. Visit https://www.plex.tv/claim/ and copy the code
 # 2. Add it to your .env file:
@@ -990,6 +1052,7 @@ docker compose up -d plex
 
 # Note: Claim codes expire after 4 minutes! So you have to copy, paste and restart the container quickly. 
 ```
+
 </details>
 
 <details>
@@ -998,6 +1061,7 @@ docker compose up -d plex
 **Symptoms:** "Permission denied", "Cannot write to directory"
 
 **Solution:**
+
 ```bash
 # 1. Check ownership
 ls -la ~/homelab/
@@ -1012,6 +1076,7 @@ cat ~/homelab/.env | grep PUID
 # 4. Restart affected services
 docker compose restart plex samba
 ```
+
 </details>
 
 <details>
@@ -1020,6 +1085,7 @@ docker compose restart plex samba
 **Symptoms:** "Site can't be reached", DNS errors
 
 **Solution:**
+
 ```bash
 # 1. Verify hosts file
 # Windows: notepad C:\Windows\System32\drivers\etc\hosts
@@ -1037,6 +1103,7 @@ docker compose logs traefik
 # 5. Test direct IP access
 curl -k https://192.168.1.100  # Should show Traefik 404
 ```
+
 </details>
 
 <details>
@@ -1045,6 +1112,7 @@ curl -k https://192.168.1.100  # Should show Traefik 404
 **Symptoms:** System unresponsive, fans loud, services timeout
 
 **Solution:**
+
 ```bash
 # 1. Check which container is using CPU
 docker stats
@@ -1067,6 +1135,7 @@ docker compose stop <service-name>
 # 5. Verify CPU governor
 cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
 ```
+
 </details>
 
 <details>
@@ -1075,6 +1144,7 @@ cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
 **Symptoms:** Workspace is empty, errors when indexing files.
 
 **Solution:**
+
 ```bash
 # 1. Verify Nextcloud directory permissions
 ls -la ~/homelab/nextcloud/data/admin/files/Obsidian
@@ -1085,6 +1155,7 @@ sudo chown -R $USER:$USER ~/homelab/nextcloud/data/
 # 3. Check AnythingLLM logs for read errors
 docker compose logs anythingllm
 ```
+
 </details>
 
 <details>
@@ -1093,6 +1164,7 @@ docker compose logs anythingllm
 **Symptoms:** OpenClaw doesn't respond to coding tasks, "Pipeline Timeout" errors.
 
 **Solution:**
+
 ```bash
 # 1. Check Kilo Pipeline logs
 docker compose logs -f kilo-pipeline
@@ -1106,6 +1178,7 @@ ls -la ~/homelab/kilo/writer_retry/
 # 4. Restart the AI Stack
 docker compose restart kilo-pipeline openclaw
 ```
+
 </details>
 
 <details>
@@ -1114,6 +1187,7 @@ docker compose restart kilo-pipeline openclaw
 **Symptoms:** `docker compose` returns error
 
 **Solution:**
+
 ```bash
 # Check if Docker Compose v2 is installed
 docker compose version
@@ -1125,6 +1199,7 @@ sudo apt install docker-compose-plugin
 # Alternative: Use v1 syntax
 docker-compose up -d
 ```
+
 </details>
 
 ### Log Analysis
@@ -1209,20 +1284,22 @@ Turn your smart home into an AI-powered assistant:
    - **Natural Commands**: "I'm cold" → Increase temperature
    - **Daily Briefing**: Morning summary of sensor data
 
-
 ### n8n Workflow Examples
 
 #### 1. AI-Powered Home Automation
+
 ```
 Motion Sensor → n8n → Ollama (analyze context) → HA (intelligent action)
 ```
 
 #### 2. Smart Media Organizer
+
 ```
 New Media File → n8n → Ollama (categorize) → Rename/Move → Plex Library Refresh
 ```
 
 #### 3. Automated Research Assistant
+
 ```
 RSS Feed → n8n → Ollama (summarize) → Email Daily Digest
 ```
@@ -1331,17 +1408,20 @@ sudo sysctl -p
 We welcome contributions! Here's how you can help:
 
 ### Reporting Issues
+
 - Use GitHub Issues
 - Include system info (`uname -a`, `docker version`)
 - Provide logs (`docker compose logs`)
 - Describe expected vs actual behavior
 
 ### Feature Requests
+
 - Check existing issues first
 - Explain use case
 - Provide implementation ideas if possible
 
 ### Pull Requests
+
 1. Fork the repository
 2. Create feature branch (`git checkout -b feature/amazing-feature`)
 3. Test thoroughly on your hardware
@@ -1349,6 +1429,7 @@ We welcome contributions! Here's how you can help:
 5. Submit PR with clear description
 
 ### Development Setup
+
 ```bash
 # Clone your fork
 git clone https://github.com/YOUR_USERNAME/homelab.git
@@ -1369,6 +1450,7 @@ git commit -m "feat: add XYZ feature"
 ## 📚 Additional Resources
 
 ### Official Documentation
+
 - [Home Assistant Docs](https://www.home-assistant.io/docs/)
 - [Plex Support](https://support.plex.tv/)
 - [Ollama Documentation](https://github.com/ollama/ollama/blob/main/docs/README.md)
@@ -1376,12 +1458,14 @@ git commit -m "feat: add XYZ feature"
 - [Traefik Docs](https://doc.traefik.io/traefik/)
 
 ### Community
+
 - [Home Assistant Community](https://community.home-assistant.io/)
 - [Plex Forums](https://forums.plex.tv/)
 - [r/selfhosted](https://www.reddit.com/r/selfhosted/)
 - [r/homelab](https://www.reddit.com/r/homelab/)
 
 ### Related Projects
+
 - [Awesome Selfhosted](https://github.com/awesome-selfhosted/awesome-selfhosted)
 - [Awesome Home Assistant](https://github.com/frenck/awesome-home-assistant)
 - [Ollama Models](https://ollama.ai/library)
