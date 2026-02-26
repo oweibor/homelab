@@ -12,7 +12,7 @@
 [![Jellyfin](https://img.shields.io/badge/Jellyfin-00A4DC?logo=jellyfin&logoColor=white)](https://jellyfin.org/)
 
 
-> A complete, private, and secure homelab stack — from AI agents to media servers — all on a $150 mini PC. if it can run smooth on this hardware, imagine what it can do on yours.**
+> A complete, private, and secure homelab stack — from autonomous AI agents to media servers — all on a $150 mini PC. If it runs this smooth on budget hardware, imagine what it can do on yours.
 
 A fully automated, silicon-optimized deployment system that combines **Local AI Intelligence**, **4K Media Streaming**, and **Private Smart Home Automation** into a single, seamless platform. Built specifically for the Intel N100 architecture with QuickSync hardware acceleration and optimized power management.
 
@@ -73,10 +73,13 @@ This project provides:
 - **Network File Sharing**: Samba integration for seamless media management
 - **Multi-Device Support**: Access your library from any device on your network
 
-### 🏡 **Smart Home Integration**
-- **Home Assistant**: Control 1000+ device types
-- **Bluetooth Support**: BLE device integration with optimized N100 drivers
-- **Workflow Automation**: n8n for connecting services and creating custom automations
+### 🏡 **Productivity & RAG Workflow**
+- **Productivity**: Obsidian (Web-based Note Editor), Nextcloud (File Sync)
+- **AI/RAG**: AnythingLLM (Document-based Chat over Obsidian notes)
+- **Home Automation**: Home Assistant, MQTT, n8n
+    - Control 1000+ device types
+    - Bluetooth Support: BLE device integration with optimized N100 drivers
+    - Workflow Automation: n8n for connecting services and creating custom automations
 
 ### 🔒 Enterprise Security
 - **100% Zero-Trust Docker API**: All containers are isolated from the host's raw Docker socket.
@@ -521,15 +524,25 @@ Refer to the [Service Catalog](#-service-catalog) table above for a full list of
 
 ---
 
-### Step 4: Finalize Office Integration (MANDATORY)
+### Step 4: Office Integration (ONLYOFFICE & Nextcloud)
 
-Connect ONLYOFFICE to the Nextcloud backend by running the automated configuration script from your server terminal:
+Connect ONLYOFFICE to the Nextcloud backend by running the automated configuration script:
 
-#### Nextcloud
-- Initial login: `admin` / `admin` (Change immediately!).
-- Run `sudo bash configure-onlyoffice.sh` to link Office editing.
+1. Retrieve your admin password:
+   ```bash
+   cat ~/homelab/.env | grep NEXTCLOUD_ADMIN_PASSWORD
+   ```
+2. Login to https://nextcloud.homelab.local
+3. Run the configuration script:
+   ```bash
+   cd ~/homelab
+   sudo bash configure-onlyoffice.sh
+   ```
 
-#### Homepage
+---
+
+### Step 5: Homepage Dashboard (Discovery & Widgets)
+
 1. Access https://home.homelab.local — all services should appear automatically.
 2. To enable live Plex widget data:
    - Plex Web → Account → Settings → Troubleshooting → Show Token.
@@ -538,12 +551,6 @@ Connect ONLYOFFICE to the Nextcloud backend by running the automated configurati
    - Jellyfin Dashboard → Administration → API Keys → Add Key.
    - Add `JELLYFIN_API_KEY=<key>` to `~/homelab/.env`.
 4. After updating `.env`, restart dashboard: `docker compose up -d homepage`.
-
-```bash
-cd ~/homelab
-./configure-onlyoffice.sh
-```
-> **Note**: This must be run AFTER the containers are fully started.
 
 ---
 
@@ -711,6 +718,48 @@ The stack includes a fully integrated AI agent system:
     - Go to **Home Assistant Profile** -> **Security** -> **Create Long-Lived Access Token**.
     - Run `./setup.sh` and paste the token when prompted.
     - **Note**: The token is injected into the OpenClaw environment. If Smart Home control isn't working, ask OpenClaw: *"Install the Home Assistant skill"*.
+
+### 🦾 **Autonomous AI Pipeline (Kilo)**
+The N100 stack includes a sophisticated 9-stage autonomous coding pipeline called **Kilo**. This pipeline allows OpenClaw to delegate complex engineering tasks to a sandboxed environment without manual intervention.
+
+#### **Operational Safety (The Kill-switch)**
+If the autonomous pipeline behaves unexpectedly or if you wish to disable it entirely:
+- **Environment Variable**: Set `OPENCLAW_KILO_ENABLED=false` in `~/homelab/.env`.
+- **Result**: OpenClaw will handle ALL requests directly using its internal logic, bypassing the Kilo orchestration layer and sandboxed execution.
+- **Update**: Run `docker compose up -d openclaw` to apply the change.
+
+#### **Trust Modes (`TRUST_MODE`)**
+Configure the pipeline's autonomy level via the `TRUST_MODE` variable in `.env`:
+
+| Mode | Security Posture | Description |
+|------|-----------------|-------------|
+| `supervised` | **High (Default)** | Every semantic change and all "Tier 1" gate failures (e.g., security violations) block for manual approval. |
+| `graduated` | **Medium** | Deterministic hits and low-risk refactors promote automatically. High-risk or failed tasks route to `/var/kilo/quarantine`. |
+| `autonomous`| **Experimental** | Full loop promotion for verified hits. Recommended only for isolated, test-heavy sub-modules. |
+
+#### **Recovery & Resilience**
+- **Queue Recovery**: If a task fails or the system reboots, Kilo uses a 5-store persistence layer (`/var/kilo`) to resume from the last valid checkpoint.
+- **Retry Logic**: Failed operations are logged to `/var/kilo/writer_retry`. Running `./update.sh` will prompt to drain this queue before pulling new images.
+
+### 7.5. Productivity & AI RAG Workflow (Phase 8)
+
+The homelab includes a browser-based **Obsidian** editor and **AnythingLLM** for RAG over your personal notes.
+
+#### Sync Backbone
+- **Synchronization**: Managed by **Nextcloud**. The vault folder lives at `~/homelab/nextcloud/data/admin/files/Obsidian`.
+- **Browser Access**: `https://obsidian.homelab.local` maps the KasmVNC workspace to the Nextcloud vault.
+- **Native App Sync**: Use the Obsidian **Remotely Save** plugin on your phone/laptop pointed at:
+  `https://nextcloud.homelab.local/remote.php/dav/files/admin/Obsidian/`
+
+#### Knowledge Engine (AnythingLLM)
+- **Context**: AnythingLLM (`https://rag.homelab.local`) indexes the same Nextcloud vault in **Read-Only** mode.
+- **Inference**: Connected to the local **Ollama** service for privacy-preserving AI insights over your own data.
+
+#### Post-Deployment Recommended Plugins
+Once logged into the Obsidian web UI, install:
+1.  **Smart Connections**: Point to `http://ollama:11434` for vault-wide semantic search.
+2.  **Local GPT**: For AI-assisted writing using local models.
+3.  **Remotely Save**: To keep the browser editor in sync with your mobile devices via Nextcloud WebDAV.
 
 ### 💾 **Backups & Maintenance**
 

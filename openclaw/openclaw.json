@@ -1,0 +1,177 @@
+{
+  "_meta": {
+    "version": "v9",
+    "workflow": "autonomous-loop-v9",
+    "updated": "2026-02-26",
+    "notes": "Merged configuration: Combined original N100 service endpoints with v9 autonomous orchestration logic."
+  },
+  "skills": {
+    "kilo_cli": {
+      "enabled": true,
+      "description": "Delegate autonomous coding tasks through the Kilo v9 autonomous loop. Kilo runs a 9-stage pipeline: /architect plans, /orchestrator executes via /code + /debug + /review + /ask, a semantic guard with 11 gates protects the workspace, and a 5-store memory system ensures cross-task continuity. Use this for anything that requires writing, testing, iterating, or debugging code.",
+      "dirs": {
+        "queue": "/home/node/.openclaw/kilo-bridge/queue",
+        "signals": "/home/node/.openclaw/kilo-bridge/signals",
+        "workspace": "/home/node/.openclaw/kilo-bridge/workspace",
+        "kilo_memory": "/home/node/.openclaw/kilo-bridge/workspace/.kilo"
+      },
+      "poll_interval_ms": 5000,
+      "task_schema": {
+        "id": "uuid-generated-by-openclaw",
+        "instruction": "The full coding task description",
+        "context": "Stack, file paths, constraints, auth strategy, DB schema, env vars, related prior tasks",
+        "stack_hint": "bash|node-webapp|python-webapp|scraper|ai-worker|vector-store|fullstack",
+        "priority": "normal|high|low",
+        "trust_mode": "${TRUST_MODE:-supervised}",
+        "created_by": "openclaw",
+        "created_at": "ISO8601 timestamp",
+        "parent_task": "uuid of parent task if subtask, else null",
+        "memory_refs": "comma-separated prior task IDs whose .kilo/history/ entries are relevant"
+      },
+      "stack_context_templates": {
+        "bash_script": {
+          "include_in_context": [
+            "Target shell: bash 5.x / sh / zsh — specify",
+            "Execution environment: cron | systemd | manual | Docker entrypoint",
+            "Dependencies allowed: curl | jq | awk | sed | python3 — specify which",
+            "Secrets: env vars only — never hardcode",
+            "Idempotency required: yes/no"
+          ]
+        },
+        "web_app": {
+          "include_in_context": [
+            "Framework: Express | Fastify | Next.js | FastAPI | Flask — specify",
+            "Auth strategy: JWT | session+cookie | OAuth2 | API key",
+            "Database: PostgreSQL | MySQL | SQLite | MongoDB — ORM or raw",
+            "Vector store: Qdrant | Pgvector | Weaviate | Chroma — specify",
+            "AI integration: Ollama (local) | OpenAI | Anthropic",
+            "Validation: Zod | Joi | Pydantic — specify",
+            "Port: specify — default 3000/8000"
+          ],
+          "invariants_to_enforce": [
+            "Auth checks never removed from protected routes",
+            "All DB queries parameterised — no string interpolation",
+            "Secrets only from env vars — never hardcoded",
+            "Vector store collection schema never modified without migration"
+          ]
+        }
+      },
+      "delegation_rules": {
+        "always_delegate_to_kilo": [
+          "Write any new application, service, or module",
+          "Build or extend a REST / tRPC / GraphQL API",
+          "Implement auth — JWT, session, OAuth2, API key middleware",
+          "Set up or extend a database schema — ORM models, migrations, indexes",
+          "Implement Qdrant or pgvector integration",
+          "Integrate Ollama / OpenAI / Anthropic / LangChain / LangGraph",
+          "Fix a bug by iterating through errors",
+          "Refactor or extend existing code",
+          "Install and configure dependencies",
+          "Write and run unit, integration, or smoke tests"
+        ],
+        "handle_directly": [
+          "Smart home control — use home_assistant skill",
+          "Simple file reads or configuration checks",
+          "Answering questions or explaining concepts",
+          "Planning and breaking tasks into subtasks",
+          "Reviewing a Kilo result signal"
+        ],
+        "delegate_then_supervise": [
+          "Multi-service implementations — break into ordered subtasks",
+          "Auth implementation — Kilo writes middleware, OpenClaw verifies invariants",
+          "Deployment scripts — Kilo writes scripts, OpenClaw reviews before execution"
+        ],
+        "never_delegate_to_kilo": [
+          "Executing destructive DB operations on production data",
+          "Pushing to git remote — OpenClaw stages and confirms first",
+          "Running deployment commands against production"
+        ]
+      },
+      "autonomous_behavior": {
+        "on_task_completed": "Read result from signal file. Extract: files_created, files_modified, gate_results, fix_source. Report to user.",
+        "on_task_failed": "Read failure signal. Extract: error_class, strategy_attempted. If attempts < max: reformulate and requeue. If convergence_exit=true: escalate to user.",
+        "on_gate_rejection": "Read gate failure from signal. If T2: requeue with gate context. If T1: escalate to user immediately.",
+        "max_requeue_attempts": 2,
+        "requeue_strategy": {
+          "convergence_exit": "never — escalate to user",
+          "t1_gate_failure": "never — escalate to user",
+          "t2_gate_failure": "requeue once with gate_name",
+          "simple_error": "requeue with error details"
+        }
+      }
+    },
+    "home_assistant": {
+      "enabled": true,
+      "description": "Control smart home devices, read sensor states, trigger automations.",
+      "url": "http://homeassistant:8123",
+      "token": "${HOME_ASSISTANT_TOKEN}",
+      "handle_directly": [
+        "Turn on/off lights, switches, plugs",
+        "Read temperature, humidity, motion sensors",
+        "Trigger named automations or scripts"
+      ]
+    }
+  },
+  "models": {
+    "mode": "merge",
+    "providers": [
+      {
+        "id": "ollama",
+        "type": "openai-completions",
+        "baseUrl": "http://ollama:11434/v1",
+        "models": [
+          "qwen2.5-coder:3b",
+          "llama3.2:3b",
+          "llama3.2:1b"
+        ],
+        "circuit_breaker": {
+          "timeout_s": 30,
+          "retries": 2,
+          "failure_rate_open": 0.20,
+          "confidence_threshold": 60
+        }
+      }
+    ]
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "architect": "ollama/qwen2.5-coder:3b",
+        "orchestrator": "ollama/qwen2.5-coder:3b",
+        "coding": "ollama/qwen2.5-coder:3b",
+        "planning": "ollama/llama3.2:3b",
+        "delegation": "ollama/llama3.2:1b",
+        "fast": "ollama/llama3.2:1b"
+      },
+      "behavior": {
+        "autonomous_iteration": true,
+        "max_plan_depth": 6,
+        "report_on_completion": true
+      },
+      "skills": {
+        "kilo_cli": {
+          "enabled": true
+        },
+        "home_assistant": {
+          "enabled": true
+        }
+      },
+      "pipeline": {
+        "enabled": "${OPENCLAW_KILO_ENABLED:-true}",
+        "endpoint": "http://kilo-pipeline:3100",
+        "trust_mode": "${TRUST_MODE:-supervised}",
+        "token": "${OPENCLAW_TOKEN}"
+      }
+    }
+  },
+  "trust_mode_documentation": {
+    "supervised": {
+      "description": "All structural and invariant changes require human approval.",
+      "behavior": "Block on T1/T2 gate failures and significant writer decisions."
+    },
+    "graduated": {
+      "description": "Deterministic changes auto-promote; semantic changes route to staging.",
+      "behavior": "Quarantine difficult tasks; continue pipeline for corroborated hits."
+    }
+  }
+}

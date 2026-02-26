@@ -137,7 +137,7 @@ services:
     environment:
       - TZ=${TZ}
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:11434/api/tags" ]
+      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/11434" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -173,7 +173,7 @@ services:
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080" ]
+      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/8080" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -213,7 +213,7 @@ services:
       - N8N_SECURE_COOKIE=true
       - TZ=${TZ}
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:5678/healthz" ]
+      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/5678" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -272,7 +272,7 @@ services:
       - OLLAMA_HOST=http://ollama:11434
       - TZ=${TZ}
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:6080" ]
+      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/6080" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -352,6 +352,125 @@ services:
         max-size: "5m"
         max-file: "2"
 
+  # ============================================================
+  # KILO PIPELINE INFRASTRUCTURE
+  # OpenClaw + Kilo Code v9 — Task 1.3, 1.4, 1.5, 1.6
+  # Phase 1 Infrastructure — N100 RAM budget: Qdrant 512m + pipeline 1g
+  # ============================================================
+
+  # Qdrant: Vector Database (5 collections for memory system)
+  # Network: homelab only — Traefik does NOT expose port 6333 externally.
+  # Data persists in named volume qdrant_data.
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    restart: unless-stopped
+    networks:
+      - homelab
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__STORAGE__ON_DISK_PAYLOAD=true
+      - TZ=${TZ}
+    mem_limit: 512m
+    healthcheck:
+      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/6333" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    labels:
+      - "homepage.group=AI"
+      - "homepage.name=Qdrant"
+      - "homepage.icon=qdrant.png"
+      - "homepage.href=http://localhost:6333/dashboard"
+      - "homepage.description=Vector DB (kilo memory)"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # kilo-proxy: Secure Docker Socket Proxy for kilo-pipeline
+  # SECURITY: Lives on kilo-net ONLY — must NEVER appear on the homelab network.
+  # Grants kilo-pipeline the ability to spawn Docker sandboxes for Kilo CLI.
+  # POST=1 EXEC=1 IMAGES=1 required for sandbox create/start/exec.
+  # BUILD=0 — pipeline never builds images directly.
+  kilo-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: kilo-proxy
+    restart: unless-stopped
+    networks:
+      - kilo-net # ONLY — never homelab
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - CONTAINERS=1
+      - SERVICES=1
+      - NETWORKS=1
+      - TASKS=1
+      - IMAGES=1
+      - LOGS=1
+      - POST=1 # Required: sandbox create/start/stop
+      - EXEC=1 # Required: sandbox exec for Kilo CLI invocations
+      - BUILD=0 # Pipeline never builds images
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # kilo-pipeline: Node.js orchestration service (STUB — Phase 1)
+  # Built locally from ./kilo/pipeline — Watchtower excluded (locally built).
+  # Phase 1: container stub only. Full implementation in Phase 2.
+  # Networks: homelab (receives tasks from OpenClaw) + kilo-net (Docker sandbox access).
+  kilo-pipeline:
+    build: ./kilo/pipeline
+    container_name: kilo-pipeline
+    restart: unless-stopped
+    networks:
+      - homelab
+      - kilo-net
+    ports:
+      - "3100:3100"
+    volumes:
+      - /var/kilo:/var/kilo
+      - ./kilo/.kilo:/app/.kilo
+    environment:
+      - TRUST_MODE=${TRUST_MODE:-supervised}
+      - QDRANT_HOST=${QDRANT_HOST:-http://qdrant:6333}
+      - KILO_PIPELINE_PORT=${KILO_PIPELINE_PORT:-3100}
+      - OPENCLAW_TOKEN=${OPENCLAW_TOKEN:-kilo_dev_token}
+      - DOCKER_HOST=tcp://kilo-proxy:2375
+      - TZ=${TZ}
+    mem_limit: 1g
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      kilo-proxy:
+        condition: service_started
+      ollama:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kilo.rule=Host(`kilo.homelab.local`)"
+      - "traefik.http.routers.kilo.entrypoints=websecure"
+      - "traefik.http.routers.kilo.tls=true"
+      - "traefik.http.routers.kilo.middlewares=secure-headers@file"
+      - "traefik.http.services.kilo.loadbalancer.server.port=3100"
+      - "homepage.group=AI"
+      - "homepage.name=Kilo Pipeline"
+      - "homepage.icon=kubernetes.png"
+      - "homepage.href=https://kilo.homelab.local/health"
+      - "homepage.description=AI coding pipeline"
+      # Exclude from Watchtower — locally built image, no registry to pull from
+      - "com.centurylinklabs.watchtower.enable=false"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   # OpenClaw AI Agent
   openclaw:
     image: ghcr.io/openclaw/openclaw:latest
@@ -366,13 +485,16 @@ services:
       - ./openclaw:/home/node/.openclaw
     environment:
       - OLLAMA_HOST=http://ollama:11434
-      - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_TOKEN}
+      - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_TOKEN:-kilo_dev_token}
       - OPENCLAW_CONFIG_PATH=/home/node/.openclaw/openclaw.json
       - HOME_ASSISTANT_TOKEN=${HOME_ASSISTANT_TOKEN}
+      - KILO_PIPELINE_ENDPOINT=http://kilo-pipeline:3100
+      - TRUST_MODE=${TRUST_MODE:-supervised}
+      - OPENCLAW_KILO_ENABLED=${OPENCLAW_KILO_ENABLED:-true}
       - DOCKER_HOST=tcp://docker-proxy:2375
       - TZ=${TZ}
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:18789" ]
+      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/18789" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -632,15 +754,16 @@ services:
     labels:
       - "homepage.group=Observability"
       - "homepage.name=cAdvisor"
-      - "homepage.icon=docker.png"
+      - "homepage.icon=cadvisor.png"
+      - "homepage.href=http://localhost:8080"
       - "homepage.description=Container metrics"
     logging:
       driver: "json-file"
       options:
-        max-size: "5m"
-        max-file: "2"
+        max-size: "10m"
+        max-file: "3"
 
-  # Node Exporter: Host System Metrics
+  # node-exporter: Host-level metrics (Disk, CPU, RAM)
   node-exporter:
     image: prom/node-exporter:latest
     container_name: node-exporter
@@ -676,7 +799,7 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8096/health" ]
+      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/8096" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -805,6 +928,78 @@ services:
         max-file: "3"
 
   # ============================================================
+  # OBSIDIAN & RAG (Phase 8)
+  # ============================================================
+
+  obsidian:
+    image: linuxserver/obsidian:latest
+    container_name: obsidian
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - CUSTOM_USER=${OBSIDIAN_USER}
+      - PASSWORD=${OBSIDIAN_PASSWORD}
+    volumes:
+      - ./obsidian/config:/config
+      - ${NEXTCLOUD_DATA_PATH}/${NC_ADMIN_USER}/files/Obsidian:/vaults
+    networks:
+      - proxy
+      - homelab # Using homelab instead of 'internal' as per current stack naming
+    mem_limit: 2g
+    cpus: 1.5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.obsidian.rule=Host(`obsidian.homelab.local`)"
+      - "traefik.http.routers.obsidian.entrypoints=websecure"
+      - "traefik.http.routers.obsidian.tls=true"
+      - "traefik.http.routers.obsidian.middlewares=secure-headers@file"
+      - "traefik.http.services.obsidian.loadbalancer.server.port=3000"
+      - "homepage.group=Productivity"
+      - "homepage.name=Obsidian"
+      - "homepage.icon=obsidian.png"
+      - "homepage.href=https://obsidian.homelab.local"
+      - "homepage.description=Web-based note editor"
+    depends_on:
+      - nextcloud
+
+  anythingllm:
+    image: mintplexlabs/anythingllm:latest
+    container_name: anythingllm
+    restart: unless-stopped
+    environment:
+      - STORAGE_DIR=/app/server/storage
+      - LLM_PROVIDER=ollama
+      - OLLAMA_BASE_PATH=http://ollama:11434
+      - EMBEDDING_ENGINE=ollama
+      - EMBEDDING_MODEL_PREF=nomic-embed-text
+      - TZ=${TZ}
+    volumes:
+      - ./anythingllm/storage:/app/server/storage
+      - ${NEXTCLOUD_DATA_PATH}/${NC_ADMIN_USER}/files/Obsidian:/vault:ro
+    networks:
+      - homelab
+      - proxy
+    mem_limit: 2g
+    cpus: 1.5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.anythingllm.rule=Host(`rag.homelab.local`)"
+      - "traefik.http.routers.anythingllm.entrypoints=websecure"
+      - "traefik.http.routers.anythingllm.tls=true"
+      - "traefik.http.routers.anythingllm.middlewares=secure-headers@file"
+      - "traefik.http.services.anythingllm.loadbalancer.server.port=3001"
+      - "homepage.group=AI"
+      - "homepage.name=AnythingLLM"
+      - "homepage.icon=anythingllm.png"
+      - "homepage.href=https://rag.homelab.local"
+      - "homepage.description=RAG over your notes"
+    depends_on:
+      - ollama
+      - nextcloud
+
+  # ============================================================
   # HOMEPAGE — Service Dashboard
   # ============================================================
   homepage:
@@ -843,6 +1038,7 @@ services:
 
 volumes:
   ollama_models: # Large models kept in named volume for performance
+  qdrant_data: # Qdrant vector storage — persists across restarts and compose down
   netbird_mgmt:
   netbird_signal:
   netbird_letsencrypt:
@@ -857,3 +1053,8 @@ networks:
   watchtower-net:
     driver: bridge
     internal: true # Private network for Watchtower <-> Proxy isolation
+  kilo-net:
+    driver: bridge
+    internal: true
+      # kilo-proxy <-> kilo-pipeline only. Never exposed to homelab.
+      # Task 1.5: kilo-proxy must NEVER appear on homelab network.

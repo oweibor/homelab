@@ -1,0 +1,19 @@
+# Project Invariants — OpenClaw + Kilo Pipeline
+# ================================================
+# This file is append-only and file-locked on write.
+# Do NOT edit manually unless you know what you are doing.
+# Entries are promoted here by the Promotion Engine after
+# human review (supervised mode) or auto-promotion (graduated mode).
+#
+# Schema per entry:
+#   - id: uuid
+#     title: string
+#     enforcement: deterministic | semantic
+#     assertion_template: |   # det only — compiled to pytest
+#       ...
+#     rule: string             # sem only — natural language
+#     confidence: float        # 0.0–1.0
+#     corroboration_count: int
+#     created_at: ISO8601
+#
+invariants: []

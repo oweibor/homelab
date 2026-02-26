@@ -701,17 +701,114 @@ chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/onlyoffice"
 chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/nextcloud"
 chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/homepage"
 
+# Phase 1 — Task 1.1: /var/kilo/ host directory tree
+# Created here so fresh installs (sudo ./setup.sh) provision it automatically.
+log_info "Provisioning /var/kilo/ host directory tree (Phase 1)..."
+if [ ! -d /var/kilo ]; then
+    mkdir -p /var/kilo/{checkpoints,assertion_cache,known_good,writer_retry,failure_ledger,qdrant-backups}
+    mkdir -p /var/kilo/quarantine/{decisions,invariants,tasks}
+    chown -R "$ACTUAL_USER:$ACTUAL_USER" /var/kilo
+    chmod 750 /var/kilo
+    log_success "/var/kilo/ provisioned."
+else
+    log_info "/var/kilo/ already exists — ensuring all subdirectories are present."
+    # Idempotent: add any missing subdirs
+    mkdir -p /var/kilo/{checkpoints,assertion_cache,known_good,writer_retry,failure_ledger,qdrant-backups}
+    mkdir -p /var/kilo/quarantine/{decisions,invariants,tasks}
+    chown -R "$ACTUAL_USER:$ACTUAL_USER" /var/kilo
+fi
+
+# Define all homelab subdirectories in an array for idempotent creation
+declare -a DIRS=(
+    "homeassistant"
+    "plex/config"
+    "plex/transcode"
+    "jellyfin/config"
+    "jellyfin/cache"
+    "onlyoffice/{logs,data,lib,db}"
+    "nextcloud/data"
+    "media"
+    "n8n"
+    "samba"
+    "backups"
+    "open-webui"
+    "traefik"
+    "antigravity/workspace"
+    "antigravity/config"
+    "openclaw"
+    "netbird"
+    "grafana/data"
+    "prometheus/data"
+    "homepage"
+    # Kilo Pipeline directories
+    "kilo/pipeline"
+    "kilo/scripts"
+    "kilo/.kilo/decisions"
+    "kilo/.kilo/history"
+    "kilo/.kilo/reasoning"
+    "kilo/.kilo/rejected"
+    "kilo/.kilo/staging" # Added this as it was missing from the original list
+    # Obsidian & RAG directories (Phase 8)
+    "obsidian/config"
+    "anythingllm/storage"
+)
+
+for dir in "${DIRS[@]}"; do
+    # Handle brace expansion for directories like "onlyoffice/{logs,data,lib,db}"
+    # This creates multiple directories if braces are present
+    eval "mkdir -p \"$HOMELAB_DIR/$dir\""
+    # Chown the parent directory or the individual directories created by brace expansion
+    # For simplicity, chown the base path, assuming subdirs inherit or are handled by docker later
+    chown -R "$ACTUAL_USER:$ACTUAL_USER" "$(echo "$HOMELAB_DIR/$dir" | cut -d'{' -f1)"
+done
+
+# Ensure Nextcloud Obsidian vault path exists
+NC_ADMIN_USER="${NC_ADMIN_USER:-admin}"
+NC_VAULT_PATH="$HOMELAB_DIR/nextcloud/data/$NC_ADMIN_USER/files/Obsidian"
+if [ ! -d "$NC_VAULT_PATH" ]; then
+    log_info "Creating initial Obsidian vault in Nextcloud path at $NC_VAULT_PATH"
+    mkdir -p "$NC_VAULT_PATH"
+    chown -R "$ACTUAL_USER:$ACTUAL_USER" "$NC_VAULT_PATH"
+    # Add an ignore file for Nextcloud to avoid noise in sync (Task 8.7 recommendation)
+    echo ".obsidian/workspace.json" > "$NC_VAULT_PATH/.ocsync_exclude"
+    echo ".obsidian/cache" >> "$NC_VAULT_PATH/.ocsync_exclude"
+    chown "$ACTUAL_USER:$ACTUAL_USER" "$NC_VAULT_PATH/.ocsync_exclude"
+fi
+
+log_success "Homelab directory structure (including Obsidian/RAG) verified at $HOMELAB_DIR"
+
 # Set permissions
 PUID=$(id -u "$ACTUAL_USER")
 PGID=$(id -g "$ACTUAL_USER")
 
-chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR"
+# Specific ownerships/permissions that might not be covered by the general loop
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/homeassistant"
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/plex"
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/jellyfin"
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/onlyoffice"
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/nextcloud"
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/homepage"
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/kilo"
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/obsidian"
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/anythingllm"
+
 # Correctly use user's UID for n8n ownership (usually maps to 1000, but safer to use PUID)
 chown -R "$PUID:$PGID" "$HOMELAB_DIR/n8n"
 chmod 770 "$HOMELAB_DIR/plex/transcode"
 chmod 770 "$HOMELAB_DIR/media"
 
 show_success_banner "Directory structure created at $HOMELAB_DIR"
+
+# Phase 7 — Task 7.6: kilo/.kilo/ directory tree + invariants init
+log_info "Provisioning kilo/.kilo/ project directory tree (Phase 7)..."
+KILO_PROJECT_DIR="$HOMELAB_DIR/kilo/.kilo"
+mkdir -p "$KILO_PROJECT_DIR"/{decisions,invariants,reasoning,history,staging,rejected}
+if [ ! -f "$KILO_PROJECT_DIR/invariants/invariants.yaml" ]; then
+    echo "# Kilo Pipeline - Stable Invariants" > "$KILO_PROJECT_DIR/invariants/invariants.yaml"
+    echo "invariants: []" >> "$KILO_PROJECT_DIR/invariants/invariants.yaml"
+fi
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$KILO_PROJECT_DIR"
+log_success "kilo/.kilo/ provisioned."
 echo ""
 
 # ============================================
@@ -751,14 +848,6 @@ if [ ! -f "$SAMBA_ENV" ]; then
 else
     log_info "Using existing Samba credentials"
     source "$SAMBA_ENV"
-fi
-
-# Homepage widget tokens — initialized empty, must be obtained post-install
-if ! grep -q "PLEX_TOKEN" "$ENV_FILE"; then
-    echo "PLEX_TOKEN=" >> "$ENV_FILE"
-    echo "JELLYFIN_API_KEY=" >> "$ENV_FILE"
-    log_warn "Homepage widgets: PLEX_TOKEN and JELLYFIN_API_KEY initialized in .env."
-    log_warn "  You must obtain these tokens post-install and add them manually."
 fi
 
 # n8n directory (credentials managed via UI)
@@ -1147,9 +1236,26 @@ fi
 # Initialize .env file
 echo "# Generated by setup.sh - $(date)" > "$ENV_FILE"
 
+# Homepage widget tokens — initialized empty, must be obtained post-install
+if ! grep -q "PLEX_TOKEN" "$ENV_FILE"; then
+    echo "PLEX_TOKEN=" >> "$ENV_FILE"
+    echo "JELLYFIN_API_KEY=" >> "$ENV_FILE"
+    log_warn "Homepage widgets: PLEX_TOKEN and JELLYFIN_API_KEY initialized as empty."
+    log_warn "  Plex token:    Settings → Troubleshooting → Get Token"
+    log_warn "  Jellyfin key:  Dashboard → Administration → API Keys → Add Key"
+    log_warn "  Then: nano ~/homelab/.env and docker compose up -d homepage"
+fi
+
 # --- Add Users/Groups ---
 echo "PUID=$PUID" >> "$ENV_FILE"
 echo "PGID=$PGID" >> "$ENV_FILE"
+echo "TZ=${TZ:-UTC}" >> "$ENV_FILE"
+
+# Phase 7 — Kilo Pipeline Hardening Variables
+echo "TRUST_MODE=${TRUST_MODE:-supervised}" >> "$ENV_FILE"
+echo "QDRANT_HOST=http://qdrant:6333" >> "$ENV_FILE"
+echo "KILO_PIPELINE_PORT=3100" >> "$ENV_FILE"
+echo "OPENCLAW_KILO_ENABLED=true" >> "$ENV_FILE"
 echo "RENDER_GID=$RENDER_GID" >> "$ENV_FILE"
 echo "ACTUAL_USER=$ACTUAL_USER" >> "$ENV_FILE"
 
@@ -1234,6 +1340,12 @@ fi
 if [ -n "${NEXTCLOUD_ADMIN_PASSWORD:-}" ]; then
     echo "NEXTCLOUD_ADMIN_PASSWORD=$NEXTCLOUD_ADMIN_PASSWORD" >> "$ENV_FILE"
 fi
+
+# PHASE 8 — Obsidian & RAG
+echo "OBSIDIAN_USER=${OBSIDIAN_USER:-admin}" >> "$ENV_FILE"
+echo "OBSIDIAN_PASSWORD=${OBSIDIAN_PASSWORD:-homelab_obsidian_pass}" >> "$ENV_FILE"
+echo "NEXTCLOUD_DATA_PATH=${NEXTCLOUD_DATA_PATH:-./nextcloud/data}" >> "$ENV_FILE"
+echo "NC_ADMIN_USER=${NC_ADMIN_USER:-admin}" >> "$ENV_FILE"
 
 chmod 600 "$ENV_FILE"
 chown "$ACTUAL_USER:$ACTUAL_USER" "$ENV_FILE"
@@ -1429,6 +1541,31 @@ if ! curl -m 5 -sf http://localhost:3002 >/dev/null 2>&1; then
     FAILED_CHECKS+=("Homepage (3002)")
 fi
 
+# Check Obsidian (3000 mapped? no, Traefik handles. Local check on 3000 if not conflicted)
+# In compose we didn't map host port for Obsidian to avoid conflict with Open WebUI (3000).
+# So we check via container name if possible or just skip local port check if not mapped.
+# We'll check via Traefik if it's already up, or just skip.
+# Actually, let's use the 'docker inspect' method requested in the plan for health.
+if su - "$ACTUAL_USER" -c "docker inspect --format='{{.State.Health.Status}}' obsidian 2>/dev/null" | grep -qv "healthy"; then
+     FAILED_CHECKS+=("Obsidian (KasmVNC Health Check Failed)")
+fi
+
+if su - "$ACTUAL_USER" -c "docker inspect --format='{{.State.Health.Status}}' anythingllm 2>/dev/null" | grep -qv "healthy"; then
+     FAILED_CHECKS+=("AnythingLLM (RAG Health Check Failed)")
+fi
+
+# Check Qdrant (6333) — Phase 1 Task 1.12
+# Hard failure: Qdrant must be running after Phase 1 deployment.
+if ! curl -m 5 -sf http://localhost:6333/healthz >/dev/null 2>&1; then
+    FAILED_CHECKS+=("Qdrant vector DB (6333)")
+fi
+
+# Check kilo-pipeline (3100) — Phase 1 Task 1.12
+# SOFT WARN: Expected to fail until Phase 2 image is built.
+if ! curl -m 5 -sf http://localhost:3100/health >/dev/null 2>&1; then
+    log_warn "  [Phase 1] kilo-pipeline (3100) not responding — expected until Phase 2 image is built."
+fi
+
 # Check Samba (445) - TCP check since it's not HTTP
 # Using bash's built-in TCP capability to avoid needing netcat
 if ! timeout 2 bash -c '</dev/tcp/localhost/445' >/dev/null 2>&1; then
@@ -1513,6 +1650,8 @@ printf "  │  - Prometheus:      %-39s │\n" "http://${CONFIGURED_IP:-localhos
 printf "│  - Samba Media:     %-39s │\n" "smb://${CONFIGURED_IP:-localhost}/Media"
 printf "  │  - OnlyOffice:      %-39s │\n" "http://${CONFIGURED_IP:-localhost}:9980"
 printf "  │  - Nextcloud:       %-39s │\n" "http://${CONFIGURED_IP:-localhost}:8080"
+printf "  │  - Obsidian:        %-39s │\n" "https://${CONFIGURED_IP:-localhost}/obsidian" # Access via Traefik
+printf "  │  - AnythingLLM:     %-39s │\n" "https://${CONFIGURED_IP:-localhost}/rag"
 echo "  ├─────────────────────────────────────────────────────────────┤"
 echo "  │  REVERSE PROXY (HTTPS)                                      │"
 printf "  │  - Traefik Dash:    %-39s │\n" "https://traefik.homelab.local"
@@ -1528,6 +1667,8 @@ printf "  │  - Grafana Dash:    %-39s │\n" "https://grafana.homelab.local"
 printf "  │  - Prometheus:      %-39s │\n" "https://prometheus.homelab.local"
 printf "  │  - OnlyOffice:      %-39s │\n" "https://office.homelab.local"
 printf "  │  - Nextcloud:       %-39s │\n" "https://nextcloud.homelab.local"
+printf "  │  - Obsidian:        %-39s │\n" "https://obsidian.homelab.local"
+printf "  │  - AnythingLLM (RAG): %-37s │\n" "https://rag.homelab.local"
   echo "  ├─────────────────────────────────────────────────────────────┤"
 echo "  │  * NOTE: Add these domains to your local 'hosts' file:      │"
 printf "  │    %-56s │\n" "${CONFIGURED_IP:-192.168.x.x} ha.homelab.local"
