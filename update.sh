@@ -28,11 +28,29 @@ echo "║              HOMELAB UPDATE SCRIPT                         ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
 
+log_step "Checking for pending Kilo writer operations..."
+if [ -d "/var/kilo/writer_retry" ] && [ "$(ls -A /var/kilo/writer_retry 2>/dev/null)" ]; then
+    log_warn "Pending writer operations detected in /var/kilo/writer_retry."
+    log_info "Attempting to drain retry queue..."
+    curl -sf -X POST http://localhost:3100/task/retry-all >/dev/null 2>&1 || true
+    sleep 5
+fi
+
 log_step "Pulling latest Docker images..."
 docker compose pull
 
 log_step "Restarting services with new images..."
 docker compose up -d
+
+log_step "Verifying Kilo Pipeline health..."
+for i in {1..10}; do
+    if curl -sf http://localhost:3100/health | grep -q 'healthy'; then
+        log_info "Kilo Pipeline is healthy."
+        break
+    fi
+    [ $i -eq 10 ] && log_warn "Kilo Pipeline health check timed out."
+    sleep 3
+done
 
 log_step "Removing unused images..."
 docker image prune -f
