@@ -200,8 +200,11 @@ graph TB
             WebUI[Open WebUI<br/>Chat Interface]
             Antigravity[Antigravity<br/>Agent IDE<br/>VNC 6080]
             OpenClaw[OpenClaw<br/>AI Agent<br/>Port 18789]
+            Kilo[Kilo Pipeline<br/>Autonomous Loop]
             OnlyOffice[ONLYOFFICE Docs<br/>Editor Engine]
             Nextcloud[Nextcloud<br/>File Hub / AI Asst]
+            Obsidian[Obsidian<br/>Web Editor]
+            AnythingLLM[AnythingLLM<br/>RAG Engine]
             Proxy[Docker Proxy<br/>Security Layer]
         end
         
@@ -229,6 +232,10 @@ graph TB
     Antigravity --> Ollama
     OpenClaw --> Ollama
     Nextcloud -->|API| Ollama
+    Nextcloud -->|Nextcloud Sync| Obsidian
+    Nextcloud -->|WebDAV| AnythingLLM
+    Obsidian -->|Edit| Nextcloud
+    AnythingLLM -->|RAG| Ollama
     Nextcloud --> OnlyOffice
     
     %% System Integrations
@@ -298,6 +305,9 @@ graph TB
 | **💻 Node Exporter** | Host system metrics | 9100 (Internal) | Internal Only |
 | **☁️ Nextcloud** | File hub & AI Assistant | 8080 | https://nextcloud.homelab.local |
 | **📄 ONLYOFFICE** | Document editor engine | 9980 | https://office.homelab.local |
+| **📓 Obsidian** | Web-based note editor | 3000 (Internal) | https://obsidian.homelab.local |
+| **🧠 AnythingLLM** | RAG over Obsidian notes | 3001 (Internal) | https://rag.homelab.local |
+| **🦾 Kilo Pipeline**| Autonomous coding engine | 3100 | https://kilo.homelab.local |
 | **🍿 Jellyfin** | Open-source media server | 8096 | https://jellyfin.homelab.local |
 
 ---

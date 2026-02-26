@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-02-26
+
+### 🦾 Autonomous AI Pipeline (Kilo) - Phase 6
+- **OpenClaw x Kilo Wiring**: Successfully linked OpenClaw to the Kilo v9 autonomous loop.
+- **Task Delegation**: Implemented delegation rules in `openclaw.json` for writing code, implementing APIs, and fixing bugs.
+- **Trust Modes**: Introduced `supervised`, `graduated`, and `autonomous` trust levels for fine-grained control over AI autonomy.
+- **Observability**: Implemented `/metrics` endpoint in `kilo-pipeline` and provisioned a custom Grafana dashboard for pipeline performance.
+
+### 🛡️ System Hardening & Resilience - Phase 7
+- **Kill-Switch**: Added `OPENCLAW_KILO_ENABLED` environment variable to bypass the pipeline instantly in emergencies.
+- **Script Resilience**: 
+    - `update.sh`: Added logic to drain `writer_retry` queues and verify service health post-update.
+    - `backup-homelab.sh`: Integrated `/var/kilo` path and Qdrant vector backups.
+- **Automated Provisioning**: `setup.sh` now automates the creation of `/var/kilo` hierarchy and invariant files.
+- **Disk Alerting**: Added Prometheus/Grafana alerts for `/var/kilo` partitioning and filesystem health.
+
+### 📓 Obsidian & RAG Integration - Phase 8
+- **Nextcloud Vault Sync**: Architected a dual-access vault system where Obsidian notes live in Nextcloud (`~/homelab/nextcloud/data/admin/files/Obsidian`).
+- **AnythingLLM Integration**: Deployed AnythingLLM for Retrieval-Augmented Generation (RAG) over the Obsidian vault, linked to local Ollama embeddings.
+- **Browser-based Editing**: Deployed `linuxserver/obsidian` with KasmVNC security hardening and Traefik SSL routing.
+- **Resource Constraints**: Applied 2GB RAM and 1.5 CPU limits to all productivity containers to ensure N100 stability.
+
 ## [1.1.0] - 2026-02-19
 
 ### 🚀 Massive Architectural Expansion
