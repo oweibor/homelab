@@ -379,7 +379,8 @@ nano .env
 #   ACTUAL_USER=$(whoami)
 
 # 4. Create directory structure
-mkdir -p ~/homelab/{homeassistant,plex/{config,transcode},media,n8n,samba,backups,open-webui,traefik,antigravity/{workspace,config},openclaw}
+mkdir -p ~/homelab/{homeassistant,plex/{config,transcode},media,n8n,samba,backups,open-webui,traefik,antigravity/{workspace,config},openclaw,nextcloud/data,obsidian/config,anythingllm/storage,kilo/{pipeline,scripts}}
+mkdir -p ~/homelab/kilo/.kilo/{decisions,history,reasoning,rejected,staging}
 
 # 5. Copy Traefik configuration
 cp -r traefik ~/homelab/
@@ -561,6 +562,21 @@ Connect ONLYOFFICE to the Nextcloud backend by running the automated configurati
    - Jellyfin Dashboard → Administration → API Keys → Add Key.
    - Add `JELLYFIN_API_KEY=<key>` to `~/homelab/.env`.
 4. After updating `.env`, restart dashboard: `docker compose up -d homepage`.
+
+---
+
+### Step 6: RAG Setup (AnythingLLM)
+
+1. Navigate to https://rag.homelab.local
+2. Follow the onboarding wizard:
+   - **LLM Provider**: Choose **Ollama**.
+   - **Ollama URL**: `http://ollama:11434`
+   - **Embedding Engine**: Choose **Ollama** (Model: `nomic-embed-text`).
+3. **Workspace Configuration**:
+   - Create a workspace (e.g., "Personal Notes").
+   - Click **Manage Documents**.
+   - Your Obsidian notes should be visible under the `/vault` folder (mapped from Nextcloud).
+   - Select your notes and click **Move to Workspace** and **Save and Embed**.
 
 ---
 
@@ -1054,6 +1070,45 @@ cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
 </details>
 
 <details>
+<summary><b>AnythingLLM not finding notes / Permission errors</b></summary>
+
+**Symptoms:** Workspace is empty, errors when indexing files.
+
+**Solution:**
+```bash
+# 1. Verify Nextcloud directory permissions
+ls -la ~/homelab/nextcloud/data/admin/files/Obsidian
+
+# 2. Re-apply ownership
+sudo chown -R $USER:$USER ~/homelab/nextcloud/data/
+
+# 3. Check AnythingLLM logs for read errors
+docker compose logs anythingllm
+```
+</details>
+
+<details>
+<summary><b>Kilo Pipeline hanging or failing</b></summary>
+
+**Symptoms:** OpenClaw doesn't respond to coding tasks, "Pipeline Timeout" errors.
+
+**Solution:**
+```bash
+# 1. Check Kilo Pipeline logs
+docker compose logs -f kilo-pipeline
+
+# 2. Verify invariant seeding
+ls -la ~/homelab/kilo/.kilo/invariants.yaml
+
+# 3. Check writer retry queue
+ls -la ~/homelab/kilo/writer_retry/
+
+# 4. Restart the AI Stack
+docker compose restart kilo-pipeline openclaw
+```
+</details>
+
+<details>
 <summary><b>Docker Compose command not found</b></summary>
 
 **Symptoms:** `docker compose` returns error
@@ -1124,6 +1179,9 @@ curl -s -o /dev/null -w "HA: %{http_code}\n" http://localhost:8123
 curl -s -o /dev/null -w "Plex: %{http_code}\n" http://localhost:32400
 curl -s -o /dev/null -w "Ollama: %{http_code}\n" http://localhost:11434/api/tags
 curl -s -o /dev/null -w "n8n: %{http_code}\n" http://localhost:5678
+curl -s -o /dev/null -w "Nextcloud: %{http_code}\n" http://localhost:8080
+curl -s -o /dev/null -w "Obsidian: %{http_code}\n" http://localhost/obsidian
+curl -s -o /dev/null -w "RAG: %{http_code}\n" http://localhost/rag
 ```
 
 ---
