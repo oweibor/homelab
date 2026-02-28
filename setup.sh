@@ -1078,6 +1078,26 @@ OPENCLAW_CONFIG_DIR="$HOMELAB_DIR/openclaw"
 OPENCLAW_CONFIG_FILE="$OPENCLAW_CONFIG_DIR/openclaw.json"
 mkdir -p "$OPENCLAW_CONFIG_DIR"
 
+# Load model configuration from config.env if available
+CONFIG_ENV_FILE="$HOMELAB_DIR/.env"
+if [ -f "$CONFIG_ENV_FILE" ]; then
+    # Temporarily auto-export all variables from config, then source
+    set -a
+    source "$CONFIG_ENV_FILE"
+    set +a
+fi
+
+# Set defaults if not loaded from config
+# Support both new OLLAMA_* names and legacy MODEL_* names
+OLLAMA_DEFAULT_MODEL="${OLLAMA_DEFAULT_MODEL:-${MODEL_CODING:-qwen2.5-coder:3b}}"
+OLLAMA_GENERAL_MODEL="${OLLAMA_GENERAL_MODEL:-${MODEL_GENERAL:-llama3.2:3b}}"
+OLLAMA_QUICK_MODEL="${OLLAMA_QUICK_MODEL:-${MODEL_QUICK:-llama3.2:1b}}"
+
+# Legacy variable support for backward compatibility
+MODEL_CODING="$OLLAMA_DEFAULT_MODEL"
+MODEL_GENERAL="$OLLAMA_GENERAL_MODEL"
+MODEL_QUICK="$OLLAMA_QUICK_MODEL"
+
 # 1. Home Assistant Token
 OPENCLAW_ENV="$HOMELAB_DIR/openclaw/.env"
 HA_TOKEN=""
@@ -1103,9 +1123,122 @@ else
     fi
 fi
 
-# 2. Generate OpenClaw Config (Model Routing)
+# 2. Generate OpenClaw Config (Dynamic Model Routing)
 cat > "$OPENCLAW_CONFIG_FILE" <<EOF
 {
+  "_meta": {
+    "version": "v9",
+    "workflow": "autonomous-loop-v9",
+    "updated": "$(date +%Y-%m-%d)",
+    "notes": "Dynamically generated from wizard configuration."
+  },
+  "skills": {
+    "kilo_cli": {
+      "enabled": true,
+      "description": "Delegate autonomous coding tasks through the Kilo v9 autonomous loop. Kilo runs a 9-stage pipeline: /architect plans, /orchestrator executes via /code + /debug + /review + /ask, a semantic guard with 11 gates protects the workspace, and a 5-store memory system ensures cross-task continuity. Use this for anything that requires writing, testing, iterating, or debugging code.",
+      "dirs": {
+        "queue": "/home/node/.openclaw/kilo-bridge/queue",
+        "signals": "/home/node/.openclaw/kilo-bridge/signals",
+        "workspace": "/home/node/.openclaw/kilo-bridge/workspace",
+        "kilo_memory": "/home/node/.openclaw/kilo-bridge/workspace/.kilo"
+      },
+      "poll_interval_ms": 5000,
+      "task_schema": {
+        "id": "uuid-generated-by-openclaw",
+        "instruction": "The full coding task description",
+        "context": "Stack, file paths, constraints, auth strategy, DB schema, env vars, related prior tasks",
+        "stack_hint": "bash|node-webapp|python-webapp|scraper|ai-worker|vector-store|fullstack",
+        "priority": "normal|high|low",
+        "trust_mode": "\${TRUST_MODE:-supervised}",
+        "created_by": "openclaw",
+        "created_at": "ISO8601 timestamp",
+        "parent_task": "uuid of parent task if subtask, else null",
+        "memory_refs": "comma-separated prior task IDs whose .kilo/history/ entries are relevant"
+      },
+      "stack_context_templates": {
+        "bash_script": {
+          "include_in_context": [
+            "Target shell: bash 5.x / sh / zsh — specify",
+            "Execution environment: cron | systemd | manual | Docker entrypoint",
+            "Dependencies allowed: curl | jq | awk | sed | python3 — specify which",
+            "Secrets: env vars only — never hardcode",
+            "Idempotency required: yes/no"
+          ]
+        },
+        "web_app": {
+          "include_in_context": [
+            "Framework: Express | Fastify | Next.js | FastAPI | Flask — specify",
+            "Auth strategy: JWT | session+cookie | OAuth2 | API key",
+            "Database: PostgreSQL | MySQL | SQLite | MongoDB — ORM or raw",
+            "Vector store: Qdrant | Pgvector | Weaviate | Chroma — specify",
+            "AI integration: Ollama (local) | OpenAI | Anthropic",
+            "Validation: Zod | Joi | Pydantic — specify",
+            "Port: specify — default 3000/8000"
+          ],
+          "invariants_to_enforce": [
+            "Auth checks never removed from protected routes",
+            "All DB queries parameterised — no string interpolation",
+            "Secrets only from env vars — never hardcoded",
+            "Vector store collection schema never modified without migration"
+          ]
+        }
+      },
+      "delegation_rules": {
+        "always_delegate_to_kilo": [
+          "Write any new application, service, or module",
+          "Build or extend a REST / tRPC / GraphQL API",
+          "Implement auth — JWT, session, OAuth2, API key middleware",
+          "Set up or extend a database schema — ORM models, migrations, indexes",
+          "Implement Qdrant or pgvector integration",
+          "Integrate Ollama / OpenAI / Anthropic / LangChain / LangGraph",
+          "Fix a bug by iterating through errors",
+          "Refactor or extend existing code",
+          "Install and configure dependencies",
+          "Write and run unit, integration, or smoke tests"
+        ],
+        "handle_directly": [
+          "Smart home control — use home_assistant skill",
+          "Simple file reads or configuration checks",
+          "Answering questions or explaining concepts",
+          "Planning and breaking tasks into subtasks",
+          "Reviewing a Kilo result signal"
+        ],
+        "delegate_then_supervise": [
+          "Multi-service implementations — break into ordered subtasks",
+          "Auth implementation — Kilo writes middleware, OpenClaw verifies invariants",
+          "Deployment scripts — Kilo writes scripts, OpenClaw reviews before execution"
+        ],
+        "never_delegate_to_kilo": [
+          "Executing destructive DB operations on production data",
+          "Pushing to git remote — OpenClaw stages and confirms first",
+          "Running deployment commands against production"
+        ]
+      },
+      "autonomous_behavior": {
+        "on_task_completed": "Read result from signal file. Extract: files_created, files_modified, gate_results, fix_source. Report to user.",
+        "on_task_failed": "Read failure signal. Extract: error_class, strategy_attempted. If attempts < max: reformulate and requeue. If convergence_exit=true: escalate to user.",
+        "on_gate_rejection": "Read gate failure from signal. If T2: requeue with gate context. If T1: escalate to user immediately.",
+        "max_requeue_attempts": 2,
+        "requeue_strategy": {
+          "convergence_exit": "never — escalate to user",
+          "t1_gate_failure": "never — escalate to user",
+          "t2_gate_failure": "requeue once with gate_name",
+          "simple_error": "requeue with error details"
+        }
+      }
+    },
+    "home_assistant": {
+      "enabled": $(if [ -n "$HA_TOKEN" ]; then echo "true"; else echo "false"; fi),
+      "description": "Control smart home devices, read sensor states, trigger automations.",
+      "url": "http://homeassistant:8123",
+      "token": $(echo "${HA_TOKEN:-}" | jq -Rs .),
+      "handle_directly": [
+        "Turn on/off lights, switches, plugs",
+        "Read temperature, humidity, motion sensors",
+        "Trigger named automations or scripts"
+      ]
+    }
+  },
   "models": {
     "mode": "merge",
     "providers": [
@@ -1114,33 +1247,71 @@ cat > "$OPENCLAW_CONFIG_FILE" <<EOF
         "type": "openai-completions",
         "baseUrl": "http://ollama:11434/v1",
         "models": [
-          "qwen2.5-coder:3b",
-          "llama3.2:3b",
-          "llama3.2:1b"
-        ]
+          "$MODEL_CODING",
+          "$MODEL_GENERAL",
+          "$MODEL_QUICK"
+        ],
+        "circuit_breaker": {
+          "timeout_s": 30,
+          "retries": 2,
+          "failure_threshold": 0.15,
+          "reset_timeout_ms": 300000,
+          "min_calls_before_evaluation": 3,
+          "confidence_threshold": 60
+        }
       }
     ]
   },
   "agents": {
     "defaults": {
       "model": {
-        "primary": "ollama/qwen2.5-coder:3b",
-        "general": "ollama/llama3.2:3b",
-        "fast": "ollama/llama3.2:1b"
+        "architect": "ollama/$MODEL_CODING",
+        "orchestrator": "ollama/$MODEL_CODING",
+        "coding": "ollama/$MODEL_CODING",
+        "planning": "ollama/$MODEL_GENERAL",
+        "delegation": "ollama/$MODEL_QUICK",
+        "fast": "ollama/$MODEL_QUICK"
+      },
+      "behavior": {
+        "autonomous_iteration": true,
+        "max_plan_depth": 6,
+        "report_on_completion": true
       },
       "skills": {
+        "kilo_cli": {
+          "enabled": true
+        },
         "home_assistant": {
-          "enabled": $(if [ -n "$HA_TOKEN" ]; then echo "true"; else echo "false"; fi),
-          "url": "http://homeassistant:8123",
-          "token": "$HA_TOKEN"
+          "enabled": $(if [ -n "$HA_TOKEN" ]; then echo "true"; else echo "false"; fi)
         }
+      },
+      "pipeline": {
+        "enabled": "\${OPENCLAW_KILO_ENABLED:-true}",
+        "endpoint": "http://kilo-pipeline:3100",
+        "trust_mode": "\${TRUST_MODE:-supervised}",
+        "token": "\${OPENCLAW_TOKEN}"
       }
+    }
+  },
+  "trust_mode_documentation": {
+    "supervised": {
+      "description": "All T1 gate failures pause for approval. T2 also pause.",
+      "behavior": "Pipeline never auto-promotes risky changes."
+    },
+    "graduated": {
+      "description": "Deterministic changes auto-promote. Semantic/structural route to staging.",
+      "behavior": "T1 violations always escalate."
+    },
+    "autonomous": {
+      "description": "All gate results advisory only. Pipeline never pauses.",
+      "behavior": "Errors trigger requeue up to max_requeue_attempts. Only convergence_exit escalates.",
+      "warning": "Disables all human-in-the-loop gates. Only for batch/automated/non-production."
     }
   }
 }
 EOF
 chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/openclaw"
-log_info "OpenClaw configured: Coding=qwen2.5-coder, General=llama3.2"
+log_info "OpenClaw configured: Coding=$MODEL_CODING, General=$MODEL_GENERAL, Quick=$MODEL_QUICK"
 
 # ============================================
 # OBSERVABILITY CONFIGURATION (Prometheus & Grafana)
@@ -1234,18 +1405,24 @@ PGID=$(id -g "$ACTUAL_USER")
 # Prepare .env content
 ENV_FILE="$HOMELAB_DIR/.env"
 CONFIG_TEMPLATE="config.env.template"
+ONBOARD_CONFIG="config.env"
 
-# Load config template if exists in current directory
-if [ -f "$CONFIG_TEMPLATE" ]; then
+# Load configuration - priority: config.env (from onboarding) > config.env.template
+if [ -f "$ONBOARD_CONFIG" ]; then
+    # Onboarding wizard wrote config.env - use this
+    log_info "Loading onboarding configuration from $ONBOARD_CONFIG"
+    set -a
+    source "$ONBOARD_CONFIG"
+    set +a
+    log_info "Loaded: SPEED_CLASS=$SPEED_CLASS TIER=$RESOURCE_TIER MODEL=$OLLAMA_DEFAULT_MODEL"
+elif [ -f "$CONFIG_TEMPLATE" ]; then
+    # Fall back to template for manual configuration
     log_info "Loading configuration from $CONFIG_TEMPLATE"
-    # Read template but don't export yet (we want to control the write)
-    # We'll just append non-empty lines to our new .env
-    # Note: simple sourcing here for variables needed in script, but for .env generation we want clean append
     set -a
     source "$CONFIG_TEMPLATE"
     set +a
 else
-    log_info "No config template found at "$CONFIG_TEMPLATE""
+    log_warn "No configuration file found. Using defaults."
 fi
 
 # Initialize .env file
@@ -1310,9 +1487,22 @@ else
 fi
 echo "TZ=$TZ" >> "$ENV_FILE"
 
-# Ollama Model
-OLLAMA_MODEL="${OLLAMA_MODEL:-llama3.2:1b llama3.2:3b qwen2.5-coder:3b}"
+# Ollama Models - support both new and legacy naming
+# If OLLAMA_MODEL not set, derive from individual model variables
+if [ -z "${OLLAMA_MODEL:-}" ]; then
+    OLLAMA_MODEL="$OLLAMA_QUICK_MODEL $OLLAMA_GENERAL_MODEL $OLLAMA_DEFAULT_MODEL"
+fi
 echo "OLLAMA_MODEL=$OLLAMA_MODEL" >> "$ENV_FILE"
+
+# OpenClaw Model Configuration (new OLLAMA_* names)
+echo "OLLAMA_DEFAULT_MODEL=$OLLAMA_DEFAULT_MODEL" >> "$ENV_FILE"
+echo "OLLAMA_GENERAL_MODEL=$OLLAMA_GENERAL_MODEL" >> "$ENV_FILE"
+echo "OLLAMA_QUICK_MODEL=$OLLAMA_QUICK_MODEL" >> "$ENV_FILE"
+
+# Legacy support
+echo "MODEL_CODING=$MODEL_CODING" >> "$ENV_FILE"
+echo "MODEL_GENERAL=$MODEL_GENERAL" >> "$ENV_FILE"
+echo "MODEL_QUICK=$MODEL_QUICK" >> "$ENV_FILE"
 
 # Plex Claim
 echo ""

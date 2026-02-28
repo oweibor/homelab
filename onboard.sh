@@ -1,0 +1,536 @@
+#!/bin/bash
+# =============================================================================
+# HOMELAB ONBOARDING WIZARD v6
+# Full-featured bash-based onboarding wizard
+# =============================================================================
+
+set -euo pipefail
+
+# =============================================================================
+# COLORS & UI
+# =============================================================================
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;36m'
+CYAN='\033[0;96m'
+MAGENTA='\033[0;95m'
+NC='\033[0m'
+
+log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
+log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+log_step() { echo -e "${BLUE}[STEP]${NC} $1"; }
+log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+
+# Spinner
+spin() {
+    local pid=$1
+    local msg=$2
+    local chars="/-\|"
+    while kill -0 $pid 2>/dev/null; do
+        for (( i=0; i<${#chars}; i++ )); do
+            printf "\r%s %s" "${chars:$i:1}" "$msg"
+            sleep 0.1
+        done
+    done
+    printf "\r"
+}
+
+# =============================================================================
+# PRE-FLIGHT CHECKS
+# =============================================================================
+
+preflight_checks() {
+    log_step "Running pre-flight checks..."
+    
+    # Check if running as root or with sudo
+    local is_root=0
+    if [ "$EUID" -eq 0 ]; then
+        is_root=1
+    fi
+    
+    # Determine actual user
+    if [ -n "${SUDO_USER:-}" ]; then
+        ACTUAL_USER="$SUDO_USER"
+    elif [ -n "${USERNAME:-}" ]; then
+        ACTUAL_USER="$USERNAME"
+    elif [ -n "${USER:-}" ]; then
+        ACTUAL_USER="$USER"
+    else
+        ACTUAL_USER="$(\"whoami\")"
+    fi
+    
+    if [ -z "$ACTUAL_USER" ] || [ "$ACTUAL_USER" = "root" ]; then
+        if [ "$is_root" -eq 1 ]; then
+            # Running as root directly - allow for testing
+            log_warn "Running as root directly (not via sudo) - some features may not work"
+            ACTUAL_USER="$USER"
+        else
+            log_error "Cannot determine non-root user"
+            exit 1
+        fi
+    fi
+    
+    # Check required files
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [ ! -f "$SCRIPT_DIR/setup.sh" ]; then
+        log_error "setup.sh not found"
+        exit 1
+    fi
+    
+    # Check disk space (10GB minimum)
+    local available_gb
+    available_gb=$(df -P "$SCRIPT_DIR" | tail -1 | awk '{print int($4/1024/1024)}')
+    if [ "$available_gb" -lt 10 ]; then
+        log_error "Insufficient disk space: ${available_gb}GB (need 10GB)"
+        exit 1
+    fi
+    
+    log_info "Pre-flight checks passed (user: $ACTUAL_USER)"
+}
+
+# =============================================================================
+# HARDWARE DETECTION
+# =============================================================================
+
+detect_hardware() {
+    log_step "Detecting hardware..."
+    
+    # RAM
+    local ram_kb
+    ram_kb=$(grep MemAvailable /proc/meminfo 2>/dev/null | awk '{print $2}')
+    RAM_GB=$(echo "scale=1; ${ram_kb:-3145728} / 1024 / 1024" | bc 2>/dev/null || echo "3")
+    EFFECTIVE_RAM=$(echo "scale=1; $RAM_GB - 2.0" | bc 2>/dev/null || echo "1")
+    if (( $(echo "$EFFECTIVE_RAM < 0" | bc -l 2>/dev/null || echo 0) )); then
+        EFFECTIVE_RAM=1
+    fi
+    
+    # CPU cores
+    CPU_CORES=$(lscpu 2>/dev/null | awk '/^Core\(s\) per socket/{c=$NF} /^Socket\(s\)/{s=$NF} END{print c*s}' || echo "4")
+    CPU_CORES=${CPU_CORES:-4}
+    
+    # GPU detection
+    GPU_TYPE="none"
+    VRAM_GB=0
+    
+    # NVIDIA
+    if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null; then
+        GPU_TYPE="nvidia"
+        VRAM_GB=$(nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits 2>/dev/null | awk '{print int($1/1024)}')
+        GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1)
+    fi
+    
+    # AMD ROCm
+    if [ "$GPU_TYPE" = "none" ] && command -v rocm-smi &>/dev/null; then
+        if rocm-smi &>/dev/null 2>&1; then
+            GPU_TYPE="amd"
+            local vram_free
+            vram_free=$(rocm-smi --showmeminfo vram 2>/dev/null | grep "Free Memory" | awk '{print $NF}' | head -1)
+            if [ -n "$vram_free" ]; then
+                VRAM_GB=$((vram_free / 1024))
+            fi
+        fi
+    fi
+    
+    # Apple Silicon
+    if [ "$GPU_TYPE" = "none" ] && command -v system_profiler &>/dev/null; then
+        local chip
+        chip=$(system_profiler SPHardwareDataType 2>/dev/null | grep 'Chip' | awk '{print $NF}')
+        if [[ "$chip" =~ Apple ]]; then
+            GPU_TYPE="metal"
+            local total_mem
+            total_mem=$(sysctl -n hw.memsize 2>/dev/null | awk '{printf "%.0f", $1/1073741824}')
+            VRAM_GB=$((total_mem - 2))
+        fi
+    fi
+    
+    # Intel iGPU
+    if [ "$GPU_TYPE" = "none" ] && lspci 2>/dev/null | grep -qi "vga.*intel"; then
+        GPU_TYPE="igpu"
+        VRAM_GB=1
+    fi
+    
+    # Classify hardware
+    classify_hardware
+    
+    log_info "Detected: ${RAM_GB}GB RAM, ${CPU_CORES} cores, ${GPU_TYPE:-none} (${VRAM_GB}GB VRAM)"
+}
+
+# =============================================================================
+# HARDWARE CLASSIFICATION
+# =============================================================================
+
+classify_hardware() {
+    # Determine tier
+    if (( $(echo "$EFFECTIVE_RAM < 1" | bc -l 2>/dev/null || echo 1) )); then
+        TIER="INSUFFICIENT"
+    elif (( $(echo "$EFFECTIVE_RAM < 4" | bc -l 2>/dev/null || echo 0) )); then
+        TIER="MINIMAL"
+    elif (( $(echo "$EFFECTIVE_RAM < 8" | bc -l 2>/dev/null || echo 0) )); then
+        TIER="LOW"
+    elif (( $(echo "$EFFECTIVE_RAM < 16" | bc -l 2>/dev/null || echo 0) )); then
+        TIER="MID"
+    elif (( $(echo "$EFFECTIVE_RAM < 32" | bc -l 2>/dev/null || echo 0) )); then
+        TIER="HIGH"
+    else
+        TIER="ULTRA"
+    fi
+    
+    # GPU bonus
+    if [ "$GPU_TYPE" = "nvidia" ] || [ "$GPU_TYPE" = "amd" ] || [ "$GPU_TYPE" = "metal" ]; then
+        if [ "$VRAM_GB" -ge 8 ]; then
+            case $TIER in
+                MINIMAL) TIER="LOW" ;;
+                LOW) TIER="MID" ;;
+                MID) TIER="HIGH" ;;
+                HIGH) TIER="ULTRA" ;;
+            esac
+        fi
+    fi
+    
+    # Speed class
+    case $TIER in
+        INSUFFICIENT) SPEED_CLASS="INSUFFICIENT" ;;
+        MINIMAL) SPEED_CLASS="CPU_MARGINAL" ;;
+        LOW) SPEED_CLASS="LOW_CPU" ;;
+        MID)
+            if [ "$GPU_TYPE" = "none" ]; then
+                SPEED_CLASS="LOW_CPU"
+            else
+                SPEED_CLASS="GPU_GOOD"
+            fi
+            ;;
+        HIGH|ULTRA) SPEED_CLASS="GPU_GREAT" ;;
+        *) SPEED_CLASS="UNKNOWN" ;;
+    esac
+}
+
+# =============================================================================
+# MODEL SELECTION
+# =============================================================================
+
+select_models() {
+    log_step "Selecting models for $TIER tier..."
+    
+    case $TIER in
+        INSUFFICIENT)
+            log_error "Insufficient RAM to run AI models"
+            exit 1
+            ;;
+        MINIMAL)
+            CODING_MODEL="qwen2.5-coder:3b"
+            GENERAL_MODEL="llama3.2:3b"
+            QUICK_MODEL="llama3.2:1b"
+            ;;
+        LOW)
+            CODING_MODEL="qwen2.5-coder:3b"
+            GENERAL_MODEL="llama3.2:3b"
+            QUICK_MODEL="qwen2.5:3b"
+            ;;
+        MID)
+            if [ "$GPU_TYPE" = "none" ]; then
+                CODING_MODEL="qwen2.5-coder:7b"
+                GENERAL_MODEL="llama3.2:8b"
+                QUICK_MODEL="phi4-mini:3.8b"
+            else
+                CODING_MODEL="qwen2.5-coder:7b"
+                GENERAL_MODEL="llama3.2:8b"
+                QUICK_MODEL="phi4-mini:3.8b"
+            fi
+            ;;
+        HIGH)
+            CODING_MODEL="qwen2.5-coder:14b"
+            GENERAL_MODEL="mistral-small:22b"
+            QUICK_MODEL="phi4-mini:3.8b"
+            ;;
+        ULTRA)
+            CODING_MODEL="deepseek-r1-distill:14b"
+            GENERAL_MODEL="qwen2.5:32b"
+            QUICK_MODEL="phi4-mini:3.8b"
+            ;;
+    esac
+    
+    log_info "Selected: $CODING_MODEL (coding), $GENERAL_MODEL (general), $QUICK_MODEL (quick)"
+}
+
+# =============================================================================
+# PERFORMANCE CALCULATIONS
+# =============================================================================
+
+calculate_performance() {
+    # Threads
+    if [ "$GPU_TYPE" = "metal" ]; then
+        if [ "$CPU_CORES" -gt 8 ]; then
+            OLLAMA_THREADS=8
+        else
+            OLLAMA_THREADS=$CPU_CORES
+        fi
+    else
+        OLLAMA_THREADS=$((CPU_CORES * 75 / 100))
+        [ "$OLLAMA_THREADS" -lt 1 ] && OLLAMA_THREADS=1
+        [ "$OLLAMA_THREADS" -gt 12 ] && OLLAMA_THREADS=12
+    fi
+    
+    # GPU layers
+    OLLAMA_NUM_GPU=0
+    if [ "$GPU_TYPE" = "nvidia" ] || [ "$GPU_TYPE" = "amd" ]; then
+        [ "$VRAM_GB" -ge 6 ] && OLLAMA_NUM_GPU=999
+    elif [ "$GPU_TYPE" = "metal" ]; then
+        OLLAMA_NUM_GPU=999
+    fi
+    
+    # Flash attention
+    [ "$GPU_TYPE" = "nvidia" ] || [ "$GPU_TYPE" = "metal" ] && FLASH_ATTN=1 || FLASH_ATTN=0
+    
+    # Metal
+    [ "$GPU_TYPE" = "metal" ] && METAL=1 || METAL=0
+}
+
+# =============================================================================
+# DISPLAY FUNCTIONS
+# =============================================================================
+
+show_banner() {
+    clear
+    echo ""
+    echo -e "${CYAN}██╗  ██╗ ██████╗ ███╗   ███╗███████╗██╗      █████╗ ██████╗${NC}"
+    echo -e "${CYAN}██║  ██║██╔═══██╗████╗ ████║██╔════╝██║     ██╔══██╗██╔══██╗${NC}"
+    echo -e "${CYAN}██████║██║   ██║██╔████╔██║█████╗  ██║     ███████║██████╔╝${NC}"
+    echo -e "${CYAN}██╔══██║██║   ██║██║╚██╔╝██║██╔══╝  ██║     ██╔══██║██╔══██╗${NC}"
+    echo -e "${CYAN}██║  ██║╚██████╔╝██║ ╚═╝ ██║███████╗███████╗██║  ██║██████╔╝${NC}"
+    echo -e "${CYAN}╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝╚═════╝${NC}"
+    echo ""
+    echo -e "${MAGENTA}                HOMELAB ONBOARDING WIZARD v6${NC}"
+    echo ""
+    echo ""
+}
+
+show_hardware_summary() {
+    echo "  ┌─────────────────────────────────────────────────────────────┐"
+    printf "  │  %-20s %-35s │\n" "RAM:" "${RAM_GB}GB available (${EFFECTIVE_RAM}GB effective)"
+    printf "  │  %-20s %-35s │\n" "CPU:" "${CPU_CORES} physical cores"
+    printf "  │  %-20s %-35s │\n" "GPU:" "${GPU_TYPE:-none} (${VRAM_GB}GB VRAM)"
+    echo "  ├─────────────────────────────────────────────────────────────┤"
+    printf "  │  %-20s %-35s │\n" "Tier:" "$TIER"
+    printf "  │  %-20s %-35s │\n" "Speed Class:" "$SPEED_CLASS"
+    echo "  └─────────────────────────────────────────────────────────────┘"
+    echo ""
+}
+
+show_model_selection() {
+    echo "  ┌─────────────────────────────────────────────────────────────┐"
+    echo "  │  MODEL SELECTION                                          │"
+    echo "  ├─────────────────────────────────────────────────────────────┤"
+    printf "  │  %-15s %-35s │\n" "Coding:" "$CODING_MODEL"
+    printf "  │  %-15s %-35s │\n" "General:" "$GENERAL_MODEL"
+    printf "  │  %-15s %-35s │\n" "Quick:" "$QUICK_MODEL"
+    echo "  ├─────────────────────────────────────────────────────────────┤"
+    printf "  │  %-15s %-35s │\n" "Threads:" "$OLLAMA_THREADS"
+    printf "  │  %-15s %-35s │\n" "GPU Layers:" "$OLLAMA_NUM_GPU"
+    printf "  │  %-15s %-35s │\n" "Flash Attention:" "$FLASH_ATTN"
+    echo "  └─────────────────────────────────────────────────────────────┘"
+    echo ""
+}
+
+# =============================================================================
+# INTERACTIVE MENUS
+# =============================================================================
+
+select_mode() {
+    echo "  Select Setup Mode:"
+    echo ""
+    echo "    1) QuickStart    - ~90 sec - Auto hardware, no cloud, all defaults"
+    echo "    2) Full Setup   - ~15 min - All options interactively"
+    echo "    3) Restore      - Load existing config.env"
+    echo ""
+    read -p "  Select [1]: " MODE_CHOICE
+    MODE_CHOICE="${MODE_CHOICE:-1}"
+}
+
+select_ai_mode() {
+    echo ""
+    echo "  Select AI Mode:"
+    echo ""
+    echo "    1) local          - Ollama only (default, privacy-first)"
+    echo "    2) hybrid         - Ollama + cloud fallback"
+    echo "    3) cloud-primary  - Cloud first, Ollama fallback"
+    echo ""
+    read -p "  Select [1]: " AI_CHOICE
+    AI_CHOICE="${AI_CHOICE:-1}"
+    
+    case $AI_CHOICE in
+        1) AI_MODE="local" ;;
+        2) AI_MODE="hybrid" ;;
+        3) AI_MODE="cloud-primary" ;;
+        *) AI_MODE="local" ;;
+    esac
+}
+
+select_trust_mode() {
+    echo ""
+    echo "  Select Trust Mode (Kilo pipeline):"
+    echo ""
+    echo "    1) supervised   - All gate failures pause for approval (recommended)"
+    echo "    2) graduated    - Deterministic changes auto-promote, risky → staging"
+    echo "    3) autonomous   - Pipeline never pauses, all gates advisory"
+    echo ""
+    read -p "  Select [1]: " TRUST_CHOICE
+    TRUST_CHOICE="${TRUST_CHOICE:-1}"
+    
+    case $TRUST_CHOICE in
+        1) TRUST_MODE="supervised" ;;
+        2) TRUST_MODE="graduated" ;;
+        3) TRUST_MODE="autonomous" ;;
+        *) TRUST_MODE="supervised" ;;
+    esac
+}
+
+confirm_review() {
+    echo ""
+    echo "  ┌─────────────────────────────────────────────────────────────┐"
+    echo "  │  REVIEW & CONFIRM                                          │"
+    echo "  └─────────────────────────────────────────────────────────────┘"
+    echo ""
+    echo "  Hardware:  $RAM_GB GB RAM | $CPU_CORES cores | $GPU_TYPE | $TIER tier"
+    echo "  Models:   $CODING_MODEL | $GENERAL_MODEL | $QUICK_MODEL"
+    echo "  AI Mode:  $AI_MODE"
+    echo "  Trust:    $TRUST_MODE"
+    echo ""
+    read -p "  Write config and continue? [Y/n]: " CONFIRM
+    CONFIRM="${CONFIRM:-y}"
+    
+    if [[ ! "$CONFIRM" =~ ^[Yy] ]]; then
+        log_info "Aborted."
+        exit 0
+    fi
+}
+
+# =============================================================================
+# CONFIG GENERATION
+# =============================================================================
+
+generate_config() {
+    log_step "Generating configuration..."
+    
+    local config_file="$SCRIPT_DIR/config.env"
+    
+    # Backup existing config if present
+    if [ -f "$config_file" ]; then
+        log_warn "Existing config found, backing up to config.env.bak"
+        cp "$config_file" "$config_file.bak"
+    fi
+    
+    cat > "$config_file" << EOF
+# Homelab Configuration - Generated by onboard.sh
+# $(date)
+
+# =============================================================================
+# HARDWARE CLASSIFICATION
+# =============================================================================
+SPEED_CLASS=$SPEED_CLASS
+RESOURCE_TIER=$TIER
+
+# =============================================================================
+# OLLAMA MODELS
+# =============================================================================
+OLLAMA_DEFAULT_MODEL=$CODING_MODEL
+OLLAMA_GENERAL_MODEL=$GENERAL_MODEL
+OLLAMA_QUICK_MODEL=$QUICK_MODEL
+OLLAMA_MODEL="$CODING_MODEL $GENERAL_MODEL $QUICK_MODEL"
+
+# =============================================================================
+# PERFORMANCE TUNING
+# =============================================================================
+OLLAMA_NUM_THREADS=$OLLAMA_THREADS
+OLLAMA_FLASH_ATTENTION=$FLASH_ATTN
+OLLAMA_KV_CACHE_TYPE=q8_0
+OLLAMA_NUM_PARALLEL=1
+OLLAMA_MAX_LOADED_MODELS=1
+OLLAMA_NUM_GPU=$OLLAMA_NUM_GPU
+OLLAMA_KEEP_ALIVE=5m
+OLLAMA_METAL=$METAL
+
+# Context windows
+OLLAMA_CTX_CODING=8192
+OLLAMA_CTX_GENERAL=4096
+OLLAMA_CTX_QUICK=2048
+
+# =============================================================================
+# AI MODE & TRUST
+# =============================================================================
+AI_MODE=$AI_MODE
+TRUST_MODE=$TRUST_MODE
+
+# =============================================================================
+# SERVICE TOGGLES
+# =============================================================================
+SERVICES_ENABLED=all
+EOF
+    
+    log_success "Configuration written to $config_file"
+}
+
+# =============================================================================
+# MAIN
+# =============================================================================
+
+main() {
+    show_banner
+    
+    # Pre-flight
+    preflight_checks
+    
+    # Detect hardware
+    detect_hardware
+    
+    # Show hardware
+    show_hardware_summary
+    
+    # Select mode
+    select_mode
+    
+    if [ "$MODE_CHOICE" = "3" ]; then
+        # Restore mode
+        if [ -f "$SCRIPT_DIR/config.env" ]; then
+            log_info "Loading existing config..."
+            . "$SCRIPT_DIR/config.env"
+        else
+            log_error "No config.env found"
+            exit 1
+        fi
+    else
+        # Auto-select models
+        select_models
+        calculate_performance
+        show_model_selection
+        
+        if [ "$MODE_CHOICE" = "2" ]; then
+            # Full mode - let user customize
+            select_ai_mode
+            select_trust_mode
+        else
+            # QuickStart - use defaults
+            AI_MODE="local"
+            TRUST_MODE="supervised"
+        fi
+        
+        # Review
+        confirm_review
+        
+        # Generate
+        generate_config
+    fi
+    
+    echo ""
+    echo "  ┌─────────────────────────────────────────────────────────────┐"
+    echo "  │  Configuration complete!                                     │"
+    echo "  │                                                             │"
+    echo "  │  Next steps:                                                │"
+    echo "  │    sudo ./setup.sh                                          │"
+    echo "  └─────────────────────────────────────────────────────────────┘"
+    echo ""
+}
+
+main "$@"

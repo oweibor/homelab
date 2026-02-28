@@ -155,7 +155,7 @@ This project provides:
 
 ## 🚀 Quick Start
 
-### For Fresh Ubuntu 24.04 Installation
+### Option 1: Automated Onboarding Wizard (Recommended)
 
 ```bash
 # Clone the repository
@@ -164,7 +164,34 @@ git clone https://github.com/oweibor/homelab.git ~/homelab
 # Navigate to directory
 cd ~/homelab
 
-# Run automated setup (requires sudo)
+# Run the onboarding wizard (auto-detects hardware, selects models, configures everything)
+sudo ./onboard.sh
+```
+
+**The wizard will:**
+
+1. ✅ Detect hardware (RAM, CPU cores, GPU type)
+2. ✅ Classify into performance tier (MINIMAL → ULTRA)
+3. ✅ Select optimal Ollama models based on resources
+4. ✅ Calculate performance settings (threads, GPU layers)
+5. ✅ Generate optimized `config.env`
+6. ✅ Run the full setup automatically
+
+**Time to completion:** ~10-15 minutes
+
+### Option 2: Manual Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/oweibor/homelab.git ~/homelab
+
+# Navigate to directory
+cd ~/homelab
+
+# Copy and edit config (optional - wizard generates this automatically)
+cp config.env.template config.env
+
+# Run manual setup (requires sudo)
 sudo ./setup.sh
 ```
 
@@ -176,7 +203,7 @@ sudo ./setup.sh
 4. ✅ Install Docker and Docker Compose
 5. ✅ Apply CPU/power optimizations
 6. ✅ Deploy all services
-7. ✅ Download AI models
+7. ✅ Download AI models (based on hardware tier)
 8. ✅ Run health checks
 
 **Time to completion:** ~10-15 minutes (depending on internet speed)
