@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.1] - 2026-02-28
+
+### 🐛 Bug Fixes
+
+- **config.env.template**: Added missing environment variables:
+  - `PUID` and `PGID` for user permissions
+  - `RENDER_GID` for GPU/VAAPI access (referenced in docker-compose.yml)
+  - `NEXTCLOUD_DATA_PATH` for Nextcloud data location
+
+- **setup.sh**: Fixed ANTIGRAVITY_VNC_PASSWORD logic to generate random password if not provided
+- **setup.sh**: Removed duplicate comment for OpenClaw Token
+
+- **docker-compose.yml**: Added healthchecks to docker-proxy and kilo-proxy services
+- **docker-compose.yml**: Fixed service dependencies to use `service_healthy` instead of `service_started`
+
+- **kilo/pipeline/src/services/ollama/client.js**: Fixed Ollama fallback URL from `host.docker.internal` to `ollama` for reliable internal DNS resolution
+
+- **onboard-lib.sh**: Added automatic installation check for `bc` command to prevent hardware detection failures on minimal Ubuntu installations
+
 ## [1.3.0] - 2026-02-28
 
 ### 🚀 Onboarding Wizard (New Feature)

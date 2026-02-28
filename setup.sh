@@ -1521,9 +1521,13 @@ if [ -n "${ANTIGRAVITY_VNC_PASSWORD:-}" ]; then
     echo "ANTIGRAVITY_VNC_PASSWORD=$ANTIGRAVITY_VNC_PASSWORD" >> "$ENV_FILE"
 elif [ -f "$HOMELAB_DIR/antigravity/.env" ]; then
     grep "ANTIGRAVITY_VNC_PASSWORD" "$HOMELAB_DIR/antigravity/.env" >> "$ENV_FILE"
+else
+    # Generate a random password if none provided
+    ANTIGRAVITY_VNC_PASSWORD=$(openssl rand -base64 12)
+    echo "ANTIGRAVITY_VNC_PASSWORD=$ANTIGRAVITY_VNC_PASSWORD" >> "$ENV_FILE"
+    log_info "Generated random Antigravity VNC password"
 fi
 
-# OpenClaw Token
 # OpenClaw Token
 if [ -n "${OPENCLAW_TOKEN:-}" ]; then
     echo "OPENCLAW_TOKEN=$OPENCLAW_TOKEN" >> "$ENV_FILE"

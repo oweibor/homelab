@@ -27,6 +27,18 @@ log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 # HARDWARE DETECTION
 # =============================================================================
 
+# Check for bc (required for RAM calculation)
+if ! command -v bc &>/dev/null; then
+    echo "Installing bc (required for hardware detection)..."
+    if command -v apt-get &>/dev/null; then
+        sudo apt-get update && sudo apt-get install -y bc
+    elif command -v yum &>/dev/null; then
+        sudo yum install -y bc
+    elif command -v dnf &>/dev/null; then
+        sudo dnf install -y bc
+    fi
+fi
+
 detect_ram() {
     # Uses MemAvailable, not total RAM
     local ram_kb

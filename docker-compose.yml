@@ -18,7 +18,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      - docker-proxy
+      docker-proxy:
+        condition: service_healthy
     labels:
       - "homepage.group=Network"
       - "homepage.name=Traefik"
@@ -316,6 +317,8 @@ services:
     networks:
       - proxy
       - homelab
+    ports:
+      - "2375:2375" # Expose for healthcheck
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
@@ -328,6 +331,12 @@ services:
       - POST=0
       - EXEC=0
       - LOGS=0
+    healthcheck:
+      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/2375" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     logging:
       driver: "json-file"
       options:
@@ -411,6 +420,8 @@ services:
     restart: unless-stopped
     networks:
       - kilo-net # ONLY — never homelab
+    ports:
+      - "2375:2375" # Expose for healthcheck, but kilo-pipeline uses internal network
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
@@ -423,6 +434,12 @@ services:
       - POST=1 # Required: sandbox create/start/stop
       - EXEC=1 # Required: sandbox exec for Kilo CLI invocations
       - BUILD=0 # Pipeline never builds images
+    healthcheck:
+      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/2375" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     logging:
       driver: "json-file"
       options:
@@ -457,7 +474,7 @@ services:
       qdrant:
         condition: service_healthy
       kilo-proxy:
-        condition: service_started
+        condition: service_healthy
       ollama:
         condition: service_healthy
     labels:
