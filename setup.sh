@@ -466,11 +466,19 @@ if [ "${SKIP_NETWORK:-false}" != "true" ]; then
         else
             NEW_IP=${CURRENT_IP:-}
             if [ -z "$NEW_IP" ]; then
-                 log_error "No current IP to use. Please enter manual IP."
-                 # Assume user will retry or script fails - simple exit for now
-                 exit 1
+                log_warn "No current DHCP IP detected. Please enter a static IP manually."
+                while true; do
+                    read -p "Enter IP address: " NEW_IP
+                    if validate_ip "$NEW_IP"; then
+                        break
+                    else
+                        log_error "Invalid IP address format. Please try again."
+                    fi
+                done
+                log_info "Will configure static IP: $NEW_IP"
+            else
+                log_info "Will make current DHCP IP ($CURRENT_IP) static"
             fi
-            log_info "Will make current DHCP IP ($CURRENT_IP) static"
         fi
 
         # Get gateway if not detected
@@ -482,19 +490,26 @@ if [ "${SKIP_NETWORK:-false}" != "true" ]; then
             fi
         done
 
-        # Get DNS servers
-        read -p "Enter DNS servers (space or comma-separated) [1.1.1.1 8.8.8.8]: " DNS_INPUT
-        DNS_INPUT=${DNS_INPUT:-"1.1.1.1 8.8.8.8"}
-        DNS_SERVERS=$(echo "$DNS_INPUT" | tr ' ' ',' | sed 's/,\+/,/g' | sed 's/^,//;s/,$//')
+        # Get and validate DNS servers
+        while true; do
+            read -p "Enter DNS servers (space or comma-separated) [1.1.1.1 8.8.8.8]: " DNS_INPUT
+            DNS_INPUT=${DNS_INPUT:-"1.1.1.1 8.8.8.8"}
+            DNS_SERVERS=$(echo "$DNS_INPUT" | tr ' ' ',' | sed 's/,\+/,/g' | sed 's/^,//;s/,$//')
 
-        # Validate DNS servers
-        IFS=',' read -r -a DNS_ARRAY <<< "$DNS_SERVERS"
-        for dns in "${DNS_ARRAY[@]}"; do
-            dns=$(echo "$dns" | xargs)
-            if ! validate_ip "$dns"; then
-                log_error "Invalid DNS server: $dns"
-                exit 1
+            IFS=',' read -r -a DNS_ARRAY <<< "$DNS_SERVERS"
+            all_valid=true
+            for dns in "${DNS_ARRAY[@]}"; do
+                dns=$(echo "$dns" | xargs)
+                if ! validate_ip "$dns"; then
+                    log_error "Invalid DNS server: $dns"
+                    all_valid=false
+                    break
+                fi
+            done
+            if $all_valid; then
+                break
             fi
+            log_info "Please re-enter DNS servers."
         done
 
         log_info "DNS servers will be set to: $DNS_SERVERS"

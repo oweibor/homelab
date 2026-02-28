@@ -964,41 +964,6 @@ services:
     depends_on:
       - nextcloud
 
-  anythingllm:
-    image: mintplexlabs/anythingllm:latest
-    container_name: anythingllm
-    restart: unless-stopped
-    environment:
-      - STORAGE_DIR=/app/server/storage
-      - LLM_PROVIDER=ollama
-      - OLLAMA_BASE_PATH=http://ollama:11434
-      - EMBEDDING_ENGINE=ollama
-      - EMBEDDING_MODEL_PREF=nomic-embed-text
-      - TZ=${TZ}
-    volumes:
-      - ./anythingllm/storage:/app/server/storage
-      - ${NEXTCLOUD_DATA_PATH}/${NC_ADMIN_USER}/files/Obsidian:/vault:ro
-    networks:
-      - homelab
-      - proxy
-    mem_limit: 2g
-    cpus: 1.5
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.anythingllm.rule=Host(`rag.homelab.local`)"
-      - "traefik.http.routers.anythingllm.entrypoints=websecure"
-      - "traefik.http.routers.anythingllm.tls=true"
-      - "traefik.http.routers.anythingllm.middlewares=secure-headers@file"
-      - "traefik.http.services.anythingllm.loadbalancer.server.port=3001"
-      - "homepage.group=AI"
-      - "homepage.name=AnythingLLM"
-      - "homepage.icon=anythingllm.png"
-      - "homepage.href=https://rag.homelab.local"
-      - "homepage.description=RAG over your notes"
-    depends_on:
-      - ollama
-      - nextcloud
-
   # ============================================================
   # HOMEPAGE — Service Dashboard
   # ============================================================
@@ -1055,6 +1020,4 @@ networks:
     internal: true # Private network for Watchtower <-> Proxy isolation
   kilo-net:
     driver: bridge
-    internal: true
-      # kilo-proxy <-> kilo-pipeline only. Never exposed to homelab.
-      # Task 1.5: kilo-proxy must NEVER appear on homelab network.
+    internal: true # kilo-proxy <-> kilo-pipeline only. Never exposed to homelab.

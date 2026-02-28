@@ -78,10 +78,11 @@ This project provides:
 - **Network File Sharing**: Samba integration for seamless media management
 - **Multi-Device Support**: Access your library from any device on your network
 
-### 🏡 **Productivity & RAG Workflow**
+### 🏡 **Productivity & Workspace Workflow**
 
-- **Productivity**: Obsidian (Web-based Note Editor), Nextcloud (File Sync)
-- **AI/RAG**: AnythingLLM (Document-based Chat over Obsidian notes)
+- **Productivity**: Obsidian (Web-based Note Editor), Nextcloud (File Sync & Collaboration)
+- **Collaboration**: Nextcloud Talk (Chat/Video), Groupware (Mail/Calendar/Contacts)
+- **AI Integration**: Nextcloud Assistant (Local AI Chat/Summarization over files)
 - **Home Automation**: Home Assistant, MQTT, n8n
   - Control 1000+ device types
   - Bluetooth Support: BLE device integration with optimized N100 drivers
@@ -248,9 +249,7 @@ graph TB
     OpenClaw --> Ollama
     Nextcloud -->|API| Ollama
     Nextcloud -->|Nextcloud Sync| Obsidian
-    Nextcloud -->|WebDAV| AnythingLLM
     Obsidian -->|Edit| Nextcloud
-    AnythingLLM -->|RAG| Ollama
     Nextcloud --> OnlyOffice
     
     %% System Integrations
@@ -318,10 +317,9 @@ graph TB
 | **🏠 Homepage** | Service Dashboard | 3002 | [home.homelab.local](https://home.homelab.local) |
 | **📦 cAdvisor** | Container metrics | 8080 (Internal Only - No Host Port) | Internal Only |
 | **💻 Node Exporter** | Host system metrics | 9100 (Internal) | Internal Only |
-| **☁️ Nextcloud** | File hub & AI Assistant | 8080 | <https://nextcloud.homelab.local> |
+| **☁️ Nextcloud** | File hub & Productivity Suite | 8080 | <https://nextcloud.homelab.local> |
 | **📄 ONLYOFFICE** | Document editor engine | 9980 | <https://office.homelab.local> |
 | **📓 Obsidian** | Web-based note editor | 3000 (Internal) | <https://obsidian.homelab.local> |
-| **🧠 AnythingLLM** | RAG over Obsidian notes | 3001 (Internal) | <https://rag.homelab.local> |
 | **🦾 Kilo Pipeline**| Autonomous coding engine | 3100 | <https://kilo.homelab.local> |
 | **🍿 Jellyfin** | Open-source media server | 8096 | <https://jellyfin.homelab.local> |
 
@@ -583,7 +581,28 @@ Connect ONLYOFFICE to the Nextcloud backend by running the automated configurati
 
 ---
 
-### Step 5: Homepage Dashboard (Discovery & Widgets)
+### Step 5: Nextcloud Productivity Suite (NEW)
+
+After the initial setup, you must configure the enhanced productivity apps and local AI assistant.
+
+1. **Configure Apps**: Run the expansion script:
+
+    ```bash
+    cd ~/homelab
+    sudo bash configure-nextcloud-plus.sh
+    ```
+
+    This will install **Talk**, **Groupware**, and **Assistant**.
+
+2. **Performance Note**:
+    > [!IMPORTANT]
+    > **N100 Performance:** Running multiple heavy Nextcloud apps (especially Talk and AI Assistant) simultaneously may impact responsiveness. Monitor your CPU usage via Grafana.
+
+3. **Mail App Configuration**:
+    > [!NOTE]
+    > **External Server Required:** The Nextcloud Mail app requires an external IMAP/SMTP server (e.g., Gmail, Outlook).
+
+### Step 6: Homepage Dashboard (Discovery & Widgets)
 
 1. Access <https://home.homelab.local> — all services should appear automatically.
 2. To enable live Plex widget data:
@@ -901,7 +920,7 @@ cd ~/homelab
 tar -xzf backups/homelab-backup-YYYYMMDD.tar.gz -C ~/homelab/
 ```
 
-3. Restart services: `docker compose up -d`
+1. Restart services: `docker compose up -d`
 
 ### SSL Certificate Renewal
 

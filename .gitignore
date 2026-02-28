@@ -19,6 +19,7 @@ n8n/
 samba/
 open-webui/
 openclaw/config/
+nextcloud/
 
 # Monitoring Data
 grafana/data/
