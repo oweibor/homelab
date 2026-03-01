@@ -13,7 +13,7 @@
 
 const logger = require('../logger');
 const metrics = require('../metrics');
-const config = require('../config');
+const config = require('../../config');
 
 // Get hardware profile from shared config
 const hardwareProfile = config.HARDWARE_PROFILE || 'n100_like';

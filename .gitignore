@@ -20,6 +20,7 @@ samba/
 open-webui/
 openclaw/config/
 nextcloud/
+implementation_plan/
 
 # Monitoring Data
 grafana/data/
@@ -32,3 +33,10 @@ netbird/
 # mkcert CA & Client Certs (sensitive)
 certs-for-clients/
 traefik/certs/
+
+# Node.js
+node_modules/
+kilo/pipeline/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

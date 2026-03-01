@@ -30,6 +30,14 @@ log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Source shared library for hardware detection, model selection, and config generation
+if [ -f "$SCRIPT_DIR/onboard-lib.sh" ]; then
+    source "$SCRIPT_DIR/onboard-lib.sh"
+    log_info "Loaded onboard-lib.sh"
+else
+    log_warn "onboard-lib.sh not found, using inline functions"
+fi
+
 # Source hardware detection module
 if [ -f "$SCRIPT_DIR/scripts/hardware-detect.sh" ]; then
     source "$SCRIPT_DIR/scripts/hardware-detect.sh"

@@ -110,6 +110,123 @@
         "Read temperature, humidity, motion sensors",
         "Trigger named automations or scripts"
       ]
+    },
+    "web_scraper": {
+      "enabled": true,
+      "description": "Execute autonomous web scraping operations with LangGraph orchestration. Crawl websites, extract product data, and store in Qdrant for semantic search.",
+      "base_url": "http://kilo-pipeline:3100",
+      "endpoints": {
+        "scrape_start": "POST /scrape/start",
+        "scrape_status": "GET /scrape/status/:jobId",
+        "scrape_stop": "POST /scrape/stop/:jobId",
+        "scrape_search": "POST /scrape/search",
+        "scrape_jobs": "GET /scrape/jobs",
+        "scrape_results": "GET /scrape/results/:jobId",
+        "scrape_health": "GET /scrape/health",
+        "scrape_storage_stats": "GET /scrape/storage/stats",
+        "scrape_storage_delete": "DELETE /scrape/storage/:jobId",
+        "scrape_export": "POST /scrape/export/:jobId",
+        "scrape_export_list": "GET /scrape/export/list"
+      },
+      "task_schema": {
+        "target_url": "https://example.com/products",
+        "extraction_type": "category|product|multi",
+        "pagination": {
+          "enabled": true,
+          "max_pages": 100
+        },
+        "anti_bot": "standard|magic|stealth",
+        "priority": "normal|high|low"
+      },
+      "handle_directly": [
+        "Start a new scrape job",
+        "Check scrape job status",
+        "Stop a running scrape job",
+        "Search scraped content",
+        "List recent scrape jobs",
+        "Delete scrape job data"
+      ],
+      "examples": [
+        "Scrape all products from example.com",
+        "Crawl the electronics category on Amazon",
+        "Extract product prices from a competitor site",
+        "Find all pages about topic X in our scraped data"
+      ]
+    },
+    "task": {
+      "enabled": true,
+      "description": "Task operations - Accept tasks from OpenClaw, manage task queue, and clear blocked tasks.",
+      "base_url": "http://kilo-pipeline:3100",
+      "endpoints": {
+        "task_submit": "POST /task",
+        "task_clear": "POST /task/clear"
+      },
+      "task_schema": {
+        "workspace_path": "/home/node/.openclaw/kilo-bridge/workspace",
+        "instruction": "The full task description",
+        "trust_mode_override": "supervised|graduated"
+      },
+      "handle_directly": [
+        "Submit a new task to the pipeline",
+        "Clear a blocked task with guidance",
+        "Mark a ledger entry as permanent",
+        "Reset a ledger hash"
+      ]
+    },
+    "status": {
+      "enabled": true,
+      "description": "Pipeline status - Query task state from memory or checkpoint files.",
+      "base_url": "http://kilo-pipeline:3100",
+      "endpoints": {
+        "status_check": "GET /status/:task_id"
+      },
+      "handle_directly": [
+        "Check the status of a running task",
+        "Retrieve task state from checkpoint"
+      ]
+    },
+    "health": {
+      "enabled": true,
+      "description": "Health checks - Aggregated health endpoint checking Qdrant, Ollama, circuit state, and uptime.",
+      "base_url": "http://kilo-pipeline:3100",
+      "endpoints": {
+        "health_check": "GET /health"
+      },
+      "handle_directly": [
+        "Check if pipeline is healthy",
+        "Get current trust mode",
+        "Check queue size",
+        "View circuit breaker state"
+      ]
+    },
+    "staging": {
+      "enabled": true,
+      "description": "Staging operations - List pending ADRs and invariants, manually approve or reject staging items.",
+      "base_url": "http://kilo-pipeline:3100",
+      "endpoints": {
+        "staging_list": "GET /staging",
+        "staging_approve": "POST /staging/:id/approve",
+        "staging_reject": "POST /staging/:id/reject"
+      },
+      "handle_directly": [
+        "List pending staging items",
+        "Approve a staging item to promote to active memory",
+        "Reject a staging item with reason"
+      ]
+    },
+    "quarantine": {
+      "enabled": true,
+      "description": "Quarantine operations - List and manage quarantined items (failed semantic invariants).",
+      "base_url": "http://kilo-pipeline:3100",
+      "endpoints": {
+        "quarantine_list": "GET /quarantine",
+        "quarantine_override": "POST /quarantine/:id/override"
+      },
+      "handle_directly": [
+        "List all quarantined items",
+        "Promote a quarantined item to active memory",
+        "Dismiss a quarantined item"
+      ]
     }
   },
   "models": {

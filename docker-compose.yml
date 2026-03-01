@@ -471,8 +471,15 @@ services:
       - KILO_PIPELINE_PORT=${KILO_PIPELINE_PORT:-3100}
       - OPENCLAW_TOKEN=${OPENCLAW_TOKEN:-kilo_dev_token}
       - DOCKER_HOST=tcp://kilo-proxy:2375
+      - CRAWL4AI_URL=http://crawl4ai:8000
       - TZ=${TZ}
     mem_limit: 1g
+    healthcheck:
+      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/3100" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     depends_on:
       qdrant:
         condition: service_healthy
@@ -522,6 +529,10 @@ services:
       - OPENCLAW_KILO_ENABLED=${OPENCLAW_KILO_ENABLED:-true}
       - DOCKER_HOST=tcp://docker-proxy:2375
       - TZ=${TZ}
+      # Scraper configuration
+      - CRAWL4AI_URL=http://crawl4ai:8000
+      - CRAWL4AI_MAX_CONCURRENT=${CRAWL4AI_MAX_CONCURRENT:-5}
+      - CHECKPOINT_DIR=/var/kilo/checkpoints
     healthcheck:
       test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/18789" ]
       interval: 30s
@@ -548,6 +559,55 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  # ============================================================
+  # CRAWL4AI - Web Scraping Service
+  # ============================================================
+
+  crawl4ai:
+    image: public.ecr.aws/crawl4ai/crawl4ai:latest
+    container_name: crawl4ai
+    restart: unless-stopped
+    networks:
+      - homelab
+    ports:
+      - "8000:8000"
+    environment:
+      - CRAWL4AI_API_TOKEN=${CRAWL4AI_API_TOKEN:-}
+      - CRAWL4AI_MAX_CONCURRENT=${CRAWL4AI_MAX_CONCURRENT:-5}
+      - CRAWL4AI_TIMEOUT=${CRAWL4AI_TIMEOUT:-30000}
+      - CRAWL4AI_MEMORY_LIMIT=${CRAWL4AI_MEMORY_LIMIT:-2g}
+      - TZ=${TZ}
+    volumes:
+      - crawl4ai_data:/app/data
+    mem_limit: ${CRAWL4AI_MEMORY_LIMIT:-2g}
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.crawl4ai.rule=Host(`crawl4ai.homelab.local`)"
+      - "traefik.http.routers.crawl4ai.entrypoints=websecure"
+      - "traefik.http.routers.crawl4ai.tls=true"
+      - "traefik.http.routers.crawl4ai.middlewares=secure-headers@file"
+      - "traefik.http.services.crawl4ai.loadbalancer.server.port=8000"
+      - "homepage.group=AI"
+      - "homepage.name=Crawl4AI"
+      - "homepage.icon=spider.png"
+      - "homepage.href=http://localhost:8000"
+      - "homepage.description=Web scraping service"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    depends_on:
+      openclaw:
+        condition: service_started
+      kilo-pipeline:
+        condition: service_started
 
   # ============================================================
   # NETBIRD SELF-HOSTED STACK (Management + Dashboard + Signal)
@@ -1033,6 +1093,7 @@ services:
         max-file: "3"
 
 volumes:
+  crawl4ai_data:
   ollama_models: # Large models kept in named volume for performance
   qdrant_data: # Qdrant vector storage — persists across restarts and compose down
   netbird_mgmt:

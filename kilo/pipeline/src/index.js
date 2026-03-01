@@ -54,6 +54,7 @@ const statusRoutes = require('./routes/status');
 const healthRoutes = require('./routes/health');
 const stagingRoutes = require('./routes/staging');
 const quarantineRoutes = require('./routes/quarantine');
+const scrapeRoutes = require('./routes/scrape');
 
 const app = express();
 
@@ -74,6 +75,7 @@ app.use('/', statusRoutes);
 app.use('/', healthRoutes);
 app.use('/staging', stagingRoutes);
 app.use('/quarantine', quarantineRoutes);
+app.use('/', scrapeRoutes);
 
 // Prometheus Metrics endpoint
 app.get('/metrics', async (req, res) => {
@@ -81,8 +83,26 @@ app.get('/metrics', async (req, res) => {
         res.set('Content-Type', metrics.register.contentType);
         // Refresh dynamic metrics before responding
         await metrics.updateQuarantineMetrics();
-        // Note: Qdrant collection sizes can be updated periodically or here
-        res.end(await metrics.register.metrics());
+        // Update scraper vector count if available
+        if (metrics.scraperMetrics) {
+            try {
+                const scraperStorage = require('./services/scraper/storage');
+                const stats = await scraperStorage.getStats();
+                metrics.scraperMetrics.updateVectorCount(stats.vectorsCount);
+            } catch (e) {
+                // Scraper not initialized yet
+            }
+        }
+        // Get metrics from both main register and scraper register
+        const mainMetrics = await metrics.register.metrics();
+        const scraperMetricsOutput = metrics.scraperMetrics
+            ? await metrics.scraperMetrics.register.metrics()
+            : '';
+        // Combine both sets of metrics
+        const combined = scraperMetricsOutput
+            ? mainMetrics + '\n' + scraperMetricsOutput
+            : mainMetrics;
+        res.end(combined);
     } catch (err) {
         res.status(500).send(err.message);
     }

@@ -97,4 +97,24 @@ function isReady() {
     return pipeline !== null;
 }
 
-module.exports = { initialize, embed, isReady };
+/**
+ * Generate embeddings for multiple texts in batch.
+ * @param {string[]} texts - Array of input texts
+ * @returns {Promise<Float32Array[]>} Array of 384-dim vectors
+ */
+async function embedBatch(texts) {
+    if (!pipeline) {
+        throw new Error('Embedding model not initialized. Call initialize() first.');
+    }
+
+    const results = await Promise.all(
+        texts.map(text => pipeline(text, {
+            pooling: 'mean',
+            normalize: true,
+        }))
+    );
+
+    return results.map(result => new Float32Array(result.data));
+}
+
+module.exports = { initialize, embed, embedBatch, isReady };

@@ -26,15 +26,40 @@ log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 # HELPER FUNCTIONS
 # ============================================
 
-# Source hardware detection module
+# Source hardware detection module with fallback
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/scripts/hardware-detect.sh"
 
-# Detect hardware profile early
-HARDWARE_PROFILE=$(get_hardware_profile)
-# Note: export_hardware_profile renamed to print_hardware_profile - it only prints values, doesn't export
+# Check for config.env
+if [ ! -f "$SCRIPT_DIR/config.env" ]; then
+    log_error "config.env not found! Please run onboard.sh first to create it."
+    echo "  Expected location: $SCRIPT_DIR/config.env"
+    echo "  Run: ./onboard.sh"
+    exit 1
+fi
 
-log_info "Detected hardware profile: $HARDWARE_PROFILE"
+log_info "Found config.env"
+
+# Source hardware detection module with fallback (matching onboard.sh)
+if [ -f "$SCRIPT_DIR/scripts/hardware-detect.sh" ]; then
+    source "$SCRIPT_DIR/scripts/hardware-detect.sh"
+    
+    # Detect hardware profile
+    HARDWARE_PROFILE=$(get_hardware_profile)
+    log_info "Detected hardware profile: $HARDWARE_PROFILE"
+else
+    log_warn "hardware-detect.sh not found, using legacy detection"
+    HARDWARE_PROFILE="unknown"
+    
+    # Fallback functions when hardware-detect.sh is missing
+    get_hardware_profile() { echo "unknown"; }
+    has_quickysync() { echo "0"; }
+    has_avx2() { echo "0"; }
+    has_avx512() { echo "0"; }
+    get_cstate_flags() { echo ""; }
+    detect_cpu_family() { echo "UNKNOWN"; }
+    get_tdp_watts() { echo "15"; }
+    get_encoder_type() { echo "none"; }
+fi
 
 # Classic spinner (fallback)
 show_spinner() {

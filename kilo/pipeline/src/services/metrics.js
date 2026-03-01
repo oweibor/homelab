@@ -16,6 +16,25 @@ client.collectDefaultMetrics({ register });
 
 // --- Custom Metrics ---
 
+// Lazy-loaded scraper metrics to avoid startup failures
+let _scraperMetrics = null;
+let _scraperMetricsError = false;
+function getScraperMetrics() {
+    if (_scraperMetricsError) {
+        return null;  // Already failed, don't retry
+    }
+    if (!_scraperMetrics) {
+        try {
+            _scraperMetrics = require('./scraper/metrics');
+        } catch (e) {
+            // Scraper metrics module not available - mark as failed to avoid retries
+            _scraperMetricsError = true;
+            return null;
+        }
+    }
+    return _scraperMetrics;
+}
+
 // Task counts by terminal state
 const taskCount = new client.Counter({
     name: 'kilo_task_count_total',
@@ -85,5 +104,13 @@ module.exports = {
     quarantineDepth,
     circuitState,
     qdrantCollectionSize,
-    updateQuarantineMetrics
+    updateQuarantineMetrics,
+    // Lazy-loaded scraper metrics getter with safety wrapper
+    get scraperMetrics() {
+        try {
+            return getScraperMetrics();
+        } catch (e) {
+            return null;
+        }
+    }
 };
