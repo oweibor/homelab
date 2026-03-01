@@ -58,7 +58,7 @@ async function writeContext(workspacePath, newFact, taskId) {
 
             if (result.tripped) {
                 // Task 5.3 constraint: Skip summary if circuit is open, keep existing uncompressed.
-                logger.warn('Circuit breaker OPEN — skipping context summarization (N100 safety)');
+                logger.warn('Circuit breaker OPEN — skipping context summarization (hardware safety)');
             } else if (result.text && result.text.length > 50) {
                 // Successfully summarized oldest half
                 updatedContext = `## Historical Summary\n${result.text}\n\n## Recent Facts\n${newestHalf}`;

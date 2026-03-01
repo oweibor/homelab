@@ -2,6 +2,97 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-03-01
+
+### 🚀 Hardware-Agnostic Architecture (Major Feature)
+
+- **New Hardware Detection Module** (`scripts/hardware-detect.sh`):
+  - Comprehensive CPU detection supporting Intel N-series (N95/N97/N100/N200), Celeron, Core i3/i5/i7, AMD (Athlon, Ryzen), and ARM64 (Raspberry Pi, ARM servers)
+  - QuickSync hardware acceleration detection
+  - AVX2/AVX512 capability detection
+  - TDP estimation for power management
+  - GPU VRAM detection (NVIDIA, AMD ROCm, Apple Silicon, Intel iGPU)
+  - Encoder type detection (quicksync, vaapi, nvenc, amf, videotoolbox)
+  - C-state stability fix detection for N-series processors
+
+- **Hardware Profile System**:
+  - 14 hardware profiles: n100_like, celeron, core_i3, core_i5, core_i7, amd_low, amd_mid, amd_high, arm64_rpi5, arm64_server, nvidia_small, nvidia_medium, nvidia_large, apple_silicon
+  - Profile-based circuit breaker thresholds (0.15 for N100 up to 0.40 for high-end GPUs)
+  - Profile-based token budgets for context compression (2000 for RPi5 up to 32768 for GPU servers)
+
+- **Updated `kilo/pipeline/src/config.js`**:
+  - Added HARDWARE_PROFILE environment variable support with validation
+  - Hardware-aware circuit breaker threshold based on profile
+  - 14-profile threshold mapping for adaptive failure tolerance
+  - Exported HARDWARE_PROFILE in config object
+
+- **Updated `kilo/pipeline/src/services/ollama/circuitBreaker.js`**:
+  - Profile-based thresholds with windowSize, failureThreshold, resetTimeout
+  - Adaptive failure tolerance: conservative (0.15) for low-power, aggressive (0.40) for high-end
+  - Integration with shared config module
+
+- **Updated `kilo/pipeline/src/services/recovery/compressor.js`**:
+  - Hardware-aware token budgets: 2000 (n100_like) to 32768 (nvidia_large)
+  - Profile-based context compression limits
+  - Removed N100-specific hardcoded values
+
+### 🔧 Configuration Updates
+
+- **Extended `config.env.template`**:
+  - Added HARDWARE_PROFILE for pipeline constraints
+  - Added GPU_VRAM_GB, ENCODER_TYPE for streaming hardware
+  - Added PLEX_HW_ACCEL, PLEX_TRANSCODE_HW for Plex hardware transcoding
+  - Added JELLYFIN_HW_ACCEL, JELLYFIN_TRANSCODE_HW for Jellyfin hardware transcoding
+  - Added CPU_FAMILY, HAS_QUICKSYNC, HAS_AVX2, HAS_AVX512, TDP_WATTS, CSTATE_FLAGS
+
+- **Updated `docker-compose.yml`**:
+  - Added HARDWARE_PROFILE environment variable to kilo-pipeline service
+  - Changed kilo-proxy port from 2375 to 2376 to avoid conflict with docker-proxy
+  - Added PLEX_HW_ACCEL and PLEX_TRANSCODE environment variables to Plex service
+  - Added devices mapping for DRI (GPU) access
+
+- **Updated `setup.sh`**:
+  - Added hardware detection module sourcing
+  - Added config migration for existing installations (backward compatibility)
+  - Dynamic C-state configuration based on CPU family
+  - Default values for new hardware variables: GPU_VRAM_GB, ENCODER_TYPE, PLEX_HW_ACCEL, etc.
+
+- **Updated `onboard.sh`**:
+  - Integrated hardware detection module for comprehensive hardware profiling
+  - Added QuickSync detection for Intel iGPU hardware acceleration
+  - Added AVX2/AVX512 detection for Ollama optimization
+  - Added encoder type selection for Plex/Jellyfin hardware transcoding
+  - Added TDP display for power management
+  - Added hardware profile display in summary
+
+### 📚 Documentation Updates
+
+- **Updated `README.md`**:
+  - Rebranded from "Intel N100" to "Low-Power x86 Systems"
+  - Added support for Intel N-series (N95/N97/N100/N200) and similar low-power processors
+  - Updated hardware requirements to reflect broader compatibility
+  - Updated architecture diagram with "Low-Power x86" branding
+  - Added AI model recommendations for Intel N-series
+  - Changed copyright to "Homelab Contributors"
+
+- **New `plans/hardware-agnostic-refactor-plan.md`**: Detailed planning document for the hardware-agnostic architecture
+
+### 🧹 Cleanup
+
+- **Removed deprecated onboarding documents**:
+  - Deleted `implementation_plan/homelab_onboarding_v3.docx`
+  - Deleted `implementation_plan/homelab_onboarding_v5.docx`
+  - Deleted `implementation_plan/homelab_onboarding_v6.docx`
+
+- **Added new implementation plan**: `implementation_plan/openclaw_langgraph_crawl4ai_plan.docx`
+
+### 🐛 Bug Fixes
+
+- **Fixed Docker host port mismatch**: kilo-pipeline config now uses port 2376 to match docker-compose.yml
+- **Fixed invalid hardware profile handling**: config.js now properly defaults to 'n100_like' for unknown profiles
+- **Fixed ENCODER_TYPE not set**: onboard.sh now calls get_encoder_type() from hardware-detect.sh
+- **Removed N100-specific hardcoding**: Replaced with profile-based configuration throughout
+
 ## [1.3.1] - 2026-02-28
 
 ### 🐛 Bug Fixes

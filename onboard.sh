@@ -24,6 +24,40 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 log_step() { echo -e "${BLUE}[STEP]${NC} $1"; }
 log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 
+# =============================================================================
+# SCRIPT DIRECTORY & HARDWARE DETECTION MODULE
+# =============================================================================
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source hardware detection module
+if [ -f "$SCRIPT_DIR/scripts/hardware-detect.sh" ]; then
+    source "$SCRIPT_DIR/scripts/hardware-detect.sh"
+    
+    # Detect hardware profile
+    HARDWARE_PROFILE=$(get_hardware_profile)
+    # Note: export_hardware_profile renamed to print_hardware_profile - it only prints values, doesn't export
+    
+    # Export hardware detection variables for use throughout script
+    HAS_QUICKSYNC=$(has_quicksync)
+    HAS_AVX2=$(has_avx2)
+    HAS_AVX512=$(has_avx512)
+    CSTATE_FLAGS=$(get_cstate_flags)
+    CPU_FAMILY=$(detect_cpu_family)
+    TDP_WATTS=$(get_tdp_watts)
+    ENCODER_TYPE=$(get_encoder_type)
+else
+    log_warn "hardware-detect.sh not found, using legacy detection"
+    HARDWARE_PROFILE="unknown"
+    HAS_QUICKSYNC=0
+    HAS_AVX2=0
+    HAS_AVX512=0
+    CSTATE_FLAGS=""
+    CPU_FAMILY="UNKNOWN"
+    TDP_WATTS=15
+    ENCODER_TYPE="none"
+fi
+
 # Spinner
 spin() {
     local pid=$1
@@ -74,7 +108,7 @@ preflight_checks() {
     fi
     
     # Check required files
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    # SCRIPT_DIR already defined at top of script
     if [ ! -f "$SCRIPT_DIR/setup.sh" ]; then
         log_error "setup.sh not found"
         exit 1
@@ -146,16 +180,22 @@ detect_hardware() {
         fi
     fi
     
-    # Intel iGPU
+    # Intel iGPU with QuickSync support
     if [ "$GPU_TYPE" = "none" ] && lspci 2>/dev/null | grep -qi "vga.*intel"; then
-        GPU_TYPE="igpu"
+        # Check if QuickSync is available for hardware acceleration
+        if [ "$HAS_QUICKSYNC" = "1" ]; then
+            GPU_TYPE="quicksync"
+        else
+            GPU_TYPE="igpu"
+        fi
         VRAM_GB=1
     fi
     
     # Classify hardware
     classify_hardware
     
-    log_info "Detected: ${RAM_GB}GB RAM, ${CPU_CORES} cores, ${GPU_TYPE:-none} (${VRAM_GB}GB VRAM)"
+    log_info "Detected: ${RAM_GB}GB RAM, ${CPU_CORES} cores, ${GPU_TYPE:-none} (${VRAM_GB}GB VRAM), Profile: ${HARDWARE_PROFILE}"
+    log_info "CPU Features: QuickSync=${HAS_QUICKSYNC}, AVX2=${HAS_AVX2}, AVX512=${HAS_AVX512}, TDP=${TDP_WATTS}W"
 }
 
 # =============================================================================
@@ -281,11 +321,23 @@ calculate_performance() {
         OLLAMA_NUM_GPU=999
     fi
     
-    # Flash attention
-    [ "$GPU_TYPE" = "nvidia" ] || [ "$GPU_TYPE" = "metal" ] && FLASH_ATTN=1 || FLASH_ATTN=0
+    # Flash attention - enable for GPU or when CPU has AVX2/AVX512
+    if [ "$GPU_TYPE" = "nvidia" ] || [ "$GPU_TYPE" = "metal" ]; then
+        FLASH_ATTN=1
+    elif [ "$HAS_AVX2" = "1" ] || [ "$HAS_AVX512" = "1" ]; then
+        FLASH_ATTN=1
+    else
+        FLASH_ATTN=0
+    fi
     
     # Metal
     [ "$GPU_TYPE" = "metal" ] && METAL=1 || METAL=0
+    
+    # QuickSync optimization - reduce threads for iGPU encoding
+    if [ "$GPU_TYPE" = "quicksync" ]; then
+        # QuickSync uses iGPU for encoding, limit CPU threads
+        [ "$OLLAMA_THREADS" -gt 4 ] && OLLAMA_THREADS=4
+    fi
 }
 
 # =============================================================================
@@ -313,8 +365,13 @@ show_hardware_summary() {
     printf "  │  %-20s %-35s │\n" "CPU:" "${CPU_CORES} physical cores"
     printf "  │  %-20s %-35s │\n" "GPU:" "${GPU_TYPE:-none} (${VRAM_GB}GB VRAM)"
     echo "  ├─────────────────────────────────────────────────────────────┤"
+    printf "  │  %-20s %-35s │\n" "Profile:" "${HARDWARE_PROFILE}"
     printf "  │  %-20s %-35s │\n" "Tier:" "$TIER"
     printf "  │  %-20s %-35s │\n" "Speed Class:" "$SPEED_CLASS"
+    echo "  ├─────────────────────────────────────────────────────────────┤"
+    printf "  │  %-20s %-35s │\n" "QuickSync:" "${HAS_QUICKSYNC}"
+    printf "  │  %-20s %-35s │\n" "AVX2:" "${HAS_AVX2}"
+    printf "  │  %-20s %-35s │\n" "TDP:" "${TDP_WATTS}W"
     echo "  └─────────────────────────────────────────────────────────────┘"
     echo ""
 }
@@ -422,6 +479,45 @@ generate_config() {
         cp "$config_file" "$config_file.bak"
     fi
     
+    # Determine Plex/Jellyfin hardware acceleration settings
+    local PLEX_HW="disabled"
+    local JELLYFIN_HW="None"
+    local PLEX_TRANSCODE="0"
+    local JELLYFIN_TRANSCODE="0"
+    
+    case "$ENCODER_TYPE" in
+        nvenc)
+            PLEX_HW="nv"
+            JELLYFIN_HW="NVIDIA"
+            PLEX_TRANSCODE="1"
+            JELLYFIN_TRANSCODE="1"
+            ;;
+        amf)
+            PLEX_HW="vaapi"
+            JELLYFIN_HW="AMD"
+            PLEX_TRANSCODE="1"
+            JELLYFIN_TRANSCODE="1"
+            ;;
+        videotoolbox)
+            PLEX_HW="qs"
+            JELLYFIN_HW="AppleVT"
+            PLEX_TRANSCODE="1"
+            JELLYFIN_TRANSCODE="1"
+            ;;
+        quicksync)
+            PLEX_HW="qs"
+            JELLYFIN_HW="QSV"
+            PLEX_TRANSCODE="1"
+            JELLYFIN_TRANSCODE="1"
+            ;;
+        vaapi)
+            PLEX_HW="vaapi"
+            JELLYFIN_HW="VAAPI"
+            PLEX_TRANSCODE="1"
+            JELLYFIN_TRANSCODE="1"
+            ;;
+    esac
+    
     cat > "$config_file" << EOF
 # Homelab Configuration - Generated by onboard.sh
 # $(date)
@@ -431,6 +527,27 @@ generate_config() {
 # =============================================================================
 SPEED_CLASS=$SPEED_CLASS
 RESOURCE_TIER=$TIER
+HARDWARE_PROFILE=$HARDWARE_PROFILE
+CPU_FAMILY=$CPU_FAMILY
+
+# =============================================================================
+# CPU CAPABILITIES
+# =============================================================================
+HAS_QUICKSYNC=$HAS_QUICKSYNC
+HAS_AVX2=$HAS_AVX2
+HAS_AVX512=$HAS_AVX512
+TDP_WATTS=$TDP_WATTS
+CSTATE_FLAGS="$CSTATE_FLAGS"
+
+# =============================================================================
+# GPU & STREAMING
+# =============================================================================
+GPU_VRAM_GB=$VRAM_GB
+ENCODER_TYPE=$ENCODER_TYPE
+PLEX_HW_ACCEL=$PLEX_HW
+JELLYFIN_HW_ACCEL=$JELLYFIN_HW
+PLEX_TRANSCODE_HW=$PLEX_TRANSCODE
+JELLYFIN_TRANSCODE_HW=$JELLYFIN_TRANSCODE
 
 # =============================================================================
 # OLLAMA MODELS

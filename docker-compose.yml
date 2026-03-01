@@ -88,6 +88,8 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
       - PLEX_CLAIM=${PLEX_CLAIM}
+      - PLEX_HW_ACCEL=${PLEX_HW_ACCEL:-disabled}
+      - PLEX_TRANSCODE=${PLEX_TRANSCODE_HW:-0}
     devices:
       - /dev/dri:/dev/dri
     group_add:
@@ -421,7 +423,7 @@ services:
     networks:
       - kilo-net # ONLY — never homelab
     ports:
-      - "2375:2375" # Expose for healthcheck, but kilo-pipeline uses internal network
+      - "2376:2375" # Changed from 2375 to avoid conflict with docker-proxy (line 323)
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
@@ -463,6 +465,7 @@ services:
       - /var/kilo:/var/kilo
       - ./kilo/.kilo:/app/.kilo
     environment:
+      - HARDWARE_PROFILE=${HARDWARE_PROFILE:-n100_like}
       - TRUST_MODE=${TRUST_MODE:-supervised}
       - QDRANT_HOST=${QDRANT_HOST:-http://qdrant:6333}
       - KILO_PIPELINE_PORT=${KILO_PIPELINE_PORT:-3100}
@@ -824,6 +827,8 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
+      - JELLYFIN_HardwareAcceleration=${JELLYFIN_HW_ACCEL:-None}
+      - JELLYFIN_EnableRealtimeMonitor=${JELLYFIN_TRANSCODE_HW:-0}
     healthcheck:
       test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/8096" ]
       interval: 30s
@@ -835,7 +840,7 @@ services:
       - ./jellyfin/cache:/cache
       - ./media:/data
     devices:
-      - /dev/dri:/dev/dri # Intel N100 QuickSync Acceleration
+      - /dev/dri:/dev/dri # Hardware acceleration (VAAPI/QuickSync)
     group_add:
       - "${RENDER_GID}"
     labels:

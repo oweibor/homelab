@@ -1,8 +1,8 @@
-# 🏠 Homelab: Enterprise-Grade Private AI & Media Stack for Intel N100 or similar systems
+# 🏠 Homelab: Enterprise-Grade Private AI & Media Stack for Low-Power x86 Systems
 
 [![GPL-3.0 License](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://opensource.org/licenses/GPL-3.0)
 [![Docker](https://img.shields.io/badge/Platform-Docker-blue)](https://www.docker.com/)
-[![Intel N100](https://img.shields.io/badge/Optimized-Intel_N100-0071C5)](https://ark.intel.com/content/www/us/en/ark/products/231803/intel-processor-n100-6m-cache-up-to-3-40-ghz.html)
+[![Intel N-series](https://img.shields.io/badge/Optimized-Intel_N95_N100-0071C5)](https://ark.intel.com/content/www/us/en/ark/products/231803/intel-processor-n100-6m-cache-up-to-3-40-ghz.html)
 [![Ubuntu 24.04](https://img.shields.io/badge/Ubuntu-24.04_LTS-E95420)](https://ubuntu.com/)
 [![Home Assistant](https://img.shields.io/badge/Home--Assistant-41BDF5?logo=homeassistant&logoColor=white)](https://www.home-assistant.io/)
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-E53935?logo=lobster&logoColor=white)](https://openclaw.ai/)
@@ -13,7 +13,7 @@
 
 > A complete, private, and secure homelab stack — from autonomous AI agents to media servers — all on a $150 mini PC. If it runs this smooth on budget hardware, imagine what it can do on yours.
 
-A fully automated, silicon-optimized deployment system that combines **Local AI Intelligence**, **4K Media Streaming**, and **Private Smart Home Automation** into a single, seamless platform. Built specifically for the Intel N100 architecture with QuickSync hardware acceleration and optimized power management.
+A fully automated, silicon-optimized deployment system that combines **Local AI Intelligence**, **4K Media Streaming**, and **Private Smart Home Automation** into a single, seamless platform. Built for low-power x86 processors (Intel N-series, Celeron, AMD Athlon) with QuickSync hardware acceleration and optimized power management.
 
 ---
 
@@ -55,7 +55,7 @@ Setting up a complete homelab traditionally requires:
 This project provides:
 
 - ✅ **One-Command Installation**: Fully automated setup script
-- ✅ **Hardware Optimized**: Pre-configured for N100 QuickSync & power efficiency
+- ✅ **Hardware Optimized**: Pre-configured for low-power x86 QuickSync & power efficiency
 - ✅ **Privacy-First**: 100% local processing - your data never leaves your network
 - ✅ **Production-Ready**: SSL termination, automated updates, health monitoring
 - ✅ **AI-Native**: Integrated local LLMs with ChatGPT-like interface
@@ -85,7 +85,7 @@ This project provides:
 - **AI Integration**: Nextcloud Assistant (Local AI Chat/Summarization over files)
 - **Home Automation**: Home Assistant, MQTT, n8n
   - Control 1000+ device types
-  - Bluetooth Support: BLE device integration with optimized N100 drivers
+  - Bluetooth Support: BLE device integration with optimized drivers
   - Workflow Automation: n8n for connecting services and creating custom automations
 
 ### 🔒 Enterprise Security
@@ -114,7 +114,7 @@ This project provides:
 
 ### ⚡ **Performance & Reliability**
 
-- **CPU Optimization**: Pre-configured C-states for N100 stability
+- **CPU Optimization**: Pre-configured C-states for low-power processor stability
 - **Auto-Updates**: Watchtower keeps containers current
 - **Advanced Healthchecks**: Real-time Docker & Traefik monitoring to prevent "Bad Gateway" errors
 - **Low Power Consumption**: Optimized for 24/7 operation (sub-10W idle)
@@ -127,7 +127,7 @@ This project provides:
 
 | Component | Requirement |
 |-----------|------------|
-| **CPU** | Intel N100 (or N95/N97/N200) |
+| **CPU** | Intel N-series (N95/N97/N100/N200) or similar low-power x86 |
 | **RAM** | 8GB DDR4/DDR5 |
 | **Storage** | 128GB NVMe/SSD (256GB+ recommended) |
 | **Network** | Gigabit Ethernet |
@@ -149,7 +149,7 @@ This project provides:
 - ✅ TRIGKEY Green G4 (N100, 16GB)
 - ✅ AceMagic AD08 (N97, 12GB)
 
-> **Note**: While optimized for N100, this stack works on any x86_64 Ubuntu 24.04+ system. Hardware transcoding requires Intel QuickSync (7th gen or newer).
+> **Note**: While optimized for low-power x86 processors, this stack works on any x86_64 Ubuntu 24.04+ system. Hardware transcoding requires Intel QuickSync (7th gen or newer).
 
 ---
 
@@ -227,7 +227,7 @@ graph TB
         User[Client Browser/App]
     end
 
-    subgraph HostNet[Host Network - Intel N100]
+    subgraph HostNet[Host Network - Low-Power x86]
         direction TB
         HA[Home Assistant<br/>Port 8123<br/>Bluetooth/USB]
         Plex[Plex Media Server<br/>Port 32400<br/>QuickSync HW Accel]
@@ -623,7 +623,7 @@ After the initial setup, you must configure the enhanced productivity apps and l
 
 2. **Performance Note**:
     > [!IMPORTANT]
-    > **N100 Performance:** Running multiple heavy Nextcloud apps (especially Talk and AI Assistant) simultaneously may impact responsiveness. Monitor your CPU usage via Grafana.
+    > **Low-Power x86 Performance:** Running multiple heavy Nextcloud apps (especially Talk and AI Assistant) simultaneously may impact responsiveness. Monitor your CPU usage via Grafana.
 
 3. **Mail App Configuration**:
     > [!NOTE]
@@ -659,7 +659,7 @@ After the initial setup, you must configure the enhanced productivity apps and l
 
 ## 🤖 AI Model Recommendations
 
-### For Intel N100 (8-16GB RAM)
+### For Intel N-series (8-16GB RAM)
 
 <table>
   <tr>
@@ -830,7 +830,7 @@ The stack includes a fully integrated AI agent system:
 
 ### 🦾 **Autonomous AI Pipeline (Kilo)**
 
-The N100 stack includes a sophisticated 9-stage autonomous coding pipeline called **Kilo**. This pipeline allows OpenClaw to delegate complex engineering tasks to a sandboxed environment without manual intervention.
+This stack includes a sophisticated 9-stage autonomous coding pipeline called **Kilo**. This pipeline allows OpenClaw to delegate complex engineering tasks to a sandboxed environment without manual intervention.
 
 #### **Operational Safety (The Kill-switch)**
 
@@ -1405,7 +1405,7 @@ echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governo
 cat /proc/cmdline | grep -o 'intel_idle.max_cstate=[0-9]'
 
 # Should show: intel_idle.max_cstate=2
-# This prevents N100 freezing issues
+# This prevents low-power processor freezing issues
 ```
 
 ### Docker Resource Limits
@@ -1523,7 +1523,7 @@ git commit -m "feat: add XYZ feature"
 This project is licensed under the **GNU General Public License v3.0**.
 
 ```
-Copyright (C) 2024 N100 Homelab Contributors
+Copyright (C) 2024 Homelab Contributors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -1548,7 +1548,7 @@ If you find this project useful, please consider giving it a star! It helps othe
 
 ## 🙏 Acknowledgments
 
-- Intel for the efficient N100 architecture
+- Intel for the efficient low-power x86 architecture
 - The Home Assistant team
 - Ollama developers
 - Plex Inc.

@@ -2,17 +2,50 @@
 
 /**
  * Stage 6: Context Compressor.
- * Keeps the LLM context prompt within a strict token budget (2000 tokens for N100).
+ * Keeps the LLM context prompt within a strict token budget based on hardware profile.
  * Implements 7 sequential compression rules and loop detection.
+ *
+ * Hardware-aware: token budget adjusts based on HARDWARE_PROFILE env var.
  *
  * @module services/recovery/compressor
  */
 
 const logger = require('../logger');
 
+// Hardware profile-based token budgets
+const hardwareProfile = process.env.HARDWARE_PROFILE || 'n100_like';
+
+const TOKEN_BUDGETS = {
+    // Low-power Intel
+    'n100_like': 2000,
+    'celeron': 2000,
+
+    // Standard Intel
+    'core_i3': 4096,
+    'core_i5': 8192,
+    'core_i7': 16384,
+
+    // AMD
+    'amd_low': 2000,
+    'amd_mid': 4096,
+    'amd_high': 16384,
+
+    // ARM
+    'arm64_rpi5': 1500,
+    'arm64_server': 4096,
+
+    // GPU-accelerated
+    'nvidia_small': 4096,    // 4GB VRAM
+    'nvidia_medium': 8192,   // 8GB VRAM
+    'nvidia_large': 32768,   // 12-24GB VRAM
+
+    // Apple Silicon
+    'apple_silicon': 16384,
+};
+
 // Rough token estimation (1 token ≈ 4 chars)
 const CHARS_PER_TOKEN = 4;
-const DEFAULT_BUDGET_TOKENS = 2000;
+const DEFAULT_BUDGET_TOKENS = TOKEN_BUDGETS[hardwareProfile] || 2000;
 
 /**
  * Estimate token count from string length.

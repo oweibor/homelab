@@ -5,7 +5,7 @@
  * Uses @xenova/transformers for CPU-only inference.
  * Model auto-downloads on first run, cached to MODEL_CACHE_DIR.
  *
- * N100 constraint: ~200 MB RAM, CPU-only, quantized.
+ * Constraint: ~200 MB RAM, CPU-only, quantized.
  *
  * @module services/embeddings
  */

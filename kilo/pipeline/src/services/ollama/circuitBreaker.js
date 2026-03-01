@@ -3,21 +3,57 @@
 /**
  * Task 4.4: Ollama Circuit Breaker.
  * Shared singleton across all Ollama callers (Gates, Writers).
- * Protects the N100 hardware from recursive LLM failure loops.
+ * Protects the hardware from recursive LLM failure loops.
  * 
+ * Hardware-aware: thresholds adjusted based on HARDWARE_PROFILE env var.
  * States: CLOSED (normal), OPEN (tripped), HALF_OPEN (probing).
- * Threshold: 15% failure rate over a 10-call sliding window.
  * 
  * @module services/ollama/circuitBreaker
  */
 
 const logger = require('../logger');
 const metrics = require('../metrics');
+const config = require('../config');
 
-// N100 optimized thresholds (15% instead of 20% due to weaker 3B model)
-const WINDOW_SIZE = 10;
-const FAILURE_THRESHOLD = 0.15;
-const RESET_TIMEOUT_MS = 300 * 1000; // 300 seconds
+// Get hardware profile from shared config
+const hardwareProfile = config.HARDWARE_PROFILE || 'n100_like';
+
+// Hardware profile-based thresholds (circuit breaker specific - includes windowSize and resetTimeout)
+// Note: The threshold values match config.js PROFILE_THRESHOLDS for consistency
+const PROFILE_THRESHOLDS = {
+    // Low-power Intel
+    'n100_like': { windowSize: 10, failureThreshold: 0.15, resetTimeout: 300000 },
+    'celeron': { windowSize: 10, failureThreshold: 0.20, resetTimeout: 300000 },
+
+    // Standard Intel
+    'core_i3': { windowSize: 15, failureThreshold: 0.25, resetTimeout: 180000 },
+    'core_i5': { windowSize: 20, failureThreshold: 0.30, resetTimeout: 120000 },
+    'core_i7': { windowSize: 20, failureThreshold: 0.35, resetTimeout: 120000 },
+
+    // AMD
+    'amd_low': { windowSize: 10, failureThreshold: 0.15, resetTimeout: 300000 },
+    'amd_mid': { windowSize: 15, failureThreshold: 0.25, resetTimeout: 180000 },
+    'amd_high': { windowSize: 20, failureThreshold: 0.35, resetTimeout: 120000 },
+
+    // ARM (Raspberry Pi, ARM servers)
+    'arm64_rpi5': { windowSize: 10, failureThreshold: 0.20, resetTimeout: 300000 },
+    'arm64_server': { windowSize: 15, failureThreshold: 0.25, resetTimeout: 180000 },
+
+    // GPU-accelerated (dedicated VRAM)
+    'nvidia_small': { windowSize: 15, failureThreshold: 0.30, resetTimeout: 180000 },   // 4GB VRAM
+    'nvidia_medium': { windowSize: 20, failureThreshold: 0.35, resetTimeout: 120000 },  // 8GB VRAM
+    'nvidia_large': { windowSize: 20, failureThreshold: 0.40, resetTimeout: 60000 },   // 12-24GB VRAM
+
+    // Apple Silicon
+    'apple_silicon': { windowSize: 20, failureThreshold: 0.35, resetTimeout: 120000 },
+};
+
+// Get config for this profile
+const cbConfig = PROFILE_THRESHOLDS[hardwareProfile] || PROFILE_THRESHOLDS['n100_like'];
+
+const WINDOW_SIZE = cbConfig.windowSize;
+const FAILURE_THRESHOLD = cbConfig.failureThreshold;
+const RESET_TIMEOUT_MS = cbConfig.resetTimeout;
 
 let state = 'CLOSED';
 let resultsWindow = []; // true = success, false = failure
