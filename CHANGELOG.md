@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.1] - 2026-03-02
+
+### 🐛 Bug Fixes
+
+#### Critical
+
+- **hardware-detect.sh**: Remove `set -euo pipefail` to prevent parent shell corruption when sourced
+- **hardware-detect.sh**: Fix N-series CPU regex with word boundaries to avoid false positives (e.g., "Xeon E5-2670N")
+- **hardware-detect.sh**: Reorder encoder detection priority: NVIDIA NVENC → AMD AMF → Apple → Intel QuickSync
+- **config.js**: Change HARDWARE_PROFILE from const to let to allow fallback reassignment on invalid profile
+- **config.js**: Add 'autonomous' to TRUST_MODE validator to match onboard.sh wizard options
+- **ollama/client.js**: Fix double http:// URL concatenation when OLLAMA_HOST already includes protocol
+- **langgraph/checkpoint.js**: Fix incorrect require path from '../logger' to '../../logger'
+
+#### Medium
+
+- **hardware-detect.sh**: Add printf %q quoting for CPU_MODEL and CSTATE_FLAGS to handle spaces in CPU names
+- **setup.sh**: Add FLAGS guard to prevent GRUB modification on non-N100 hardware
+- **prometheus/prometheus.yml**: Change Ollama metrics endpoint from /api/tags to /metrics
+
+#### Low
+
+- **setup.sh**: Fix typo: rename has_quickysync() to has_quicksync() in fallback function
+- **test-ai-stack.sh**: Add OLLAMA_DEFAULT_MODEL fallback chain for deprecated MODEL_CODING
+
+### 📝 Documentation
+
+- Add .markdownlint.json with linting rules for Markdown files
+- Add audit/AUDIT_REPORT.md documenting comprehensive code audit findings
+- Add plans/ to .gitignore
+
 ## [1.4.0] - 2026-03-01
 
 ### 🚀 Hardware-Agnostic Architecture (Major Feature)
