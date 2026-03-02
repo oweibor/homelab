@@ -14,6 +14,7 @@ const path = require('path');
 const logger = require('../logger');
 const config = require('../../config');
 const qdrant = require('../qdrant');
+const embeddings = require('../embeddings');
 
 /**
  * Perform manual or automatic promotion of a staging item.
@@ -32,7 +33,9 @@ async function promoteItem(item, workspacePath) {
             fs.mkdirSync(decisionsDir, { recursive: true });
             fs.writeFileSync(path.join(decisionsDir, `${id}.json`), JSON.stringify(item, null, 2));
 
-            await qdrant.upsert('project_decisions', id, `${title}: ${rationale}`, item);
+            const decisionText = `${title}: ${rationale}`;
+            const decisionVector = await embeddings.embed(decisionText);
+            await qdrant.upsert('project_decisions', [{ id, vector: decisionVector, payload: item }]);
             logger.info('Promotion Engine: AUTO-PROMOTED Decision', { id, title });
 
         } else if (type === 'det_invariant' || type === 'sem_invariant') {
@@ -47,7 +50,9 @@ async function promoteItem(item, workspacePath) {
 
             fs.appendFileSync(invFile, content);
 
-            await qdrant.upsert('project_invariants', id, type === 'sem_invariant' ? rule : assertion_template, item);
+            const invariantText = type === 'sem_invariant' ? rule : assertion_template;
+            const invariantVector = await embeddings.embed(invariantText);
+            await qdrant.upsert('project_invariants', [{ id, vector: invariantVector, payload: item }]);
             logger.info(`Promotion Engine: AUTO-PROMOTED ${type}`, { id });
         }
 
