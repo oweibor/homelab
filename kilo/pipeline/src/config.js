@@ -73,7 +73,7 @@ const CIRCUIT_BREAKER_THRESHOLD = parseFloat(process.env.OLLAMA_CIRCUIT_BREAKER_
 /** @type {string} */
 const TRUST_MODE = process.env.TRUST_MODE || 'supervised';
 if (!['supervised', 'graduated', 'autonomous'].includes(TRUST_MODE)) {
-    console.error(`[CONFIG] Invalid TRUST_MODE="${TRUST_MODE}". Must be supervised|graduated.`);
+    console.error(`[CONFIG] Invalid TRUST_MODE="${TRUST_MODE}". Must be supervised|graduated|autonomous.`);
     process.exit(1);
 }
 
