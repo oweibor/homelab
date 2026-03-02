@@ -40,10 +40,10 @@ router.post('/task', authMiddleware, (req, res) => {
 
     // Determine effective trust mode
     const trust_mode = trust_mode_override || config.TRUST_MODE;
-    if (!['supervised', 'graduated'].includes(trust_mode)) {
+    if (!['supervised', 'graduated', 'autonomous'].includes(trust_mode)) {
         return res.status(400).json({
             error: 'Bad Request',
-            message: 'trust_mode_override must be supervised|graduated',
+            message: 'trust_mode_override must be supervised|graduated|autonomous',
         });
     }
 
