@@ -29,10 +29,8 @@ class ScraperStorage {
      */
     async initialize() {
         try {
-            const collections = await qdrantClient.getCollections();
-            const exists = collections.collections?.some(
-                c => c.name === this.collectionName
-            );
+            const names = await qdrantClient.listCollections();
+            const exists = names.includes(this.collectionName);
 
             if (!exists) {
                 logger.info('Creating Qdrant collection for scraped content', {
