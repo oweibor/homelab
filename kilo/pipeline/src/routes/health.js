@@ -12,6 +12,7 @@ const { Router } = require('express');
 const config = require('../config');
 const queue = require('../services/queue');
 const logger = require('../services/logger');
+const circuitBreaker = require('../services/ollama/circuitBreaker');
 
 const router = Router();
 
@@ -56,7 +57,7 @@ router.get('/health', async (_req, res) => {
         const health = {
             status: allOk ? 'ok' : 'degraded',
             trust_mode: config.TRUST_MODE,
-            circuit_state: 'closed', // Phase 4 will make this dynamic
+            circuit_state: circuitBreaker.getState().toLowerCase(),
             qdrant: qdrantOk,
             ollama: ollamaOk,
             uptime_seconds: uptimeSeconds,
