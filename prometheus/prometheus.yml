@@ -22,8 +22,10 @@ scrape_configs:
       - targets: ['node-exporter:9100']
 
   # Ollama LLM engine metrics
+  # NOTE: Ollama must be started with OLLAMA_EXPERIMENTAL_PROMETHEUS_METRICS=1
+  # to expose the /metrics endpoint. Otherwise this job will fail.
   - job_name: "ollama"
-    metrics_path: /api/tags
+    metrics_path: /metrics
     static_configs:
       - targets: ["ollama:11434"]
 
