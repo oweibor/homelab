@@ -10,6 +10,7 @@
 
 const logger = require('../logger');
 const qdrant = require('../qdrant');
+const embeddings = require('../embeddings');
 
 /**
  * Write task reasoning to Qdrant memory.
@@ -42,8 +43,11 @@ async function writeReasoning(task, outcome) {
         // The text to embed for semantic retrieval
         const reasoningText = `Task: ${task.instruction}\nOutcome: ${outcome}\nDepth: ${task.strategy_index || 0}`;
 
+        // Generate embedding vector for semantic retrieval
+        const vector = await embeddings.embed(reasoningText);
+
         // Auto-promote directly to Qdrant (W3 always auto-promotes)
-        await qdrant.upsert('project_reasoning', task.id, reasoningText, payload);
+        await qdrant.upsert('project_reasoning', [{ id: task.id, vector, payload }]);
 
         logger.debug('Writer 3 success', { task_id: task.id });
         return true;
