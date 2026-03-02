@@ -21,6 +21,7 @@ open-webui/
 openclaw/config/
 nextcloud/
 implementation_plan/
+plans/
 
 # Monitoring Data
 grafana/data/
