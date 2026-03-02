@@ -43,6 +43,19 @@ All notable changes to this project will be documented in this file.
 - **setup.sh**: Revert /var/kilo permissions to 750 with ACL fallback for Docker group; add token preservation for PLEX_TOKEN and JELLYFIN_API_KEY
 - **update.sh**: Fix health check grep pattern from 'healthy' to 'ok' to match actual response
 
+### 🚨 Round 3 Fixes (2026-03-02)
+
+#### Critical
+
+- **setup.sh**: Change /var/kilo permissions from 750 to 777 to allow container write access
+- **qdrant.js**: Add 6 missing method exports: getCollection(), createCollection(), createIndex(), scroll(), delete(), filter param on search()
+- **storage.js**: Fix upsert calls to pass plain arrays instead of {points: [...]} wrapper
+- **storage.js**: Fix search to use positional args (col, vector, limit, threshold, filter)
+
+#### Medium
+
+- **scraper/index.js**: Fix checkpoint path to use main config.CHECKPOINT_DIR instead of non-existent scraperConfig.config
+
 ## [1.4.0] - 2026-03-01
 
 ### 🚀 Hardware-Agnostic Architecture (Major Feature)
