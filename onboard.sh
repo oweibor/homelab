@@ -246,6 +246,8 @@ classify_hardware() {
         MID)
             if [ "$GPU_TYPE" = "none" ]; then
                 SPEED_CLASS="LOW_CPU"
+            elif [ "$GPU_TYPE" = "igpu" ] || [ "$GPU_TYPE" = "quicksync" ]; then
+                SPEED_CLASS="IGPU_OK"
             else
                 SPEED_CLASS="GPU_GOOD"
             fi
