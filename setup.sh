@@ -52,7 +52,7 @@ else
     
     # Fallback functions when hardware-detect.sh is missing
     get_hardware_profile() { echo "unknown"; }
-    has_quickysync() { echo "0"; }
+    has_quicksync() { echo "0"; }
     has_avx2() { echo "0"; }
     has_avx512() { echo "0"; }
     get_cstate_flags() { echo ""; }
@@ -728,7 +728,9 @@ FLAGS="$CSTATE_FLAGS"
 GRUB_MODIFIED=false
 
 # Only apply C-state fix if needed (N-series processors)
-if grep -q "intel_idle.max_cstate" "$GRUB_FILE"; then
+if [ -z "$FLAGS" ]; then
+    log_info "No C-state flags specified, skipping GRUB modification"
+elif grep -q "intel_idle.max_cstate" "$GRUB_FILE"; then
     log_info "GRUB already configured for C-state optimization"
 else
     # Backup GRUB config
