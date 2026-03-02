@@ -46,7 +46,7 @@ http:
         users:
           # Default: admin/admin (CHANGE THIS!)
           # Generate with: echo $(htpasswd -nb admin yourpassword) | sed -e s/\\$/\\$\\$/g
-          - "admin:$$apr1$$8EVjn/nj$$GiLUZqcbueTFeD23SuB6x0"
+          - "admin:$apr1$hE5Dkp7f$ReplaceThisHash"
     
   routers:
     dashboard:
