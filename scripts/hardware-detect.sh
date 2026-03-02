@@ -5,7 +5,7 @@
 # Supports: Intel N-series (N95/N97/N100/N200), Celeron, Core, AMD
 # =============================================================================
 
-set -euo pipefail
+# =============================================================================
 
 # =============================================================================
 # CPU DETECTION
@@ -32,7 +32,7 @@ detect_cpu_family() {
     cpu_model=$(detect_cpu_model)
     
     # Intel Atom/Alder Lake-N (N-series)
-    if echo "$cpu_model" | grep -qiE "(N[0-9]{2,3}|Alder Lake-N)"; then
+    if echo "$cpu_model" | grep -qiE "(\\bN[0-9]{2,3}\\b|Alder Lake-N)"; then
         echo "INTEL_N_SERIES"
     # Intel Celeron
     elif echo "$cpu_model" | grep -qiE "Celeron"; then
@@ -230,6 +230,30 @@ get_gpu_vram_gb() {
 # Returns: quicksync, vaapi, nvenc, amf, videotoolbox, none
 # Usage: get_encoder_type
 get_encoder_type() {
+    # NVIDIA NVENC - check FIRST (highest priority)
+    if command -v nvidia-smi &>/dev/null; then
+        if nvidia-smi &>/dev/null; then
+            echo "nvenc"
+            return
+        fi
+    fi
+    
+    # AMD AMF/VCE
+    if command -v rocm-smi &>/dev/null; then
+        if rocm-smi &>/dev/null 2>&1; then
+            echo "amf"
+            return
+        fi
+    fi
+    
+    # Apple Silicon
+    if command -v system_profiler &>/dev/null; then
+        if system_profiler SPHardwareDataType 2>/dev/null | grep -qi "Apple"; then
+            echo "videotoolbox"
+            return
+        fi
+    fi
+    
     # Intel QuickSync
     if lspci 2>/dev/null | grep -qi "vga.*intel"; then
         # Check for QuickSync support via VAAPI
@@ -256,30 +280,6 @@ get_encoder_type() {
         # Older or unknown Intel GPU - use generic vaapi
         echo "vaapi"
         return
-    fi
-    
-    # NVIDIA NVENC
-    if command -v nvidia-smi &>/dev/null; then
-        if nvidia-smi &>/dev/null; then
-            echo "nvenc"
-            return
-        fi
-    fi
-    
-    # AMD AMF/VCE
-    if command -v rocm-smi &>/dev/null; then
-        if rocm-smi &>/dev/null 2>&1; then
-            echo "amf"
-            return
-        fi
-    fi
-    
-    # Apple Silicon
-    if command -v system_profiler &>/dev/null; then
-        if system_profiler SPHardwareDataType 2>/dev/null | grep -qi "Apple"; then
-            echo "videotoolbox"
-            return
-        fi
     fi
     
     echo "none"
@@ -395,7 +395,7 @@ print_hardware_profile() {
     gpu_vram=$(get_gpu_vram_gb)
     encoder=$(get_encoder_type)
     
-    echo "CPU_MODEL=${cpu_model}"
+    printf 'CPU_MODEL=%q\n' "$cpu_model"
     echo "CPU_FAMILY=${cpu_family}"
     echo "HARDWARE_PROFILE=${profile}"
     echo "HAS_QUICKSYNC=${quicksync}"
@@ -404,7 +404,7 @@ print_hardware_profile() {
     echo "TDP_WATTS=${tdp}"
     echo "GPU_VRAM_GB=${gpu_vram}"
     echo "ENCODER_TYPE=${encoder}"
-    echo "CSTATE_FLAGS=$(get_cstate_flags)"
+    printf 'CSTATE_FLAGS=%q\n' "$(get_cstate_flags)"
 }
 
 # Print hardware summary for logging
