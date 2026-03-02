@@ -284,7 +284,7 @@ queue.on('task:start', async (task) => {
                 }
                 break;
 
-            case 'convergence':
+            case 'convergence': {
                 logger.info('Stage: convergence', { task_id });
                 // Stage 7: Convergence check
                 const taskRef = queue.get(task_id);
@@ -303,6 +303,7 @@ queue.on('task:start', async (task) => {
                 logger.info('Ladder advanced, pipeline continuing', { next_strategy: ladderResult.action });
                 queue.fail(task_id, `Convergence continuing with strategy ${ladderResult.action}`);
                 break;
+            }
 
             default:
                 queue.fail(task_id, `Unknown route: ${orchResult.route}`);
