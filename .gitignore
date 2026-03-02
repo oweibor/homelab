@@ -22,6 +22,7 @@ openclaw/config/
 nextcloud/
 implementation_plan/
 plans/
+audit/
 
 # Monitoring Data
 grafana/data/
