@@ -102,7 +102,7 @@ const config = Object.freeze({
     OPENCLAW_TOKEN,
 
     /** Docker socket proxy endpoint for sandbox spawning */
-    DOCKER_HOST: process.env.DOCKER_HOST || 'tcp://kilo-proxy:2376',
+    DOCKER_HOST: process.env.DOCKER_HOST || 'tcp://kilo-proxy:2375',
 
     /** Ollama inference endpoint */
     OLLAMA_HOST: process.env.OLLAMA_HOST || 'http://ollama:11434',
