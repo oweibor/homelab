@@ -13,7 +13,8 @@ const config = require('../../config');
 const circuitBreaker = require('./circuitBreaker');
 const scanner = require('./scanner');
 
-const OLLAMA_URL = `http://${config.OLLAMA_HOST || 'ollama:11434'}/api/generate`;
+const OLLAMA_BASE = config.OLLAMA_HOST || 'http://ollama:11434';
+const OLLAMA_URL = `${OLLAMA_BASE}/api/generate`;
 // Support OLLAMA_DEFAULT_MODEL env var (from onboarding wizard), fallback to legacy MODEL_CODING
 const DEFAULT_MODEL = process.env.OLLAMA_DEFAULT_MODEL || process.env.MODEL_CODING || 'qwen2.5-coder:3b';
 
