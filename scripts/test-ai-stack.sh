@@ -30,7 +30,7 @@ fi
 # 2. Check Required Models
 # Build model list from wizard output, fall back to legacy defaults
 REQUIRED_MODELS=(
-  "${MODEL_CODING:-qwen2.5-coder:3b}"
+  "${OLLAMA_DEFAULT_MODEL:-${MODEL_CODING:-qwen2.5-coder:3b}}"
   "${MODEL_GENERAL:-llama3.2:3b}"
   "${MODEL_QUICK:-llama3.2:1b}"
 )
@@ -39,7 +39,7 @@ REQUIRED_MODELS=(
 REQUIRED_MODELS=($(printf '%s\n' "${REQUIRED_MODELS[@]}" | awk '!seen[$0]++'))
 
 # Get the coding model for OpenClaw config check
-CODING_MODEL="${MODEL_CODING:-qwen2.5-coder:3b}"
+CODING_MODEL="${OLLAMA_DEFAULT_MODEL:-${MODEL_CODING:-qwen2.5-coder:3b}}"
 
 if [ "$HAS_JQ" = true ]; then
     INSTALLED_MODELS=$(curl -s http://localhost:11434/api/tags | jq -r '.models[].name')
