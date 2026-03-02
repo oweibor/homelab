@@ -30,8 +30,18 @@ All notable changes to this project will be documented in this file.
 ### 📝 Documentation
 
 - Add .markdownlint.json with linting rules for Markdown files
-- Add audit/AUDIT_REPORT.md documenting comprehensive code audit findings
 - Add plans/ to .gitignore
+
+#### Additional Fixes (Post-Audit)
+
+- **health.js**: Make circuit breaker state dynamic in /health endpoint (import circuitBreaker and return actual state)
+- **task.js**: Add 'autonomous' to trust_mode_override validator to match config.js
+- **crawl4ai/client.js**: Fix incorrect logger require path from '../logger' to '../../logger'
+- **index.js**: Add block scope braces for convergence case statement
+- **onboard.sh**: Add IGPU_OK speed class for MID tier systems with iGPU
+- **onboard-lib.sh**: Add IGPU_OK speed class for MID tier systems with iGPU
+- **setup.sh**: Revert /var/kilo permissions to 750 with ACL fallback for Docker group; add token preservation for PLEX_TOKEN and JELLYFIN_API_KEY
+- **update.sh**: Fix health check grep pattern from 'healthy' to 'ok' to match actual response
 
 ## [1.4.0] - 2026-03-01
 
