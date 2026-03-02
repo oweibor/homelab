@@ -14,6 +14,7 @@ const path = require('path');
 const logger = require('../logger');
 const ollama = require('../ollama/client');
 const qdrant = require('../qdrant');
+const embeddings = require('../embeddings');
 
 /**
  * Write to the project context and ensure it stays within limits.
@@ -69,11 +70,16 @@ async function writeContext(workspacePath, newFact, taskId) {
         // Write back to disk
         fs.writeFileSync(contextPath, updatedContext);
 
+        // Generate embedding vector
+        const vector = await embeddings.embed(updatedContext);
+
         // Auto-promote to Qdrant memory collection (full text replacement logic)
-        await qdrant.upsert('project_context', 'global_context', updatedContext, {
-            type: 'context',
-            updated_at: new Date().toISOString()
-        });
+        await qdrant.upsert('project_context', [{
+            id: 'global_context', vector, payload: {
+                type: 'context',
+                updated_at: new Date().toISOString()
+            }
+        }]);
 
         return true;
 
