@@ -15,6 +15,7 @@
 const { EventEmitter } = require('events');
 const { v4: uuidv4 } = require('uuid');
 const Crawl4AIClient = require('./crawl4ai/client');
+const config = require('../config');
 const scraperConfig = require('./config');
 const scraperStorage = require('./storage');
 const scraperMetrics = require('./metrics');
@@ -45,12 +46,10 @@ class ScraperService extends EventEmitter {
         this.profile = scraperConfig.getScrapeProfile();
         this.jobRetentionMs = 24 * 60 * 60 * 1000; // Keep jobs for 24 hours
 
-        // Initialize checkpoint store
-        const kiloDataDir = process.env.KILO_DATA_DIR;
-        const checkpointBasePath = scraperConfig.config?.CHECKPOINT_DIR
+        // Initialize checkpoint store - use main config which has correct CHECKPOINT_DIR
+        const checkpointBasePath = config.CHECKPOINT_DIR
             || process.env.CHECKPOINT_DIR
-            || (kiloDataDir ? kiloDataDir + '/checkpoints' : null)
-            || '/app/data/checkpoints';  // Fallback to container app data
+            || '/var/kilo/checkpoints';
 
         this.checkpointStore = new FileCheckpointStore({
             basePath: checkpointBasePath,

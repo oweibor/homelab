@@ -768,18 +768,15 @@ if [ ! -d /var/kilo ]; then
     mkdir -p /var/kilo/{checkpoints,assertion_cache,known_good,writer_retry,failure_ledger,qdrant-backups}
     mkdir -p /var/kilo/quarantine/{decisions,invariants,tasks}
     chown -R "$ACTUAL_USER:$ACTUAL_USER" /var/kilo
-    chmod 750 /var/kilo
-    # Grant Docker group read/execute if ACLs available
-    command -v setfacl >/dev/null 2>&1 && setfacl -R -m g:docker:rx /var/kilo 2>/dev/null || true
+    chmod -R 777 /var/kilo
     log_success "/var/kilo/ provisioned."
 else
     log_info "/var/kilo/ already exists — ensuring all subdirectories are present."
-    # Idempotent: add any missing subdirs and ensure permissions (owner+group only)
+    # Idempotent: add any missing subdirs and ensure permissions
     mkdir -p /var/kilo/{checkpoints,assertion_cache,known_good,writer_retry,failure_ledger,qdrant-backups}
     mkdir -p /var/kilo/quarantine/{decisions,invariants,tasks}
     chown -R "$ACTUAL_USER:$ACTUAL_USER" /var/kilo
-    chmod -R 750 /var/kilo/*
-    chmod -R 750 /var/kilo/quarantine/*
+    chmod -R 777 /var/kilo
 fi
 
 # Define all homelab subdirectories in an array for idempotent creation

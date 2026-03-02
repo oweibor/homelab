@@ -99,9 +99,7 @@ class ScraperStorage {
                 },
             };
 
-            await qdrantClient.upsert(this.collectionName, {
-                points: [point],
-            });
+            await qdrantClient.upsert(this.collectionName, [point]);
 
             // Record metrics
             scraperMetrics.recordStorageOperation('store', 'success');
@@ -144,7 +142,7 @@ class ScraperStorage {
                 },
             }));
 
-            await qdrantClient.upsert(this.collectionName, { points });
+            await qdrantClient.upsert(this.collectionName, points);
 
             logger.info('Stored pages in Qdrant', { count: pages.length, job_id: pages[0]?.job_id });
 
@@ -175,12 +173,13 @@ class ScraperStorage {
             // Build filter
             const filter = job_id ? { must: [{ key: 'job_id', match: { value: job_id } }] } : undefined;
 
-            const results = await qdrantClient.search(this.collectionName, {
+            const results = await qdrantClient.search(
+                this.collectionName,
                 vector,
                 limit,
-                score_threshold: minScore,
-                filter,
-            });
+                minScore,
+                filter
+            );
 
             scraperMetrics.recordStorageOperation('search', 'success');
 

@@ -62,16 +62,23 @@ async function withRetry(fn, retries = 3, baseDelayMs = 500) {
  * @param {Float32Array|number[]} vector - Query vector (384-dim)
  * @param {number} limit - Max results
  * @param {number} [scoreThreshold] - Minimum similarity score
+ * @param {object} [filter] - Qdrant filter conditions
  * @returns {Promise<Array<{id: string, score: number, payload: object}>>}
  */
-async function search(collection, vector, limit, scoreThreshold) {
+async function search(collection, vector, limit, scoreThreshold, filter) {
     return withRetry(async () => {
-        const result = await client.search(collection, {
+        const searchParams = {
             vector: Array.from(vector),
             limit,
-            score_threshold: scoreThreshold,
             with_payload: true,
-        });
+        };
+        if (scoreThreshold !== undefined) {
+            searchParams.score_threshold = scoreThreshold;
+        }
+        if (filter) {
+            searchParams.filter = filter;
+        }
+        const result = await client.search(collection, searchParams);
         return result;
     });
 }
@@ -122,4 +129,93 @@ async function listCollections() {
     return result.collections.map((c) => c.name);
 }
 
-module.exports = { initialize, search, upsert, isHealthy, listCollections };
+/**
+ * Get collection info.
+ * @param {string} collection - Collection name
+ * @returns {Promise<object>}
+ */
+async function getCollection(collection) {
+    return withRetry(async () => {
+        return await client.getCollection(collection);
+    });
+}
+
+/**
+ * Create a collection.
+ * @param {string} collection - Collection name
+ * @param {object} params - Collection parameters
+ * @returns {Promise<void>}
+ */
+async function createCollection(collection, params) {
+    return withRetry(async () => {
+        await client.createCollection(collection, {
+            vectors: params.vectors || { size: params.vectorSize || 384, distance: 'Cosine' },
+            ...params,
+        });
+        logger.debug('Qdrant collection created', { collection });
+    });
+}
+
+/**
+ * Create a payload index.
+ * @param {string} collection - Collection name
+ * @param {string} field - Field name
+ * @param {string} fieldType - Field type (keyword, integer, etc.)
+ * @returns {Promise<void>}
+ */
+async function createIndex(collection, field, fieldType) {
+    return withRetry(async () => {
+        await client.createPayloadIndex(collection, {
+            field_name: field,
+            field_type: fieldType,
+        });
+        logger.debug('Qdrant index created', { collection, field, fieldType });
+    });
+}
+
+/**
+ * Scroll through collection points.
+ * @param {string} collection - Collection name
+ * @param {object} options - Scroll options (filter, limit, with_payload)
+ * @returns {Promise<{points: Array, nextPage: ?number}>}
+ */
+async function scroll(collection, options = {}) {
+    return withRetry(async () => {
+        const result = await client.scroll(collection, {
+            with_payload: options.with_payload !== false,
+            limit: options.limit || 100,
+            filter: options.filter,
+        });
+        return result;
+    });
+}
+
+/**
+ * Delete points from a collection.
+ * @param {string} collection - Collection name
+ * @param {object} options - Delete options (filter)
+ * @returns {Promise<{deleted: number}>}
+ */
+async function deletePoints(collection, options = {}) {
+    return withRetry(async () => {
+        const result = await client.delete(collection, {
+            wait: true,
+            filter: options.filter,
+        });
+        logger.debug('Qdrant points deleted', { collection, deleted: result.deleted });
+        return { deleted: result.deleted || 0 };
+    });
+}
+
+module.exports = {
+    initialize,
+    search,
+    upsert,
+    isHealthy,
+    listCollections,
+    getCollection,
+    createCollection,
+    createIndex,
+    scroll,
+    delete: deletePoints,
+};
