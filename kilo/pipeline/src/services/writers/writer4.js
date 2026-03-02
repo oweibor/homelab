@@ -10,6 +10,7 @@
 
 const logger = require('../logger');
 const qdrant = require('../qdrant');
+const embeddings = require('../embeddings');
 
 /**
  * Write the task summary to Qdrant memory.
@@ -35,8 +36,10 @@ async function writeSummary(task, metadata = {}) {
 
         const summaryText = `Task Summary: ${task.instruction}\nFiles modified: ${(metadata.files_modified || []).join(', ')}`;
 
+        const vector = await embeddings.embed(summaryText);
+
         // Writer 4 always auto-promotes in all modes
-        await qdrant.upsert('project_history', task.id, summaryText, payload);
+        await qdrant.upsert('project_history', [{ id: task.id, vector, payload }]);
 
         logger.debug('Writer 4 success', { task_id: task.id });
         return true;
