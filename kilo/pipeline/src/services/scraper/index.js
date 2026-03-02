@@ -64,7 +64,7 @@ class ScraperService extends EventEmitter {
         this._startJobCleanup();
 
         logger.info('Scraper service initialized', {
-            profile: scraperConfig.config?.HARDWARE_PROFILE || 'unknown',
+            profile: config.HARDWARE_PROFILE || 'unknown',
             maxConcurrent: this.profile.max_concurrent,
         });
     }
