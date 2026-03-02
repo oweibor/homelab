@@ -33,7 +33,6 @@ if [ -d "/var/kilo/writer_retry" ] && [ "$(ls -A /var/kilo/writer_retry 2>/dev/n
     log_warn "Pending writer operations detected in /var/kilo/writer_retry."
     log_info "Manual drain required: review /var/kilo/writer_retry contents."
     log_info "  To list pending: ls -la /var/kilo/writer_retry/"
-    log_info "  To retry all:    curl -sf -X POST http://localhost:3100/task/retry-all"
 fi
 
 log_step "Pulling latest Docker images..."
