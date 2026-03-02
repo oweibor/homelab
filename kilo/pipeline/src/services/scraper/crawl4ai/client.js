@@ -7,7 +7,7 @@
  * @module services/scraper/crawl4ai/client
  */
 
-const logger = require('../logger');
+const logger = require('../../logger');
 const scraperConfig = require('../config');
 
 // Lazy-load cheerio to avoid issues if not installed
