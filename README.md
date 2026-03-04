@@ -19,26 +19,26 @@ A fully automated, hardware-optimized deployment system that combines **Local AI
 
 ## 📋 Table of Contents
 
-- [Why This Project?](#-why-this-project)
-- [Key Features](#-key-features)
-- [Hardware Requirements](#-hardware-requirements)
-- [Quick Start](#-quick-start)
-- [Architecture Overview](#-architecture-overview)
-- [Service Catalog](#-service-catalog)
-- [Installation Guide](#-installation-guide)
-- [Post-Installation Setup](#-post-installation-setup)
-- [AI Model Recommendations](#-ai-model-recommendations)
-- [Security \& Credentials](#-security--credentials)
-- [Maintenance \& Updates](#-maintenance--updates)
-- [Troubleshooting](#-troubleshooting)
-- [Advanced Configuration](#-advanced-configuration)
-- [Performance Optimization](#-performance-optimization)
-- [Contributing](#-contributing)
-- [License](#-license)
+- [Why This Project?](#why-this-project)
+- [Key Features](#key-features)
+- [Hardware Requirements](#hardware-requirements)
+- [Quick Start](#quick-start)
+- [Architecture Overview](#architecture-overview)
+- [Service Catalog](#service-catalog)
+- [Installation Guide](#installation-guide)
+- [Post-Installation Setup](#post-installation-setup)
+- [AI Model Recommendations](#ai-model-recommendations)
+- [Security \& Credentials](#security--credentials)
+- [Maintenance \& Updates](#maintenance--updates)
+- [Troubleshooting](#troubleshooting)
+- [Advanced Configuration](#advanced-configuration)
+- [Performance Optimization](#performance-optimization)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
-## 🎯 Why This Project?
+## 🎯 Why This Project
 
 ### The Problem
 
@@ -133,7 +133,7 @@ This project provides:
 ### Minimum Specifications
 
 | Component | Requirement |
-|-----------|-------------|
+| :--- | :--- |
 | **CPU** | Intel N-series (N95/N97/N100/N200), Celeron, or similar low-power x86 |
 | **RAM** | 8GB DDR4/DDR5 |
 | **Storage** | 128GB NVMe/SSD (256GB+ recommended) |
@@ -143,7 +143,7 @@ This project provides:
 ### Recommended Specifications
 
 | Component | Recommendation |
-|-----------|----------------|
+| :--- | :--- |
 | **RAM** | 16GB for optimal AI model performance |
 | **Storage** | 512GB NVMe for media + AI models |
 | **Bluetooth** | Built-in or USB dongle for Home Assistant |
@@ -154,7 +154,7 @@ This project provides:
 The system automatically detects and optimizes for:
 
 | CPU Family | Profile | TDP | Use Case |
-|------------|---------|-----|----------|
+| :--- | :--- | :--- | :--- |
 | Intel N-series (N95/N100/N200) | `n100_like` | 6W | Budget AI/Media |
 | Intel Celeron/Pentium | `celeron` | 15W | Light workloads |
 | Intel Core i3 | `core_i3` | 28W | Standard AI |
@@ -243,134 +243,77 @@ sudo ./setup.sh
 
 ## 🏗️ Architecture Overview
 
-### Network Architecture
+### Hardware-Aware Orchestration
+
+This stack intelligently adapts to your physical hardware. The process flow from initial boot to an optimized production environment:
+
+```mermaid
+graph TD
+    subgraph Detection["1. Smart Detection (onboard.sh)"]
+        H1{CPU Check}
+        H2{RAM Check}
+        H3{GPU/QSV Check}
+        H1 -->|TDP/Family| P[Profile Generation]
+        H2 -->|Capacity| T[Tier Selection]
+        H3 -->|Driver/Acc| G[Encoder Setup]
+    end
+
+    subgraph Logic["2. Optimization Engine"]
+        P --> Opt[apply-cstates.sh]
+        T --> MT[Model Tiering]
+        G --> Trans[HW Transcoding]
+    end
+
+    subgraph Deployment["3. Optimized Stack"]
+        Opt --> Perf[Performance Governor]
+        MT --> O[Ollama Threads/Layers]
+        Trans --> MS[Plex/Jellyfin]
+    end
+
+    Detection --> Logic
+    Logic --> Deployment
+```
+
+### Hybrid Engine Architecture
+
+Choose between raw performance with **Docker Compose** or enterprise scaling with **K3s Kubernetes**. Both paths share the same hardware-optimized core.
 
 ```mermaid
 graph TB
-    subgraph Internet[External Network]
+    subgraph UI[Access Layer]
         User[Client Browser/App]
+        VPN[NetBird Mesh VPN]
     end
 
-    subgraph HostNet[Host Network - Low-Power x86]
-        direction TB
-        HA[Home Assistant<br/>Port 8123<br/>Bluetooth/USB]
-        Plex[Plex Media Server<br/>Port 32400<br/>QuickSync HW Accel]
-        DockerSock[("/var/run/docker.sock")]
-        MediaData[("/media/media")]
+    subgraph Core[Hybrid Orchestrator]
+        direction LR
+        Docker[Docker Compose<br/>Native Performance]
+        K3s[K3s Kubernetes<br/>Cluster Scaling]
     end
 
-    subgraph DockerBridge[Docker Bridge Network: homelab]
-        Traefik[Traefik v3.0<br/>Reverse Proxy<br/>Ports 80/443]
-        
-        subgraph AIStack[AI Services]
-            Ollama[Ollama<br/>LLM Engine<br/>Port 11434]
-            WebUI[Open WebUI<br/>Chat Interface]
-            Antigravity[Antigravity<br/>Agent IDE<br/>VNC 6080]
-            OpenClaw[OpenClaw<br/>AI Agent<br/>Port 18789]
-            Kilo[Kilo Pipeline<br/>Autonomous Loop]
-            Crawl4AI[Crawl4AI<br/>Web Scraper<br/>Port 8000]
-            Qdrant[Qdrant<br/>Vector DB<br/>Port 6333]
-            OnlyOffice[ONLYOFFICE Docs<br/>Editor Engine]
-            Nextcloud[Nextcloud<br/>File Hub / AI Asst]
-            Obsidian[Obsidian<br/>Web Editor]
-            AnythingLLM[AnythingLLM<br/>RAG Engine]
-        end
-        
-        subgraph MediaStack[Media & Entertainment]
-            Plex[Plex Media Server<br/>Port 32400]
-            Jellyfin[Jellyfin Media Server<br/>Port 8096]
-            Samba[Samba<br/>File Sharing]
-        end
-        
-        subgraph Observability[Monitoring]
-            Prometheus[Prometheus<br/>Port 9090]
-            Grafana[Grafana<br/>Port 3001]
-            NodeExp[Node Exporter<br/>Host Metrics]
-            Cadvisor[cAdvisor<br/>Container Metrics]
-        end
+    subgraph Services[High-Performance Services]
+        AI[Kilo AI Pipeline]
+        Media[4K Media Stack]
+        Home[Home Assistant]
     end
 
-    subgraph DockerSecurity[Security Layer - Zero Trust]
-        ProxyRO[Docker Proxy<br/>Read-Only<br/>CONTAINERS=1]
-        ProxyRW[Docker Proxy<br/>Write-Access<br/>POST=1]
-        KiloProxy[Kilo Proxy<br/>Sandbox<br/>kilo-net Only]
+    subgraph HW[Hardware Pass-Through]
+        QS[Intel QuickSync]
+        NV[NVIDIA GPU]
+        BT[Bluetooth/USB]
     end
 
-    subgraph VPN[Self-Hosted VPN]
-        NetBird[NetBird<br/>Port 33071]
-        Coturn[Coturn<br/>STUN/TURN]
-    end
-
-    User -->|HTTPS| Traefik
-    Traefik -->|Route| WebUI
-    Traefik -->|Route| HA
-    Traefik -->|Route| Plex
-    Traefik -->|Route| n8n
-    Traefik -->|Route| Antigravity
-    Traefik -->|Route| OpenClaw
-    Traefik -->|Route| Kilo
-    Traefik -->|Route| Crawl4AI
-    Traefik -->|Route| Nextcloud
-    Traefik -->|Route| Grafana
-
-    WebUI --> Ollama
-    Antigravity --> Ollama
-    OpenClaw --> Ollama
-    OpenClaw --> Kilo
-    OpenClaw --> Crawl4AI
-    Kilo --> Qdrant
-    Kilo --> Ollama
-    Kilo -->|Sandbox| KiloProxy
-    Crawl4AI --> Qdrant
-    Nextcloud -->|API| Ollama
-    Nextcloud -->|Nextcloud Sync| Obsidian
-    Obsidian -->|Edit| Nextcloud
-    Nextcloud --> OnlyOffice
-    AnythingLLM --> Ollama
-    AnythingLLM --> Qdrant
-    
-    %% System Integrations
-    OpenClaw -->|TCP| ProxyRO
-    Traefik -->|TCP| ProxyRO
-    ProxyRO -->|Socket| DockerSock
-    
-    %% Watchtower Zero-Trust
-    Watchtower[Watchtower] --> ProxyRW
-    ProxyRW -->|Socket| DockerSock
-    
-    %% Remote Access
-    NetBird -.->|API/Dash| Traefik
-    Traefik -->|gRPC| Signal[Signal]
-    NetBird -- Peer --> Signal
-    NetBird -- NAT --> Coturn
-    
-    %% Observability
-    Prometheus --> cAdvisor
-    Prometheus --> NodeExp
-    Prometheus --> Traefik
-    Grafana --> Prometheus
-    
-    Plex ---|Mount| MediaData
-    Samba ---|Share| MediaData
-    Jellyfin ---|Mount| MediaData
-
-    style Traefik fill:#3ff4ad
-    style Ollama fill:#e5a8ff
-    style HA fill:#03A9F4
-    style Plex fill:#E5A00D
-    style Qdrant fill:#6C5CE7
-    style Kilo fill:#FD79A8
-    style OpenClaw fill:#FDCB6E
-    style Prometheus fill:#E74C3C
-    style Grafana fill:#F39C12
-    style MediaData fill:#546E7A,color:#fff
-    style DockerSock fill:#F4511E,color:#fff
+    User --> VPN
+    VPN --> Core
+    Docker -->|Low Overhead| Services
+    K3s -->|Declarative Ops| Services
+    Services --> HW
 ```
 
-### Why Mixed Networking?
+### Why Mixed Networking
 
 | Mode | Services | Reason |
-|------|----------|--------|
+| :--- | :--- | :--- |
 | **Host Network** | Home Assistant, Plex, Coturn | Direct hardware access (Bluetooth, QuickSync), better performance |
 | **Bridge Network** | AI Stack, Automation | Container isolation, reverse proxy compatibility |
 
@@ -381,7 +324,7 @@ graph TB
 ### Core Infrastructure
 
 | Service | Purpose | Default Port | Secure URL |
-|---------|---------|--------------|------------|
+| :--- | :--- | :--- | :--- |
 | **🛡️ Traefik v3.0** | Reverse proxy & SSL | 80, 443 | <https://traefik.homelab.local> |
 | **📡 Prometheus** | Metrics engine | 9090 | <https://prometheus.homelab.local> |
 | **📈 Grafana** | Metrics dashboards | 3001 | <https://grafana.homelab.local> |
@@ -392,7 +335,7 @@ graph TB
 ### AI Services
 
 | Service | Purpose | Default Port | Secure URL |
-|---------|---------|--------------|------------|
+| :--- | :--- | :--- | :--- |
 | **🧠 Ollama** | Local LLM inference engine | 11434 | API only |
 | **💬 Open WebUI** | ChatGPT-like interface | 3000 | <https://chat.homelab.local> |
 | **🤖 OpenClaw** | Autonomous AI agent | 18789 | <https://openclaw.homelab.local> |
@@ -404,7 +347,7 @@ graph TB
 ### Media Services
 
 | Service | Purpose | Default Port | Secure URL |
-|---------|---------|--------------|------------|
+| :--- | :--- | :--- | :--- |
 | **🎬 Plex** | Media server (4K transcoding) | 32400 | <https://plex.homelab.local> |
 | **🍿 Jellyfin** | Open-source media server | 8096 | <https://jellyfin.homelab.local> |
 | **📁 Samba** | Network file sharing | 139, 445 | smb://\<IP\>/Media |
@@ -412,7 +355,7 @@ graph TB
 ### Productivity Services
 
 | Service | Purpose | Default Port | Secure URL |
-|---------|---------|--------------|------------|
+| :--- | :--- | :--- | :--- |
 | **☁️ Nextcloud** | File hub & Productivity Suite | 8080 | <https://nextcloud.homelab.local> |
 | **📄 ONLYOFFICE** | Document editor engine | 9980 | <https://office.homelab.local> |
 | **📓 Obsidian** | Web-based note editor | 3000 | <https://obsidian.homelab.local> |
@@ -422,13 +365,13 @@ graph TB
 ### Home Automation
 
 | Service | Purpose | Default Port | Secure URL |
-|---------|---------|--------------|------------|
+| :--- | :--- | :--- | :--- |
 | **🏡 Home Assistant** | Smart home platform | 8123 | <https://ha.homelab.local> |
 
 ### Security Services
 
 | Service | Purpose | Default Port | Secure URL |
-|---------|---------|--------------|------------|
+| :--- | :--- | :--- | :--- |
 | **🔒 Docker Proxy** | Read-Only API gateway | 2375 (Internal) | Internal Only |
 | **🔒 Docker Proxy (Watchtower)** | Write-Access proxy | Internal | Internal Only |
 | **🔒 Kilo Proxy** | Sandbox Docker proxy | 2376 (Internal) | Internal Only |
@@ -444,66 +387,36 @@ The Kilo Pipeline is a sophisticated 9-stage autonomous coding pipeline that ena
 
 ### Architecture
 
+### The Kilo CI/CD Loop
+
+The Kilo Pipeline isn't just a script—it's a rigorous engineering lifecycle. It transitions from creative architecture to battle-tested code via an automated, gate-protected loop.
+
 ```mermaid
 graph LR
-    subgraph Input["Task Input"]
-        OC[OpenClaw]
-        Queue[Queue]
+    subgraph Cycle[Circular Engineering Loop]
+        A((Architect)) --> O((Orchestrator))
+        O --> C((Code))
+        C --> D((Debug))
+        D --> R((Review))
+        R -->|Pass| A
+        R -->|Fail| D
     end
-    
-    subgraph Pipeline["9-Stage Pipeline"]
-        A[Architect]
-        O[Orchestrator]
-        C[Code]
-        D[Debug]
-        R[Review]
-        A2[Ask]
+
+    subgraph Gates[11 Semantic Gates]
+        C -.-> G1[Static/Linter]
+        D -.-> G2[Deterministic Hit]
+        R -.-> G3[Semantic/ADR]
     end
-    
-    subgraph Gates["Semantic Gates (11 Gates)"]
-        SG[Static Gates]
-        ID[Invariant Deterministic]
-        IS[Invariant Semantic]
-        ADR[ADR Check]
-        CC[Context Check]
+
+    subgraph Env[Secure Execution]
+        O -->|Sandbox| KPr[Kilo Proxy]
+        KPr --> SB[Isolated Container]
+        SB -->|Tests| D
     end
-    
-    subgraph Memory["5-Store Memory"]
-        Q[Queue]
-        H[History]
-        Reas[Reasoning]
-        Rej[Rejected]
-        Staging[Staging]
-    end
-    
-    subgraph Execution["Sandbox Execution"]
-        KPr[Kilo Proxy]
-        Sandbox[Docker Sandbox]
-    end
-    
-    OC -->|Task| Queue
-    Queue --> A
-    A --> O
-    O --> C
-    C --> D
-    D --> R
-    R -->|Pass| A2
-    A2 -->|Feedback| O
-    
-    C -.-> SG
-    D -.-> ID
-    R -.-> IS
-    O -.-> ADR
-    O -.-> CC
-    
-    A -.-> Q
-    O -.-> H
-    O -.-> Reas
-    A2 -.-> Rej
-    R -.-> Staging
-    
-    O --> KPr
-    KPr --> Sandbox
+
+    style Cycle fill:#f9f9f9,stroke:#333
+    style Gates fill:#e1f5fe,stroke:#01579b
+    style Env fill:#fff9c4,stroke:#fbc02d
 ```
 
 ### Features
@@ -522,7 +435,7 @@ graph LR
 ### Trust Modes
 
 | Mode | Security Posture | Description |
-|------|-----------------|-------------|
+| :--- | :--- | :--- |
 | `supervised` | **High (Default)** | Every semantic change and all "Tier 1" gate failures block for manual approval. |
 | `graduated` | **Medium** | Deterministic hits and low-risk refactors promote automatically. High-risk tasks route to quarantine. |
 | `autonomous` | **Experimental** | Full loop promotion for verified hits. Recommended only for isolated, test-heavy sub-modules. |
@@ -566,7 +479,7 @@ Three pre-built Grafana dashboards provide comprehensive observability:
 The homelab implements a comprehensive zero-trust Docker API architecture:
 
 | Proxy | Purpose | Networks | Capabilities |
-|-------|---------|----------|--------------|
+| :--- | :--- | :--- | :--- |
 | `docker-proxy` | Traefik service discovery | homelab, proxy | CONTAINERS=1, SERVICES=1, NETWORKS=1, POST=0 |
 | `docker-proxy-watchtower` | Container updates | watchtower-net | CONTAINERS=1, IMAGES=1, POST=1, LOGS=1 |
 | `kilo-proxy` | Sandbox execution | kilo-net | CONTAINERS=1, IMAGES=1, POST=1, EXEC=1 |
@@ -574,7 +487,7 @@ The homelab implements a comprehensive zero-trust Docker API architecture:
 ### Network Isolation
 
 | Network | Type | Services |
-|---------|------|----------|
+| :--- | :--- | :--- |
 | `homelab` | Bridge | Main services |
 | `proxy` | Internal | Traefik ↔ Docker Proxy |
 | `watchtower-net` | Internal | Watchtower ↔ Docker Proxy |
@@ -893,7 +806,7 @@ After the initial setup, you must configure the enhanced productivity apps and l
 ### For Intel N-series (8-16GB RAM)
 
 | Model | Size | Best For | Speed | Quality |
-|-------|------|----------|-------|---------|
+| :--- | :--- | :--- | :--- | :--- |
 | **llama3.2:1b** | ~1.3GB | Quick responses, simple tasks | ⚡⚡⚡⚡⚡ | ⭐⭐⭐ |
 | **llama3.2:3b** ⭐ | ~2GB | General chat, daily assistant | ⚡⚡⚡⚡ | ⭐⭐⭐⭐ |
 | **qwen2.5-coder:3b** 🔧 | ~2.1GB | Code generation, agents | ⚡⚡⚡⚡ | ⭐⭐⭐⭐⭐ |
