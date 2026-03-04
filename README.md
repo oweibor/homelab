@@ -249,7 +249,8 @@ optimized production environment:
 
 ```mermaid
 graph TD
-    subgraph Detection ["1. Smart Detection (onboard.sh)"]
+    subgraph Smart Detection
+        D1["1. Smart Detection<br/>(onboard.sh)"]
         H1["CPU Check"]
         H2["RAM Check"]
         H3["GPU/QSV Check"]
@@ -258,20 +259,21 @@ graph TD
         H3 -->|Driver/Acc| G[Encoder Setup]
     end
 
-    subgraph Logic ["2. Optimization Engine"]
+    subgraph Logic - Optimization Engine
+        D2["2. Optimization<br/>Engine"]
         P --> Opt[apply-cstates.sh]
         T --> MT[Model Tiering]
         G --> Trans[HW Transcoding]
     end
 
-    subgraph Deployment ["3. Optimized Stack"]
+    subgraph Deployment - Optimized Stack
+        D3["3. Optimized<br/>Stack"]
         Opt --> Perf["Performance Governor"]
         MT --> O["Ollama Threads/Layers"]
         Trans --> MS["Plex/Jellyfin"]
     end
 
-    Detection --> Logic
-    Logic --> Deployment
+    D1 --> D2 --> D3
 ```
 
 ### Hybrid Engine Architecture
@@ -285,20 +287,19 @@ graph TB
         User["Client Browser/App"]
         VPN["NetBird Mesh VPN"]
     end
-
-    subgraph Core ["Hybrid Orchestrator"]
-        direction LR
-        Docker["Docker Compose<br/>Native Performance"]
-        K3s["K3s Kubernetes<br/>Cluster Scaling"]
+  
+    subgraph Core - Hybrid Orchestrator
+        Docker["Docker Compose"]
+        K3s["K3s Kubernetes"]
     end
-
-    subgraph Services ["High-Performance Services"]
+  
+    subgraph Services
         AI["Kilo AI Pipeline"]
         Media["4K Media Stack"]
         Home["Home Assistant"]
     end
-
-    subgraph HW ["Hardware Pass-Through"]
+  
+    subgraph HW
         QS["Intel QuickSync"]
         NV["NVIDIA GPU"]
         BT["Bluetooth/USB"]
@@ -306,9 +307,11 @@ graph TB
 
     User --> VPN
     VPN --> Docker
-    Docker -->|Low Overhead| Services
-    K3s -->|Declarative Ops| Services
-    Services --> HW
+    Docker -->|Low Overhead| AI
+    K3s -->|Declarative| AI
+    AI --> QS
+    AI --> NV
+
 ```
 
 ### Full-Stack Network & Application Map
@@ -325,7 +328,6 @@ graph TB
     end
 
     subgraph HostNet ["Host Network (Direct HW Access)"]
-        direction TB
         subgraph MediaGroup ["Media & Entertainment"]
             Plex["Plex MS<br/>Port 32400"]
             Jelly["Jellyfin<br/>Port 8096"]
@@ -383,7 +385,7 @@ graph TB
     Traefik --> Ollama
     Traefik --> NC
     Traefik --> Prom
-  
+
     %% Data Flow
     WebUI --> Ollama
     Claw --> Kilo
@@ -391,22 +393,19 @@ graph TB
     Kilo --> Qdrant
     NC --> Ollama
     NC --> Docs
-  
+
     %% Security & System
     Traefik --> D_Proxy
     Claw --> D_Proxy
     D_Proxy --> D_Sock
     Kilo --> K_Proxy
     K_Proxy --> D_Sock
-  
-    %% HW Pass-through
-    MediaGroup --> QS_HW
-    MediaGroup --> GPU_HW
-    SmartHome --> BT_HW
 
-    style Traefik fill:#00d2ff,stroke:#333,stroke-width:2px
-    style NB fill:#ffaa00,stroke:#333
-    style D_Sock fill:#ff4444,color:#fff
+    %% HW Pass-through
+    Plex --> QS_HW
+    Plex --> GPU_HW
+    Jelly --> QS_HW
+    Jelly --> GPU_HW
 ```
 
 ### Why Mixed Networking
@@ -422,61 +421,61 @@ graph TB
 
 ### Core Infrastructure
 
-| Service                     | Purpose             | Default Port | Secure URL                                                        |
-| :-------------------------- | :------------------ | :----------- | :---------------------------------------------------------------- |
-| **🛡️ Traefik v3.0** | Reverse proxy & SSL | 80, 443      | [https://traefik.homelab.local](https://traefik.homelab.local)       |
-| **📡 Prometheus**     | Metrics engine      | 9090         | [https://prometheus.homelab.local](https://prometheus.homelab.local) |
-| **📈 Grafana**        | Metrics dashboards  | 3001         | [https://grafana.homelab.local](https://grafana.homelab.local)       |
-| **🔬 cAdvisor**       | Container metrics   | Internal     | Internal Only                                                     |
-| **💻 Node Exporter**  | Host system metrics | 9100 (Host)  | Internal Only                                                     |
-| **🏠 Homepage**       | Service Dashboard   | 3002         | [https://home.homelab.local](https://home.homelab.local)             |
+| Service                 | Purpose             | Default Port | Secure URL                                                        |
+| :---------------------- | :------------------ | :----------- | :---------------------------------------------------------------- |
+| **Traefik v3.0**  | Reverse proxy & SSL | 80, 443      | [https://traefik.homelab.local](https://traefik.homelab.local)       |
+| **Prometheus**    | Metrics engine      | 9090         | [https://prometheus.homelab.local](https://prometheus.homelab.local) |
+| **Grafana**       | Metrics dashboards  | 3001         | [https://grafana.homelab.local](https://grafana.homelab.local)       |
+| **cAdvisor**      | Container metrics   | Internal     | Internal Only                                                     |
+| **Node Exporter** | Host system metrics | 9100 (Host)  | Internal Only                                                     |
+| **Homepage**      | Service Dashboard   | 3002         | [https://home.homelab.local](https://home.homelab.local)             |
 
 ### AI Services
 
-| Service                    | Purpose                    | Default Port | Secure URL                                                          |
-| :------------------------- | :------------------------- | :----------- | :------------------------------------------------------------------ |
-| **🧠 Ollama**        | Local LLM inference engine | 11434        | API only                                                            |
-| **💬 Open WebUI**    | ChatGPT-like interface     | 3000         | [https://chat.homelab.local](https://chat.homelab.local)               |
-| **🤖 OpenClaw**      | Autonomous AI agent        | 18789        | [https://openclaw.homelab.local](https://openclaw.homelab.local)       |
-| **🦾 Antigravity**   | AI-powered code editor     | 6080, 5900   | [https://antigravity.homelab.local](https://antigravity.homelab.local) |
-| **🦾 Kilo Pipeline** | Autonomous coding engine   | 3100         | [https://kilo.homelab.local](https://kilo.homelab.local)               |
-| **🕷️ Crawl4AI**    | Web scraping service       | 8000         | [https://crawl4ai.homelab.local](https://crawl4ai.homelab.local)       |
-| **🗄️ Qdrant**      | Vector database            | 6333         | Internal Only                                                       |
+| Service                 | Purpose                    | Default Port | Secure URL                                                          |
+| :---------------------- | :------------------------- | :----------- | :------------------------------------------------------------------ |
+| **Ollama**        | Local LLM inference engine | 11434        | API only                                                            |
+| **Open WebUI**    | ChatGPT-like interface     | 3000         | [https://chat.homelab.local](https://chat.homelab.local)               |
+| **OpenClaw**      | Autonomous AI agent        | 18789        | [https://openclaw.homelab.local](https://openclaw.homelab.local)       |
+| **Antigravity**   | AI-powered code editor     | 6080, 5900   | [https://antigravity.homelab.local](https://antigravity.homelab.local) |
+| **Kilo Pipeline** | Autonomous coding engine   | 3100         | [https://kilo.homelab.local](https://kilo.homelab.local)               |
+| **Crawl4AI**      | Web scraping service       | 8000         | [https://crawl4ai.homelab.local](https://crawl4ai.homelab.local)       |
+| **Qdrant**        | Vector database            | 6333         | Internal Only                                                       |
 
 ### Media Services
 
-| Service               | Purpose                       | Default Port | Secure URL                                                    |
-| :-------------------- | :---------------------------- | :----------- | :------------------------------------------------------------ |
-| **🎬 Plex**     | Media server (4K transcoding) | 32400        | [https://plex.homelab.local](https://plex.homelab.local)         |
-| **🍿 Jellyfin** | Open-source media server      | 8096         | [https://jellyfin.homelab.local](https://jellyfin.homelab.local) |
-| **📁 Samba**    | Network file sharing          | 139, 445     | smb://\<IP\>/Media                                            |
+| Service            | Purpose                       | Default Port | Secure URL                                                    |
+| :----------------- | :---------------------------- | :----------- | :------------------------------------------------------------ |
+| **Plex**     | Media server (4K transcoding) | 32400        | [https://plex.homelab.local](https://plex.homelab.local)         |
+| **Jellyfin** | Open-source media server      | 8096         | [https://jellyfin.homelab.local](https://jellyfin.homelab.local) |
+| **Samba**    | Network file sharing          | 139, 445     | smb://\<IP\>/Media                                            |
 
 ### Productivity Services
 
-| Service                  | Purpose                       | Default Port | Secure URL                                                      |
-| :----------------------- | :---------------------------- | :----------- | :-------------------------------------------------------------- |
-| **☁️ Nextcloud** | File hub & Productivity Suite | 8080         | [https://nextcloud.homelab.local](https://nextcloud.homelab.local) |
-| **📄 ONLYOFFICE**  | Document editor engine        | 9980         | [https://office.homelab.local](https://office.homelab.local)       |
-| **📓 Obsidian**    | Web-based note editor         | 3000         | [https://obsidian.homelab.local](https://obsidian.homelab.local)   |
-| **🧠 AnythingLLM** | RAG Knowledge Engine          | 3000         | [https://rag.homelab.local](https://rag.homelab.local)             |
-| **🔄 n8n**         | Workflow automation           | 5678         | [https://n8n.homelab.local](https://n8n.homelab.local)             |
+| Service               | Purpose                       | Default Port | Secure URL                                                      |
+| :-------------------- | :---------------------------- | :----------- | :-------------------------------------------------------------- |
+| **Nextcloud**   | File hub & Productivity Suite | 8080         | [https://nextcloud.homelab.local](https://nextcloud.homelab.local) |
+| **ONLYOFFICE**  | Document editor engine        | 9980         | [https://office.homelab.local](https://office.homelab.local)       |
+| **Obsidian**    | Web-based note editor         | 3000         | [https://obsidian.homelab.local](https://obsidian.homelab.local)   |
+| **AnythingLLM** | RAG Knowledge Engine          | 3000         | [https://rag.homelab.local](https://rag.homelab.local)             |
+| **n8n**         | Workflow automation           | 5678         | [https://n8n.homelab.local](https://n8n.homelab.local)             |
 
 ### Home Automation
 
-| Service                     | Purpose             | Default Port | Secure URL                                        |
-| :-------------------------- | :------------------ | :----------- | :------------------------------------------------ |
-| **🏡 Home Assistant** | Smart home platform | 8123         | [https://ha.homelab.local](https://ha.homelab.local) |
+| Service                  | Purpose             | Default Port | Secure URL                                        |
+| :----------------------- | :------------------ | :----------- | :------------------------------------------------ |
+| **Home Assistant** | Smart home platform | 8123         | [https://ha.homelab.local](https://ha.homelab.local) |
 
 ### Security Services
 
-| Service                                | Purpose                | Default Port    | Secure URL                                                              |
-| :------------------------------------- | :--------------------- | :-------------- | :---------------------------------------------------------------------- |
-| **🔒 Docker Proxy**              | Read-Only API gateway  | 2375 (Internal) | Internal Only                                                           |
-| **🔒 Docker Proxy (Watchtower)** | Write-Access proxy     | Internal        | Internal Only                                                           |
-| **🔒 Kilo Proxy**                | Sandbox Docker proxy   | 2376 (Internal) | Internal Only                                                           |
-| **🦅 NetBird**                   | Self-hosted VPN Stack  | 33071, 33073    | [https://netbird.homelab.local:33071](https://netbird.homelab.local:33071) |
-| **📡 Signal**                    | Peer Discovery         | Traefik-Proxied | Internal Only                                                           |
-| **🔄 Watchtower**                | Auto-update containers | Proxy-Gated     | Background service                                                      |
+| Service                             | Purpose                | Default Port    | Secure URL                                                              |
+| :---------------------------------- | :--------------------- | :-------------- | :---------------------------------------------------------------------- |
+| **Docker Proxy**              | Read-Only API gateway  | 2375 (Internal) | Internal Only                                                           |
+| **Docker Proxy (Watchtower)** | Write-Access proxy     | Internal        | Internal Only                                                           |
+| **Kilo Proxy**                | Sandbox Docker proxy   | 2376 (Internal) | Internal Only                                                           |
+| **NetBird**                   | Self-hosted VPN Stack  | 33071, 33073    | [https://netbird.homelab.local:33071](https://netbird.homelab.local:33071) |
+| **Signal**                    | Peer Discovery         | Traefik-Proxied | Internal Only                                                           |
+| **Watchtower**                | Auto-update containers | Proxy-Gated     | Background service                                                      |
 
 ---
 
@@ -585,12 +584,12 @@ The homelab implements a comprehensive zero-trust Docker API architecture:
 
 ### Network Isolation
 
-| Network | Type | Services |
-| :--- | :--- | :--- |
-| `homelab` | Bridge | Main services |
-| `proxy` | Internal | Traefik ↔ Docker Proxy |
-| `watchtower-net` | Internal | Watchtower ↔ Docker Proxy |
-| `kilo-net` | Internal | Kilo Pipeline ↔ Kilo Proxy |
+| Network            | Type     | Services                    |
+| :----------------- | :------- | :-------------------------- |
+| `homelab`        | Bridge   | Main services               |
+| `proxy`          | Internal | Traefik ↔ Docker Proxy     |
+| `watchtower-net` | Internal | Watchtower ↔ Docker Proxy  |
+| `kilo-net`       | Internal | Kilo Pipeline ↔ Kilo Proxy |
 
 ### SSL/TLS
 
