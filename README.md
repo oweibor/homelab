@@ -31,8 +31,7 @@ A fully automated, hardware-optimized deployment system that combines **Local AI
 - [Security \& Credentials](#security--credentials)
 - [Maintenance \& Updates](#maintenance--updates)
 - [Troubleshooting](#troubleshooting)
-- [Advanced Configuration](#advanced-configuration)
-- [Performance Optimization](#performance-optimization)
+- [Project Structure](#project-structure)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -132,39 +131,39 @@ This project provides:
 
 ### Minimum Specifications
 
-| Component | Requirement |
-| :--- | :--- |
-| **CPU** | Intel N-series (N95/N97/N100/N200), Celeron, or similar low-power x86 |
-| **RAM** | 8GB DDR4/DDR5 |
-| **Storage** | 128GB NVMe/SSD (256GB+ recommended) |
-| **Network** | Gigabit Ethernet |
-| **OS** | Ubuntu Server 24.04 LTS |
+| Component         | Requirement                                                           |
+| :---------------- | :-------------------------------------------------------------------- |
+| **CPU**     | Intel N-series (N95/N97/N100/N200), Celeron, or similar low-power x86 |
+| **RAM**     | 8GB DDR4/DDR5                                                         |
+| **Storage** | 128GB NVMe/SSD (256GB+ recommended)                                   |
+| **Network** | Gigabit Ethernet                                                      |
+| **OS**      | Ubuntu Server 24.04 LTS                                               |
 
 ### Recommended Specifications
 
-| Component | Recommendation |
-| :--- | :--- |
-| **RAM** | 16GB for optimal AI model performance |
-| **Storage** | 512GB NVMe for media + AI models |
+| Component           | Recommendation                            |
+| :------------------ | :---------------------------------------- |
+| **RAM**       | 16GB for optimal AI model performance     |
+| **Storage**   | 512GB NVMe for media + AI models          |
 | **Bluetooth** | Built-in or USB dongle for Home Assistant |
-| **Cooling** | Passive heatsink or low-noise fan |
+| **Cooling**   | Passive heatsink or low-noise fan         |
 
 ### Hardware-Agnostic Support
 
 The system automatically detects and optimizes for:
 
-| CPU Family | Profile | TDP | Use Case |
-| :--- | :--- | :--- | :--- |
-| Intel N-series (N95/N100/N200) | `n100_like` | 6W | Budget AI/Media |
-| Intel Celeron/Pentium | `celeron` | 15W | Light workloads |
-| Intel Core i3 | `core_i3` | 28W | Standard AI |
-| Intel Core i5 | `core_i5` | 35W | Heavy AI |
-| Intel Core i7+ | `core_i7` | 65W | Maximum performance |
-| AMD Athlon | `amd_low` | 15W | Budget workloads |
-| AMD Ryzen 3/5 | `amd_mid` | 35W | Mid-range AI |
-| AMD Ryzen 7/9 | `amd_high` | 65W | High-performance AI |
-| ARM64 (RPi 5) | `arm64_rpi5` | 5W | ARM development |
-| Apple Silicon | `apple_silicon` | N/A | Unified memory |
+| CPU Family                     | Profile           | TDP | Use Case            |
+| :----------------------------- | :---------------- | :-- | :------------------ |
+| Intel N-series (N95/N100/N200) | `n100_like`     | 6W  | Budget AI/Media     |
+| Intel Celeron/Pentium          | `celeron`       | 15W | Light workloads     |
+| Intel Core i3                  | `core_i3`       | 28W | Standard AI         |
+| Intel Core i5                  | `core_i5`       | 35W | Heavy AI            |
+| Intel Core i7+                 | `core_i7`       | 65W | Maximum performance |
+| AMD Athlon                     | `amd_low`       | 15W | Budget workloads    |
+| AMD Ryzen 3/5                  | `amd_mid`       | 35W | Mid-range AI        |
+| AMD Ryzen 7/9                  | `amd_high`      | 65W | High-performance AI |
+| ARM64 (RPi 5)                  | `arm64_rpi5`    | 5W  | ARM development     |
+| Apple Silicon                  | `apple_silicon` | N/A | Unified memory      |
 
 ### Tested Hardware
 
@@ -245,7 +244,8 @@ sudo ./setup.sh
 
 ### Hardware-Aware Orchestration
 
-This stack intelligently adapts to your physical hardware. The process flow from initial boot to an optimized production environment:
+This stack intelligently adapts to your physical hardware. The process flow from initial boot to an
+optimized production environment:
 
 ```mermaid
 graph TD
@@ -276,7 +276,8 @@ graph TD
 
 ### Hybrid Engine Architecture
 
-Choose between raw performance with **Docker Compose** or enterprise scaling with **K3s Kubernetes**. Both paths share the same hardware-optimized core.
+Choose between raw performance with **Docker Compose** or enterprise scaling with **K3s Kubernetes**.
+Both paths share the same hardware-optimized core.
 
 ```mermaid
 graph TB
@@ -312,7 +313,8 @@ graph TB
 
 ### Full-Stack Network & Application Map
 
-The complete topology of the homelab, showing the interaction between host networks, isolated Docker bridges, zero-trust proxies, and hardware acceleration.
+The complete topology of the homelab, showing the interaction between host networks, isolated
+Docker bridges, zero-trust proxies, and hardware acceleration.
 
 ```mermaid
 graph TB
@@ -381,7 +383,7 @@ graph TB
     Traefik --> Ollama
     Traefik --> NC
     Traefik --> Prom
-    
+  
     %% Data Flow
     WebUI --> Ollama
     Claw --> Kilo
@@ -389,14 +391,14 @@ graph TB
     Kilo --> Qdrant
     NC --> Ollama
     NC --> Docs
-    
+  
     %% Security & System
     Traefik --> D_Proxy
     Claw --> D_Proxy
     D_Proxy --> D_Sock
     Kilo --> K_Proxy
     K_Proxy --> D_Sock
-    
+  
     %% HW Pass-through
     MediaGroup --> QS_HW
     MediaGroup --> GPU_HW
@@ -409,10 +411,10 @@ graph TB
 
 ### Why Mixed Networking
 
-| Mode | Services | Reason |
-| :--- | :--- | :--- |
-| **Host Network** | Home Assistant, Plex, Coturn | Direct hardware access (Bluetooth, QuickSync), better performance |
-| **Bridge Network** | AI Stack, Automation | Container isolation, reverse proxy compatibility |
+| Mode                     | Services                     | Reason                                                            |
+| :----------------------- | :--------------------------- | :---------------------------------------------------------------- |
+| **Host Network**   | Home Assistant, Plex, Coturn | Direct hardware access (Bluetooth, QuickSync), better performance |
+| **Bridge Network** | AI Stack, Automation         | Container isolation, reverse proxy compatibility                  |
 
 ---
 
@@ -420,61 +422,61 @@ graph TB
 
 ### Core Infrastructure
 
-| Service | Purpose | Default Port | Secure URL |
-| :--- | :--- | :--- | :--- |
-| **🛡️ Traefik v3.0** | Reverse proxy & SSL | 80, 443 | <https://traefik.homelab.local> |
-| **📡 Prometheus** | Metrics engine | 9090 | <https://prometheus.homelab.local> |
-| **📈 Grafana** | Metrics dashboards | 3001 | <https://grafana.homelab.local> |
-| **🔬 cAdvisor** | Container metrics | Internal | Internal Only |
-| **💻 Node Exporter** | Host system metrics | 9100 (Host) | Internal Only |
-| **🏠 Homepage** | Service Dashboard | 3002 | <https://home.homelab.local> |
+| Service                     | Purpose             | Default Port | Secure URL                                                        |
+| :-------------------------- | :------------------ | :----------- | :---------------------------------------------------------------- |
+| **🛡️ Traefik v3.0** | Reverse proxy & SSL | 80, 443      | [https://traefik.homelab.local](https://traefik.homelab.local)       |
+| **📡 Prometheus**     | Metrics engine      | 9090         | [https://prometheus.homelab.local](https://prometheus.homelab.local) |
+| **📈 Grafana**        | Metrics dashboards  | 3001         | [https://grafana.homelab.local](https://grafana.homelab.local)       |
+| **🔬 cAdvisor**       | Container metrics   | Internal     | Internal Only                                                     |
+| **💻 Node Exporter**  | Host system metrics | 9100 (Host)  | Internal Only                                                     |
+| **🏠 Homepage**       | Service Dashboard   | 3002         | [https://home.homelab.local](https://home.homelab.local)             |
 
 ### AI Services
 
-| Service | Purpose | Default Port | Secure URL |
-| :--- | :--- | :--- | :--- |
-| **🧠 Ollama** | Local LLM inference engine | 11434 | API only |
-| **💬 Open WebUI** | ChatGPT-like interface | 3000 | <https://chat.homelab.local> |
-| **🤖 OpenClaw** | Autonomous AI agent | 18789 | <https://openclaw.homelab.local> |
-| **🦾 Antigravity** | AI-powered code editor | 6080, 5900 | <https://antigravity.homelab.local> |
-| **🦾 Kilo Pipeline** | Autonomous coding engine | 3100 | <https://kilo.homelab.local> |
-| **🕷️ Crawl4AI** | Web scraping service | 8000 | <https://crawl4ai.homelab.local> |
-| **🗄️ Qdrant** | Vector database | 6333 | Internal Only |
+| Service                    | Purpose                    | Default Port | Secure URL                                                          |
+| :------------------------- | :------------------------- | :----------- | :------------------------------------------------------------------ |
+| **🧠 Ollama**        | Local LLM inference engine | 11434        | API only                                                            |
+| **💬 Open WebUI**    | ChatGPT-like interface     | 3000         | [https://chat.homelab.local](https://chat.homelab.local)               |
+| **🤖 OpenClaw**      | Autonomous AI agent        | 18789        | [https://openclaw.homelab.local](https://openclaw.homelab.local)       |
+| **🦾 Antigravity**   | AI-powered code editor     | 6080, 5900   | [https://antigravity.homelab.local](https://antigravity.homelab.local) |
+| **🦾 Kilo Pipeline** | Autonomous coding engine   | 3100         | [https://kilo.homelab.local](https://kilo.homelab.local)               |
+| **🕷️ Crawl4AI**    | Web scraping service       | 8000         | [https://crawl4ai.homelab.local](https://crawl4ai.homelab.local)       |
+| **🗄️ Qdrant**      | Vector database            | 6333         | Internal Only                                                       |
 
 ### Media Services
 
-| Service | Purpose | Default Port | Secure URL |
-| :--- | :--- | :--- | :--- |
-| **🎬 Plex** | Media server (4K transcoding) | 32400 | <https://plex.homelab.local> |
-| **🍿 Jellyfin** | Open-source media server | 8096 | <https://jellyfin.homelab.local> |
-| **📁 Samba** | Network file sharing | 139, 445 | smb://\<IP\>/Media |
+| Service               | Purpose                       | Default Port | Secure URL                                                    |
+| :-------------------- | :---------------------------- | :----------- | :------------------------------------------------------------ |
+| **🎬 Plex**     | Media server (4K transcoding) | 32400        | [https://plex.homelab.local](https://plex.homelab.local)         |
+| **🍿 Jellyfin** | Open-source media server      | 8096         | [https://jellyfin.homelab.local](https://jellyfin.homelab.local) |
+| **📁 Samba**    | Network file sharing          | 139, 445     | smb://\<IP\>/Media                                            |
 
 ### Productivity Services
 
-| Service | Purpose | Default Port | Secure URL |
-| :--- | :--- | :--- | :--- |
-| **☁️ Nextcloud** | File hub & Productivity Suite | 8080 | <https://nextcloud.homelab.local> |
-| **📄 ONLYOFFICE** | Document editor engine | 9980 | <https://office.homelab.local> |
-| **📓 Obsidian** | Web-based note editor | 3000 | <https://obsidian.homelab.local> |
-| **🧠 AnythingLLM** | RAG Knowledge Engine | 3000 | <https://rag.homelab.local> |
-| **🔄 n8n** | Workflow automation | 5678 | <https://n8n.homelab.local> |
+| Service                  | Purpose                       | Default Port | Secure URL                                                      |
+| :----------------------- | :---------------------------- | :----------- | :-------------------------------------------------------------- |
+| **☁️ Nextcloud** | File hub & Productivity Suite | 8080         | [https://nextcloud.homelab.local](https://nextcloud.homelab.local) |
+| **📄 ONLYOFFICE**  | Document editor engine        | 9980         | [https://office.homelab.local](https://office.homelab.local)       |
+| **📓 Obsidian**    | Web-based note editor         | 3000         | [https://obsidian.homelab.local](https://obsidian.homelab.local)   |
+| **🧠 AnythingLLM** | RAG Knowledge Engine          | 3000         | [https://rag.homelab.local](https://rag.homelab.local)             |
+| **🔄 n8n**         | Workflow automation           | 5678         | [https://n8n.homelab.local](https://n8n.homelab.local)             |
 
 ### Home Automation
 
-| Service | Purpose | Default Port | Secure URL |
-| :--- | :--- | :--- | :--- |
-| **🏡 Home Assistant** | Smart home platform | 8123 | <https://ha.homelab.local> |
+| Service                     | Purpose             | Default Port | Secure URL                                        |
+| :-------------------------- | :------------------ | :----------- | :------------------------------------------------ |
+| **🏡 Home Assistant** | Smart home platform | 8123         | [https://ha.homelab.local](https://ha.homelab.local) |
 
 ### Security Services
 
-| Service | Purpose | Default Port | Secure URL |
-| :--- | :--- | :--- | :--- |
-| **🔒 Docker Proxy** | Read-Only API gateway | 2375 (Internal) | Internal Only |
-| **🔒 Docker Proxy (Watchtower)** | Write-Access proxy | Internal | Internal Only |
-| **🔒 Kilo Proxy** | Sandbox Docker proxy | 2376 (Internal) | Internal Only |
-| **🦅 NetBird** | Self-hosted VPN Stack | 33071, 33073 | <https://netbird.homelab.local:33071> |
-| **📡 Signal** | Peer Discovery | Traefik-Proxied | Internal Only |
-| **🔄 Watchtower** | Auto-update containers | Proxy-Gated | Background service |
+| Service                                | Purpose                | Default Port    | Secure URL                                                              |
+| :------------------------------------- | :--------------------- | :-------------- | :---------------------------------------------------------------------- |
+| **🔒 Docker Proxy**              | Read-Only API gateway  | 2375 (Internal) | Internal Only                                                           |
+| **🔒 Docker Proxy (Watchtower)** | Write-Access proxy     | Internal        | Internal Only                                                           |
+| **🔒 Kilo Proxy**                | Sandbox Docker proxy   | 2376 (Internal) | Internal Only                                                           |
+| **🦅 NetBird**                   | Self-hosted VPN Stack  | 33071, 33073    | [https://netbird.homelab.local:33071](https://netbird.homelab.local:33071) |
+| **📡 Signal**                    | Peer Discovery         | Traefik-Proxied | Internal Only                                                           |
+| **🔄 Watchtower**                | Auto-update containers | Proxy-Gated     | Background service                                                      |
 
 ---
 
@@ -531,11 +533,11 @@ graph LR
 
 ### Trust Modes
 
-| Mode | Security Posture | Description |
-| :--- | :--- | :--- |
-| `supervised` | **High (Default)** | Every semantic change and all "Tier 1" gate failures block for manual approval. |
-| `graduated` | **Medium** | Deterministic hits and low-risk refactors promote automatically. High-risk tasks route to quarantine. |
-| `autonomous` | **Experimental** | Full loop promotion for verified hits. Recommended only for isolated, test-heavy sub-modules. |
+| Mode           | Security Posture         | Description                                                                                           |
+| :------------- | :----------------------- | :---------------------------------------------------------------------------------------------------- |
+| `supervised` | **High (Default)** | Every semantic change and all "Tier 1" gate failures block for manual approval.                       |
+| `graduated`  | **Medium**         | Deterministic hits and low-risk refactors promote automatically. High-risk tasks route to quarantine. |
+| `autonomous` | **Experimental**   | Full loop promotion for verified hits. Recommended only for isolated, test-heavy sub-modules.         |
 
 ---
 
@@ -575,11 +577,11 @@ Three pre-built Grafana dashboards provide comprehensive observability:
 
 The homelab implements a comprehensive zero-trust Docker API architecture:
 
-| Proxy | Purpose | Networks | Capabilities |
-| :--- | :--- | :--- | :--- |
-| `docker-proxy` | Traefik service discovery | homelab, proxy | CONTAINERS=1, SERVICES=1, NETWORKS=1, POST=0 |
-| `docker-proxy-watchtower` | Container updates | watchtower-net | CONTAINERS=1, IMAGES=1, POST=1, LOGS=1 |
-| `kilo-proxy` | Sandbox execution | kilo-net | CONTAINERS=1, IMAGES=1, POST=1, EXEC=1 |
+| Proxy                       | Purpose                   | Networks       | Capabilities                                 |
+| :-------------------------- | :------------------------ | :------------- | :------------------------------------------- |
+| `docker-proxy`            | Traefik service discovery | homelab, proxy | CONTAINERS=1, SERVICES=1, NETWORKS=1, POST=0 |
+| `docker-proxy-watchtower` | Container updates         | watchtower-net | CONTAINERS=1, IMAGES=1, POST=1, LOGS=1       |
+| `kilo-proxy`              | Sandbox execution         | kilo-net       | CONTAINERS=1, IMAGES=1, POST=1, EXEC=1       |
 
 ### Network Isolation
 
@@ -796,7 +798,7 @@ Refer to the [Service Catalog](#-service-catalog) table above for a full list of
 
 #### Home Assistant
 
-1. Navigate to <https://ha.homelab.local>
+1. Navigate to [https://ha.homelab.local](https://ha.homelab.local)
 2. Create your admin account and complete the setup wizard.
 3. Enable Bluetooth integration for device discovery.
 4. **Activate HACS (Community Store)**:
@@ -806,7 +808,7 @@ Refer to the [Service Catalog](#-service-catalog) table above for a full list of
 
 #### Plex
 
-1. Go to <https://plex.homelab.local>
+1. Go to [https://plex.homelab.local](https://plex.homelab.local)
 2. Sign in with your Plex account
 3. **MANDATORY**: Claim your server! If the server is not automatically found, go to [Plex Claim](https://www.plex.tv/claim/), get a code, and add it to `PLEX_CLAIM` in your `.env`.
 4. Set up libraries pointing to `/data/media/` mount
@@ -814,7 +816,7 @@ Refer to the [Service Catalog](#-service-catalog) table above for a full list of
 
 #### Open WebUI
 
-1. Visit <https://chat.homelab.local>
+1. Visit [https://chat.homelab.local](https://chat.homelab.local)
 2. Create your admin account
 3. Go to Settings → Models
 4. Verify Ollama connection (`http://ollama:11434`)
@@ -822,7 +824,7 @@ Refer to the [Service Catalog](#-service-catalog) table above for a full list of
 
 #### n8n
 
-1. Access <https://n8n.homelab.local>
+1. Access [https://n8n.homelab.local](https://n8n.homelab.local)
 2. Create your owner account during first launch.
 3. **Note**: n8n now uses built-in user management. Credentials are no longer managed via environment variables.
 4. Connect to Ollama using `http://ollama:11434`
@@ -839,7 +841,7 @@ Connect ONLYOFFICE to the Nextcloud backend by running the automated configurati
    cat ~/homelab/.env | grep NEXTCLOUD_ADMIN_PASSWORD
    ```
 
-2. Login to <https://nextcloud.homelab.local>
+2. Login to [https://nextcloud.homelab.local](https://nextcloud.homelab.local)
 3. Run the configuration script:
 
    ```bash
@@ -855,24 +857,26 @@ After the initial setup, you must configure the enhanced productivity apps and l
 
 1. **Configure Apps**: Run the expansion script:
 
-    ```bash
-    cd ~/homelab
-    sudo bash configure-nextcloud-plus.sh
-    ```
+   ```bash
+   cd ~/homelab
+   sudo bash configure-nextcloud-plus.sh
+   ```
 
-    This will install **Talk**, **Groupware**, and **Assistant**.
-
+   This will install **Talk**, **Groupware**, and **Assistant**.
 2. **Performance Note**:
-    > [!IMPORTANT]
-    > **Low-Power x86 Performance:** Running multiple heavy Nextcloud apps (especially Talk and AI Assistant) simultaneously may impact responsiveness. Monitor your CPU usage via Grafana.
 
+   > [!IMPORTANT]
+   > **Low-Power x86 Performance:** Running multiple heavy Nextcloud apps (especially Talk and AI Assistant) simultaneously may impact responsiveness. Monitor your CPU usage via Grafana.
+   >
 3. **Mail App Configuration**:
-    > [!NOTE]
-    > **External Server Required:** The Nextcloud Mail app requires an external IMAP/SMTP server (e.g., Gmail, Outlook).
+
+   > [!NOTE]
+   > **External Server Required:** The Nextcloud Mail app requires an external IMAP/SMTP server (e.g., Gmail, Outlook).
+   >
 
 ### Step 6: Homepage Dashboard (Discovery \& Widgets)
 
-1. Access <https://home.homelab.local> — all services should appear automatically.
+1. Access [https://home.homelab.local](https://home.homelab.local) — all services should appear automatically.
 2. To enable live Plex widget data:
    - Plex Web → Account → Settings → Troubleshooting → Show Token.
    - Add `PLEX_TOKEN=<token>` to `~/homelab/.env`.
@@ -885,7 +889,7 @@ After the initial setup, you must configure the enhanced productivity apps and l
 
 ### Step 7: RAG Setup (AnythingLLM)
 
-1. Navigate to <https://rag.homelab.local>
+1. Navigate to [https://rag.homelab.local](https://rag.homelab.local)
 2. Follow the onboarding wizard:
    - **LLM Provider**: Choose **Ollama**.
    - **Ollama URL**: `http://ollama:11434`
@@ -902,16 +906,16 @@ After the initial setup, you must configure the enhanced productivity apps and l
 
 ### For Intel N-series (8-16GB RAM)
 
-| Model | Size | Best For | Speed | Quality |
-| :--- | :--- | :--- | :--- | :--- |
-| **llama3.2:1b** | ~1.3GB | Quick responses, simple tasks | ⚡⚡⚡⚡⚡ | ⭐⭐⭐ |
-| **llama3.2:3b** ⭐ | ~2GB | General chat, daily assistant | ⚡⚡⚡⚡ | ⭐⭐⭐⭐ |
-| **qwen2.5-coder:3b** 🔧 | ~2.1GB | Code generation, agents | ⚡⚡⚡⚡ | ⭐⭐⭐⭐⭐ |
-| **phi3:mini** | ~2.3GB | Balanced performance | ⚡⚡⚡⚡ | ⭐⭐⭐⭐ |
-| **gemma2:2b** | ~1.6GB | Fast inference, good reasoning | ⚡⚡⚡⚡⚡ | ⭐⭐⭐⭐ |
-| **nomic-embed-text** | ~274MB | Text embeddings | ⚡⚡⚡⚡⚡ | ⭐⭐⭐⭐ |
+| Model                         | Size   | Best For                       | Speed      | Quality    |
+| :---------------------------- | :----- | :----------------------------- | :--------- | :--------- |
+| **llama3.2:1b**         | ~1.3GB | Quick responses, simple tasks  | ⚡⚡⚡⚡⚡ | ⭐⭐⭐     |
+| **llama3.2:3b** ⭐      | ~2GB   | General chat, daily assistant  | ⚡⚡⚡⚡   | ⭐⭐⭐⭐   |
+| **qwen2.5-coder:3b** 🔧 | ~2.1GB | Code generation, agents        | ⚡⚡⚡⚡   | ⭐⭐⭐⭐⭐ |
+| **phi3:mini**           | ~2.3GB | Balanced performance           | ⚡⚡⚡⚡   | ⭐⭐⭐⭐   |
+| **gemma2:2b**           | ~1.6GB | Fast inference, good reasoning | ⚡⚡⚡⚡⚡ | ⭐⭐⭐⭐   |
+| **nomic-embed-text**    | ~274MB | Text embeddings                | ⚡⚡⚡⚡⚡ | ⭐⭐⭐⭐   |
 
-⭐ = Recommended for general use  
+⭐ = Recommended for general use
 🔧 = Recommended for coding/agents
 
 ### Download Models
@@ -948,7 +952,7 @@ docker compose exec ollama ollama show llama3.2:3b
 
 All automatically generated passwords are stored securely:
 
-```
+```text
 ~/homelab/
 ├── samba/.env          # SAMBA_USER, SAMBA_PASS
 ├── n8n/.env            # Internal context (credentials managed in UI)
@@ -1022,17 +1026,18 @@ echo $(htpasswd -n admin) | sed -e s/\\$/\\$\\$/g
 The stack includes a fully integrated AI agent system:
 
 1. **OpenClaw**: Autonomous agent that can control your Smart Home and write code.
-    - **Models**:
-        - **Coding**: `qwen2.5-coder:3b` (High precision)
-        - **Chat/Planning**: `llama3.2:3b` (General reasoning)
-        - **Status Checks**: `llama3.2:1b` (Ultra-fast)
-    - **Skills**:
-        - **Home Assistant**: Control lights, switches, and scenes. **Requires Long-Lived Access Token**.
+   - **Models**:
+     - **Coding**: `qwen2.5-coder:3b` (High precision)
+     - **Chat/Planning**: `llama3.2:3b` (General reasoning)
+     - **Status Checks**: `llama3.2:1b` (Ultra-fast)
+   - **Skills**:
+     - **Home Assistant**: Control lights, switches, and scenes. **Requires Long-Lived Access Token**.
 2. **Kilo Pipeline**: Autonomous coding engine with 9-stage orchestration.
 3. **Setup**:
-    - Go to **Home Assistant Profile** -> **Security** -> **Create Long-Lived Access Token**.
-    - Run `./setup.sh` and paste the token when prompted.
-    - **Note**: The token is injected into the OpenClaw environment. If Smart Home control isn't working, ask OpenClaw: *"Install the Home Assistant skill"*.
+   - Go to **Home Assistant Profile** -> **Security** -> **Create Long-Lived Access Token**.
+   - Run `./setup.sh` and paste the token when prompted.
+   - **Note**: The token is injected into the OpenClaw environment.
+     If Smart Home control isn't working, ask OpenClaw: *"Install the Home Assistant skill"*.
 
 ### 🦾 **Autonomous AI Pipeline (Kilo)**
 
@@ -1050,11 +1055,11 @@ If the autonomous pipeline behaves unexpectedly or if you wish to disable it ent
 
 Configure the pipeline's autonomy level via the `TRUST_MODE` variable in `.env`:
 
-| Mode | Security Posture | Description |
-|------|-----------------|-------------|
-| `supervised` | **High (Default)** | Every semantic change and all "Tier 1" gate failures (e.g., security violations) block for manual approval. |
-| `graduated` | **Medium** | Deterministic hits and low-risk refactors promote automatically. High-risk or failed tasks route to `/var/kilo/quarantine`. |
-| `autonomous`| **Experimental** | Full loop promotion for verified hits. Recommended only for isolated, test-heavy sub-modules. |
+| Mode           | Security Posture         | Description                                                                                                                   |
+| -------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `supervised` | **High (Default)** | Every semantic change and all "Tier 1" gate failures (e.g., security violations) block for manual approval.                   |
+| `graduated`  | **Medium**         | Deterministic hits and low-risk refactors promote automatically. High-risk or failed tasks route to `/var/kilo/quarantine`. |
+| `autonomous` | **Experimental**   | Full loop promotion for verified hits. Recommended only for isolated, test-heavy sub-modules.                                 |
 
 #### **Recovery \& Resilience**
 
@@ -1090,12 +1095,13 @@ Once logged into the Obsidian web UI, install:
 Our setup includes automated maintenance features:
 
 1. **Automated Updates** (Watchtower)
+
    - **Zero-Trust Enabled**: Updates are performed via the dedicated `docker-proxy-watchtower`.
    - **Schedule**: Every Sunday at 3 AM.
    - **Cleanup**: Automatically removes old images to save disk space.
    - **Rollback**: Graceful restarts and failure protection.
-
 2. **SSL Certificate Monitoring**
+
    - Weekly health check (Sundays at midnight)
    - Email/webhook alerts for expiring certs
    - Logs stored in `~/homelab/logs/ssl-check.log`
@@ -1302,9 +1308,9 @@ sudo systemctl stop <service-name>
    ```
 
 2. Verify Prometheus targets:
-   - Visit <https://prometheus.homelab.local/status/targets>
-   - All targets should be "UP"
 
+   - Visit [https://prometheus.homelab.local/status/targets](https://prometheus.homelab.local/status/targets)
+   - All targets should be "UP"
 3. Check datasource configuration in Grafana
 4. Verify time range in dashboard (try "Last 15 minutes")
 

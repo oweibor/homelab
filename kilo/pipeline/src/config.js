@@ -9,7 +9,7 @@
  */
 
 /** @type {string} */
-let HARDWARE_PROFILE = process.env.HARDWARE_PROFILE || 'n100_like';
+let _hwProfile = process.env.HARDWARE_PROFILE || 'n100_like';
 
 // Validate hardware profile
 const VALID_PROFILES = [
@@ -18,13 +18,17 @@ const VALID_PROFILES = [
     'amd_low', 'amd_mid', 'amd_high',
     'arm64_rpi5', 'arm64_server',
     'nvidia_small', 'nvidia_medium', 'nvidia_large',
-    'apple_silicon'
+    'nvidia_rtx', 'apple_silicon'
 ];
 
-if (!VALID_PROFILES.includes(HARDWARE_PROFILE)) {
-    console.warn(`[CONFIG] Unknown HARDWARE_PROFILE="${HARDWARE_PROFILE}". Defaulting to n100_like.`);
-    HARDWARE_PROFILE = 'n100_like';
+if (!VALID_PROFILES.includes(_hwProfile)) {
+    console.warn(`[CONFIG] Unknown HARDWARE_PROFILE="${_hwProfile}". Defaulting to n100_like.`);
+    _hwProfile = 'n100_like';
 }
+
+// Finalize HARDWARE_PROFILE as const after validation
+/** @type {string} */
+const HARDWARE_PROFILE = _hwProfile;
 
 /**
  * Hardware-aware circuit breaker threshold.
@@ -69,6 +73,46 @@ const PROFILE_THRESHOLDS = {
 const CIRCUIT_BREAKER_THRESHOLD = parseFloat(process.env.OLLAMA_CIRCUIT_BREAKER_THRESHOLD)
     || PROFILE_THRESHOLDS[HARDWARE_PROFILE]
     || 0.15;
+
+// Queue concurrency limits per hardware profile
+// Low-power: 1 task (limited RAM)
+// Mid-range: 2-3 tasks (moderate RAM)
+// High-performance: 4-6 tasks (abundant RAM + GPU)
+const PROFILE_CONCURRENCY = {
+    // Low-power Intel
+    'n100_like': 1,           // 8GB RAM - single task only, safe for N100
+    'celeron': 1,
+
+    // Standard Intel
+    'core_i3': 1,             // 8-12GB RAM - single task
+    'core_i5': 2,             // 16GB RAM - 2 parallel
+    'core_i7': 3,             // 32GB RAM - 3 parallel
+
+    // AMD
+    'amd_low': 1,
+    'amd_mid': 2,
+    'amd_high': 4,            // Ryzen 7/9 with 32GB+
+
+    // NVIDIA RTX (dedicated GPU)
+    'nvidia_rtx': 4,           // RTX 3060/4070/4090 with 8-24GB VRAM
+
+    // ARM (Raspberry Pi, ARM servers)
+    'arm64_rpi5': 1,
+    'arm64_server': 2,
+
+    // GPU-accelerated (dedicated VRAM helps parallelism)
+    'nvidia_small': 2,        // 4GB VRAM
+    'nvidia_medium': 4,        // 8GB VRAM
+    'nvidia_large': 6,         // 12-24GB VRAM
+
+    // Apple Silicon
+    'apple_silicon': 4,
+};
+
+// Allow override via environment variable
+const MAX_CONCURRENCY = parseInt(process.env.MAX_CONCURRENCY, 10)
+    || PROFILE_CONCURRENCY[HARDWARE_PROFILE]
+    || 1;
 
 /** @type {string} */
 const TRUST_MODE = process.env.TRUST_MODE || 'supervised';
@@ -136,6 +180,9 @@ const config = Object.freeze({
 
     /** Circuit breaker threshold - hardware-aware based on HARDWARE_PROFILE */
     CIRCUIT_BREAKER_THRESHOLD,
+
+    /** Maximum parallel tasks - hardware-aware based on HARDWARE_PROFILE */
+    MAX_CONCURRENCY,
 });
 
 module.exports = config;
