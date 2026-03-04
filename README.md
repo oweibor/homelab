@@ -308,6 +308,103 @@ graph TB
     Docker -->|Low Overhead| Services
     K3s -->|Declarative Ops| Services
     Services --> HW
+### Full-Stack Network & Application Map
+
+The complete topology of the homelab, showing the interaction between host networks, isolated Docker bridges, zero-trust proxies, and hardware acceleration.
+
+```mermaid
+graph TB
+    subgraph External["External Access"]
+        U[Client Device]
+        NB[NetBird VPN Mesh]
+        U --- NB
+    end
+
+    subgraph HostNet["Host Network (Direct HW Access)"]
+        direction TB
+        subgraph MediaGroup["Media & Entertainment"]
+            Plex[Plex MS<br/>Port 32400]
+            Jelly[Jellyfin<br/>Port 8096]
+            Samba[Samba Share]
+        end
+        subgraph SmartHome["Smart Home"]
+            HA[Home Assistant<br/>Port 8123]
+            Zigbee[Zigbee/Matter]
+        end
+        D_Sock[("/var/run/docker.sock")]
+    end
+
+    subgraph Bridge_Homelab["Docker Bridge: homelab"]
+        Traefik[Traefik v3<br/>Reverse Proxy]
+        subgraph AI_Tier["AI Intelligence"]
+            Ollama[Ollama API]
+            WebUI[Open WebUI]
+            Claw[OpenClaw Agent]
+            Kilo[Kilo Engine]
+            C4AI[Crawl4AI]
+            Qdrant[(Qdrant DB)]
+        end
+        subgraph Apps_Tier["Productivity & Tools"]
+            NC[Nextcloud Hub]
+            Docs[ONLYOFFICE]
+            Obs[Obsidian]
+            n8n[n8n Automation]
+            Home[Homepage]
+        end
+        subgraph Monitor_Tier["Observability"]
+            Prom[Prometheus]
+            Graf[Grafana]
+            Dash[Dashboards]
+        end
+    end
+
+    subgraph Bridge_Proxy["Docker Bridge: proxy (Internal)"]
+        D_Proxy[Docker Proxy RO]
+    end
+
+    subgraph Bridge_Kilo["Docker Bridge: kilo-net (Isolated)"]
+        K_Proxy[Docker Proxy RW]
+        Sandbox[Execution Sandbox]
+    end
+
+    subgraph HW_Layer["Hardware Acceleration"]
+        QS[Intel QuickSync QSV]
+        GPU[NVIDIA/AMD GPU]
+        BT[Bluetooth Adapter]
+    end
+
+    %% Routing
+    NB --- Traefik
+    Traefik --> MediaGroup
+    Traefik --> AI_Tier
+    Traefik --> Apps_Tier
+    Traefik --> Monitor_Tier
+    
+    %% Data Flow
+    WebUI --> Ollama
+    Claw --> Kilo
+    Kilo --> Sandbox
+    Kilo --> Qdrant
+    NC --> Ollama
+    NC --> Docs
+    
+    %% Security & System
+    Traefik --- D_Proxy
+    Claw --- D_Proxy
+    D_Proxy --- D_Sock
+    Kilo --- K_Proxy
+    K_Proxy --- D_Sock
+    
+    %% HW Pass-through
+    MediaGroup --- QS
+    MediaGroup --- GPU
+    SmartHome --- BT
+
+    style Traefik fill:#00d2ff,stroke:#333,stroke-width:2px
+    style NB fill:#ffaa00,stroke:#333
+    style D_Sock fill:#ff4444,color:#fff
+    style AI_Tier fill:#f9f0ff,stroke:#d080ff
+    style Monitor_Tier fill:#f0fff4,stroke:#80ff9a
 ```
 
 ### Why Mixed Networking
