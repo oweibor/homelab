@@ -19,7 +19,7 @@ A fully automated, hardware-optimized deployment system that combines **Local AI
 
 ## 📋 Table of Contents
 
-- [Why This Project?](#why-this-project)
+- [Why This Project](#why-this-project)
 - [Key Features](#key-features)
 - [Hardware Requirements](#hardware-requirements)
 - [Quick Start](#quick-start)
@@ -28,8 +28,8 @@ A fully automated, hardware-optimized deployment system that combines **Local AI
 - [Installation Guide](#installation-guide)
 - [Post-Installation Setup](#post-installation-setup)
 - [AI Model Recommendations](#ai-model-recommendations)
-- [Security \& Credentials](#security--credentials)
-- [Maintenance \& Updates](#maintenance--updates)
+- [Security and Credentials](#security-and-credentials)
+- [Maintenance and Updates](#maintenance-and-updates)
 - [Troubleshooting](#troubleshooting)
 - [Project Structure](#project-structure)
 - [Contributing](#contributing)
@@ -37,7 +37,7 @@ A fully automated, hardware-optimized deployment system that combines **Local AI
 
 ---
 
-## 🎯 Why This Project
+## Why This Project
 
 ### The Problem
 
@@ -62,7 +62,7 @@ This project provides:
 
 ---
 
-## ✨ Key Features
+## Key Features
 
 ### 🧠 **AI-Powered Ecosystem**
 
@@ -127,7 +127,7 @@ This project provides:
 
 ---
 
-## 💻 Hardware Requirements
+## Hardware Requirements
 
 ### Minimum Specifications
 
@@ -176,7 +176,7 @@ The system automatically detects and optimizes for:
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Option 1: Automated Onboarding Wizard (Recommended)
 
@@ -240,7 +240,7 @@ sudo ./setup.sh
 
 ---
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
 ### Hardware-Aware Orchestration
 
@@ -418,7 +418,7 @@ graph TB
 
 ---
 
-## 📦 Service Catalog
+## Service Catalog
 
 ### Core Infrastructure
 
@@ -601,7 +601,7 @@ The homelab implements a comprehensive zero-trust Docker API architecture:
 
 ---
 
-## 📖 Installation Guide
+## Installation Guide
 
 ### Scenario A: Fresh Installation (Recommended)
 
@@ -790,7 +790,7 @@ Add these lines (replace `192.168.1.100` with your server IP):
 
 ### Step 2: Access Services
 
-Refer to the [Service Catalog](#-service-catalog) table above for a full list of secure URLs and default ports.
+Refer to the [Service Catalog](#service-catalog) table above for a full list of secure URLs and default ports.
 
 ---
 
@@ -902,7 +902,7 @@ After the initial setup, you must configure the enhanced productivity apps and l
 
 ---
 
-## 🤖 AI Model Recommendations
+## AI Model Recommendations
 
 ### For Intel N-series (8-16GB RAM)
 
@@ -946,7 +946,7 @@ docker compose exec ollama ollama show llama3.2:3b
 
 ---
 
-## 🔒 Security \& Credentials
+## Security and Credentials
 
 ### Generated Credentials Location
 
@@ -1019,7 +1019,7 @@ echo $(htpasswd -n admin) | sed -e s/\\$/\\$\\$/g
 
 ---
 
-## 🛠️ Maintenance \& Updates
+## Maintenance and Updates
 
 ### 🤖 **AI \& Smart Home Integration**
 
@@ -1192,7 +1192,7 @@ docker compose restart traefik
 
 ---
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Common Issues \& Solutions
 
@@ -1387,7 +1387,7 @@ homelab/
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please read our contributing guidelines before submitting PRs.
 
@@ -1408,13 +1408,13 @@ npm run dev
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the **GPL-3.0 License** - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [Home Assistant](https://www.home-assistant.io/) - Open-source home automation
 - [Ollama](https://ollama.com/) - Local LLM inference
