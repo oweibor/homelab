@@ -249,22 +249,22 @@ This stack intelligently adapts to your physical hardware. The process flow from
 
 ```mermaid
 graph TD
-    subgraph Detection["1. Smart Detection (onboard.sh)"]
-        H1{"CPU Check"}
-        H2{"RAM Check"}
-        H3{"GPU/QSV Check"}
+    subgraph Detection ["1. Smart Detection (onboard.sh)"]
+        H1["CPU Check"]
+        H2["RAM Check"]
+        H3["GPU/QSV Check"]
         H1 -->|TDP/Family| P[Profile Generation]
         H2 -->|Capacity| T[Tier Selection]
         H3 -->|Driver/Acc| G[Encoder Setup]
     end
 
-    subgraph Logic["2. Optimization Engine"]
+    subgraph Logic ["2. Optimization Engine"]
         P --> Opt[apply-cstates.sh]
         T --> MT[Model Tiering]
         G --> Trans[HW Transcoding]
     end
 
-    subgraph Deployment["3. Optimized Stack"]
+    subgraph Deployment ["3. Optimized Stack"]
         Opt --> Perf["Performance Governor"]
         MT --> O["Ollama Threads/Layers"]
         Trans --> MS["Plex/Jellyfin"]
@@ -280,24 +280,24 @@ Choose between raw performance with **Docker Compose** or enterprise scaling wit
 
 ```mermaid
 graph TB
-    subgraph UI["Access Layer"]
+    subgraph UI ["Access Layer"]
         User["Client Browser/App"]
         VPN["NetBird Mesh VPN"]
     end
 
-    subgraph Core["Hybrid Orchestrator"]
+    subgraph Core ["Hybrid Orchestrator"]
         direction LR
         Docker["Docker Compose<br/>Native Performance"]
         K3s["K3s Kubernetes<br/>Cluster Scaling"]
     end
 
-    subgraph Services["High-Performance Services"]
+    subgraph Services ["High-Performance Services"]
         AI["Kilo AI Pipeline"]
         Media["4K Media Stack"]
         Home["Home Assistant"]
     end
 
-    subgraph HW["Hardware Pass-Through"]
+    subgraph HW ["Hardware Pass-Through"]
         QS["Intel QuickSync"]
         NV["NVIDIA GPU"]
         BT["Bluetooth/USB"]
@@ -316,29 +316,29 @@ The complete topology of the homelab, showing the interaction between host netwo
 
 ```mermaid
 graph TB
-    subgraph External["External Access"]
+    subgraph External ["External Access"]
         U["Client Device"]
         NB["NetBird VPN Mesh"]
-        U -- NB
+        U --> NB
     end
 
-    subgraph HostNet["Host Network (Direct HW Access)"]
+    subgraph HostNet ["Host Network (Direct HW Access)"]
         direction TB
-        subgraph MediaGroup["Media & Entertainment"]
+        subgraph MediaGroup ["Media & Entertainment"]
             Plex["Plex MS<br/>Port 32400"]
             Jelly["Jellyfin<br/>Port 8096"]
             Samba["Samba Share"]
         end
-        subgraph SmartHome["Smart Home"]
+        subgraph SmartHome ["Smart Home"]
             HA["Home Assistant<br/>Port 8123"]
             Zigbee["Zigbee/Matter"]
         end
         D_Sock["/var/run/docker.sock"]
     end
 
-    subgraph Bridge_Homelab["Docker Bridge: homelab"]
+    subgraph Bridge_Homelab ["Docker Bridge: homelab"]
         Traefik["Traefik v3<br/>Reverse Proxy"]
-        subgraph AI_Tier["AI Intelligence"]
+        subgraph AI_Tier ["AI Intelligence"]
             Ollama["Ollama API"]
             WebUI["Open WebUI"]
             Claw["OpenClaw Agent"]
@@ -346,37 +346,37 @@ graph TB
             C4AI["Crawl4AI"]
             Qdrant[("Qdrant DB")]
         end
-        subgraph Apps_Tier["Productivity & Tools"]
+        subgraph Apps_Tier ["Productivity & Tools"]
             NC["Nextcloud Hub"]
             Docs["ONLYOFFICE"]
             Obs["Obsidian"]
             n8n["n8n Automation"]
             Home_Dash["Homepage"]
         end
-        subgraph Monitor_Tier["Observability"]
+        subgraph Monitor_Tier ["Observability"]
             Prom["Prometheus"]
             Graf["Grafana"]
             Dash["Dashboards"]
         end
     end
 
-    subgraph Bridge_Proxy["Docker Bridge: proxy (Internal)"]
+    subgraph Bridge_Proxy ["Docker Bridge: proxy (Internal)"]
         D_Proxy["Docker Proxy RO"]
     end
 
-    subgraph Bridge_Kilo["Docker Bridge: kilo-net (Isolated)"]
+    subgraph Bridge_Kilo ["Docker Bridge: kilo-net (Isolated)"]
         K_Proxy["Docker Proxy RW"]
         Sandbox["Execution Sandbox"]
     end
 
-    subgraph HW_Layer["Hardware Acceleration"]
+    subgraph HW_Layer ["Hardware Acceleration"]
         QS_HW["Intel QuickSync QSV"]
         GPU_HW["NVIDIA/AMD GPU"]
         BT_HW["Bluetooth Adapter"]
     end
 
     %% Routing
-    NB -- Traefik
+    NB --> Traefik
     Traefik --> Plex
     Traefik --> Ollama
     Traefik --> NC
@@ -391,16 +391,16 @@ graph TB
     NC --> Docs
     
     %% Security & System
-    Traefik -- D_Proxy
-    Claw -- D_Proxy
-    D_Proxy -- D_Sock
-    Kilo -- K_Proxy
-    K_Proxy -- D_Sock
+    Traefik --> D_Proxy
+    Claw --> D_Proxy
+    D_Proxy --> D_Sock
+    Kilo --> K_Proxy
+    K_Proxy --> D_Sock
     
     %% HW Pass-through
-    MediaGroup -- QS_HW
-    MediaGroup -- GPU_HW
-    SmartHome -- BT_HW
+    MediaGroup --> QS_HW
+    MediaGroup --> GPU_HW
+    SmartHome --> BT_HW
 
     style Traefik fill:#00d2ff,stroke:#333,stroke-width:2px
     style NB fill:#ffaa00,stroke:#333
@@ -490,7 +490,7 @@ The Kilo Pipeline isn't just a script—it's a rigorous engineering lifecycle. I
 
 ```mermaid
 graph LR
-    subgraph Cycle[Circular Engineering Loop]
+    subgraph Cycle ["Circular Engineering Loop"]
         A((Architect)) --> O((Orchestrator))
         O --> C((Code))
         C --> D((Debug))
@@ -499,13 +499,13 @@ graph LR
         R -->|Fail| D
     end
 
-    subgraph Gates[11 Semantic Gates]
+    subgraph Gates ["11 Semantic Gates"]
         C -.-> G1[Static/Linter]
         D -.-> G2[Deterministic Hit]
         R -.-> G3[Semantic/ADR]
     end
 
-    subgraph Env[Secure Execution]
+    subgraph Env ["Secure Execution"]
         O -->|Sandbox| KPr[Kilo Proxy]
         KPr --> SB[Isolated Container]
         SB -->|Tests| D
