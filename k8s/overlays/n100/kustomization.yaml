@@ -8,14 +8,21 @@ resources:
   - ../../services/qdrant
 
 patches:
-  # Ollama: Reduced memory for N100
   - patch: |-
+      # Ollama: Hardware-aware limits for N100.
+      # Rationale: Spiky memory usage during model loading.
+      # - Requests (2Gi): Sufficient for baseline/idle state + small models.
+      # - Limits (4Gi): Allows for transient spikes during KV cache allocation/model switching.
+      # Gap prevents overcommitment on N100 nodes while ensuring scheduling stability.
       - op: replace
         path: /spec/template/spec/containers/0/resources/limits/memory
-        value: "2Gi"
+        value: "4Gi"
       - op: replace
         path: /spec/template/spec/containers/0/resources/requests/memory
-        value: "512Mi"
+        value: "2Gi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "2"
     target:
       kind: Deployment
       name: ollama
@@ -26,7 +33,7 @@ patches:
         value: "1Gi"
       - op: replace
         path: /spec/template/spec/containers/0/resources/requests/memory
-        value: "256Mi"
+        value: "512Mi"
     target:
       kind: Deployment
       name: qdrant

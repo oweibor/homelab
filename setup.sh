@@ -44,7 +44,7 @@ if [ -f "$SCRIPT_DIR/scripts/hardware-detect.sh" ]; then
     source "$SCRIPT_DIR/scripts/hardware-detect.sh"
     
     # Detect hardware profile
-    HARDWARE_PROFILE=$(get_hardware_profile)
+    HARDWARE_PROFILE=$(get_hardware_profile_v2)
     log_info "Detected hardware profile: $HARDWARE_PROFILE"
 else
     log_warn "hardware-detect.sh not found, using legacy detection"
@@ -1486,8 +1486,8 @@ fi
 
 # Detect hardware profile if not set
 if [ -z "${HARDWARE_PROFILE:-}" ]; then
-    if declare -f get_hardware_profile >/dev/null 2>&1; then
-        HARDWARE_PROFILE=$(get_hardware_profile)
+    if declare -f get_hardware_profile_v2 >/dev/null 2>&1; then
+        HARDWARE_PROFILE=$(get_hardware_profile_v2)
         log_info "Auto-detected hardware profile: $HARDWARE_PROFILE"
     else
         HARDWARE_PROFILE="n100_like"

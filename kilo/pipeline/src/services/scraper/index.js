@@ -22,6 +22,67 @@ const scraperMetrics = require('./metrics');
 const { LangGraphRunner, FileCheckpointStore } = require('./langgraph');
 const logger = require('../logger');
 
+// Anti-detection managers (lazy loaded to avoid initialization issues)
+let fingerprintManager = null;
+let ipv6Manager = null;
+let hybridNetworkManager = null;
+let wifiRotationManager = null;
+let ultimateFallback = null;
+
+/**
+ * Lazy-load anti-detection managers.
+ * @private
+ */
+function _getAntiDetectionManagers() {
+    if (!fingerprintManager) {
+        try {
+            fingerprintManager = require('./fingerprintManager');
+        } catch (e) {
+            logger.debug('FingerprintManager not available');
+        }
+    }
+    if (!ipv6Manager) {
+        try {
+            const ipv6Module = require('./ipv6Manager');
+            ipv6Manager = ipv6Module.getInstance ? ipv6Module.getInstance() : ipv6Module;
+        } catch (e) {
+            logger.debug('IPv6Manager not available');
+        }
+    }
+    if (!hybridNetworkManager) {
+        try {
+            const hybridModule = require('./hybridNetworkManager');
+            hybridNetworkManager = hybridModule.getInstance ? hybridModule.getInstance() : hybridModule;
+        } catch (e) {
+            logger.debug('HybridNetworkManager not available');
+        }
+    }
+    if (!wifiRotationManager) {
+        try {
+            const wifiModule = require('./wifiRotationManager');
+            wifiRotationManager = wifiModule.getInstance ? wifiModule.getInstance() : wifiModule;
+        } catch (e) {
+            logger.debug('WiFiRotationManager not available');
+        }
+    }
+    if (!ultimateFallback) {
+        try {
+            const fallbackModule = require('./ultimateFallback');
+            ultimateFallback = fallbackModule.getInstance ? fallbackModule.getInstance() : fallbackModule;
+        } catch (e) {
+            logger.debug('UltimateFallback not available');
+        }
+    }
+
+    return {
+        fingerprintManager,
+        ipv6Manager,
+        hybridNetworkManager,
+        wifiRotationManager,
+        ultimateFallback,
+    };
+}
+
 /**
  * Scrape job states
  */
@@ -67,6 +128,72 @@ class ScraperService extends EventEmitter {
             profile: config.HARDWARE_PROFILE || 'unknown',
             maxConcurrent: this.profile.max_concurrent,
         });
+
+        // Initialize anti-detection managers
+        const managers = _getAntiDetectionManagers();
+        logger.debug('Anti-detection managers loaded', {
+            fingerprint: !!managers.fingerprintManager,
+            ipv6: !!managers.ipv6Manager,
+            hybrid: !!managers.hybridNetworkManager,
+            wifi: !!managers.wifiRotationManager,
+            fallback: !!managers.ultimateFallback,
+        });
+    }
+
+    /**
+     * Get status of all anti-detection managers.
+     * @returns {Promise<object>} Status of all managers
+     */
+    async getAntiDetectionStatus() {
+        const managers = _getAntiDetectionManagers();
+
+        const status = {
+            fingerprint: null,
+            ipv6: null,
+            hybrid: null,
+            wifi: null,
+            fallback: null,
+        };
+
+        if (managers.fingerprintManager) {
+            status.fingerprint = { enabled: true };
+        }
+
+        if (managers.ipv6Manager) {
+            try {
+                await managers.ipv6Manager.checkStatus();
+                status.ipv6 = managers.ipv6Manager.status;
+            } catch (error) {
+                logger.debug('Failed to get IPv6 status', { error: error.message });
+            }
+        }
+
+        if (managers.hybridNetworkManager) {
+            try {
+                await managers.hybridNetworkManager.checkStatus();
+                status.hybrid = managers.hybridNetworkManager.status;
+            } catch (error) {
+                logger.debug('Failed to get hybrid network status', { error: error.message });
+            }
+        }
+
+        if (managers.wifiRotationManager) {
+            try {
+                status.wifi = managers.wifiRotationManager.getStatus();
+            } catch (error) {
+                logger.debug('Failed to get WiFi rotation status', { error: error.message });
+            }
+        }
+
+        if (managers.ultimateFallback) {
+            try {
+                status.fallback = managers.ultimateFallback.getStatus();
+            } catch (error) {
+                logger.debug('Failed to get fallback status', { error: error.message });
+            }
+        }
+
+        return status;
     }
 
     /**
@@ -435,3 +562,5 @@ const scraperService = new ScraperService();
 module.exports = scraperService;
 module.exports.JOB_STATES = JOB_STATES;
 module.exports.ScraperService = ScraperService;
+// Bind method to service instance for cleaner export
+module.exports.getAntiDetectionStatus = scraperService.getAntiDetectionStatus.bind(scraperService);

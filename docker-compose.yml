@@ -149,7 +149,7 @@ services:
       - OLLAMA_METAL=${OLLAMA_METAL:-0}
       - OLLAMA_DEFAULT_MODEL=${OLLAMA_DEFAULT_MODEL:-qwen2.5-coder:3b}
     healthcheck:
-      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/11434" ]
+      test: [ "CMD-SHELL", "wget -q --spider http://localhost:11434 || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -185,7 +185,7 @@ services:
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
     healthcheck:
-      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/8080" ]
+      test: [ "CMD-SHELL", "wget -q --spider http://localhost:8080 || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -334,7 +334,7 @@ services:
       - EXEC=0
       - LOGS=0
     healthcheck:
-      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/2375" ]
+      test: [ "CMD-SHELL", "wget -q --spider http://localhost:2375 || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -437,7 +437,7 @@ services:
       - EXEC=1 # Required: sandbox exec for Kilo CLI invocations
       - BUILD=0 # Pipeline never builds images
     healthcheck:
-      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/2375" ]
+      test: [ "CMD-SHELL", "wget -q --spider http://localhost:2375 || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -475,7 +475,7 @@ services:
       - TZ=${TZ}
     mem_limit: 1g
     healthcheck:
-      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/3100" ]
+      test: [ "CMD-SHELL", "wget -q --spider http://localhost:3100 || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -534,7 +534,7 @@ services:
       - CRAWL4AI_MAX_CONCURRENT=${CRAWL4AI_MAX_CONCURRENT:-5}
       - CHECKPOINT_DIR=/var/kilo/checkpoints
     healthcheck:
-      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/18789" ]
+      test: [ "CMD-SHELL", "wget -q --spider http://localhost:18789 || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -890,7 +890,7 @@ services:
       - JELLYFIN_HardwareAcceleration=${JELLYFIN_HW_ACCEL:-None}
       - JELLYFIN_EnableRealtimeMonitor=${JELLYFIN_TRANSCODE_HW:-0}
     healthcheck:
-      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/8096" ]
+      test: [ "CMD-SHELL", "wget -q --spider http://localhost:8096 || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -1092,6 +1092,69 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # ============================================================
+  # SCRAPING ENHANCEMENT STACK (Tor + I2P)
+  # ============================================================
+
+  # Tor: Anonymous network proxy for IP rotation
+  tor:
+    image: dperson/torproxy:latest
+    container_name: tor
+    restart: unless-stopped
+    networks:
+      - homelab
+    ports:
+      - "9050:9050" # SOCKS5 proxy
+      - "9051:9051" # Control port
+    environment:
+      - TZ=${TZ}
+      - TOR_PASSWORD_HASH=${TOR_PASSWORD_HASH:-}
+    secrets:
+      - tor_password
+    command: >
+      sh -c ' if [ -f /run/secrets/tor_password ]; then
+        TOR_PWD=$(cat /run/secrets/tor_password);
+        # Password hash should be provided in hashed form normally, 
+        # but if we had a helper to hash it here we would use it.
+      fi; /usr/bin/tor -f /etc/tor/torrc --ControlPort 9051 --HashedControlPassword "${TOR_PASSWORD_HASH}" '
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -q --spider http://localhost:9050 || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # I2P: Anonymous network for additional IP options
+  i2p:
+    image: geti2p/i2p:latest
+    container_name: i2p
+    restart: unless-stopped
+    networks:
+      - homelab
+    ports:
+      - "7656:7656" # I2P SAM port
+      - "7657:7657" # I2P HTTP proxy
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - ./i2p/data:/i2p/data
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -q --spider http://localhost:7657 || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
 volumes:
   crawl4ai_data:
   ollama_models: # Large models kept in named volume for performance
@@ -1113,3 +1176,7 @@ networks:
   kilo-net:
     driver: bridge
     internal: true # kilo-proxy <-> kilo-pipeline only. Never exposed to homelab.
+
+secrets:
+  tor_password:
+    file: ${TOR_PASSWORD_FILE:-./.secrets/tor_password}

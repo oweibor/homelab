@@ -8,14 +8,17 @@ resources:
   - ../../services/qdrant
 
 patches:
-  # Ollama: Higher resources for high-performance CPUs
   - patch: |-
+      # Ollama: High-performance memory allocation.
+      # Rationale: Large model headroom.
+      # - Requests (4Gi): Guaranteed RAM for active model + baseline.
+      # - Limits (8Gi): Headroom for deep RAG contexts and large KV caches.
       - op: replace
         path: /spec/template/spec/containers/0/resources/limits/memory
         value: "8Gi"
       - op: replace
         path: /spec/template/spec/containers/0/resources/requests/memory
-        value: "2Gi"
+        value: "4Gi"
       - op: replace
         path: /spec/template/spec/containers/0/resources/limits/cpu
         value: "4"
@@ -29,7 +32,7 @@ patches:
         value: "4Gi"
       - op: replace
         path: /spec/template/spec/containers/0/resources/requests/memory
-        value: "1Gi"
+        value: "2Gi"
     target:
       kind: Deployment
       name: qdrant

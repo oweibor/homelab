@@ -8,6 +8,7 @@
  */
 
 const config = require('../../config');
+const { ANTI_DETECTION_PROFILES, getHardwareProfile } = require('./hardwareProfiles');
 
 /**
  * Hardware-aware scraper profiles.
@@ -87,6 +88,22 @@ const SCRAPE_PROFILES = {
         browser_instances: 2,
         memory_limit: '1g',
         timeout_ms: 25000,
+    },
+    // N305: 8-core N-series, more capable than N100
+    'n305': {
+        max_concurrent: 3,
+        max_pages_per_minute: 15,
+        browser_instances: 2,
+        memory_limit: '768m',
+        timeout_ms: 25000,
+    },
+    // ARM64 RK3588: High-performance ARM SBC
+    'arm64_rk3588': {
+        max_concurrent: 5,
+        max_pages_per_minute: 30,
+        browser_instances: 3,
+        memory_limit: '2g',
+        timeout_ms: 20000,
     },
     // GPU-accelerated
     'nvidia_small': {
@@ -173,6 +190,69 @@ const antiBot = {
 };
 
 /**
+ * Anti-detection manager configurations.
+ * These are loaded by the manager modules at runtime.
+ * 
+ * Hardware-aware: Uses HARDWARE_PROFILE to determine appropriate settings
+ * Now imported from hardwareProfiles.js
+ */
+const hardwareProfile = getHardwareProfile();
+
+// Get profile for current hardware
+const antiDetectionProfile = ANTI_DETECTION_PROFILES[hardwareProfile] || ANTI_DETECTION_PROFILES.n100_like;
+
+const antiDetection = {
+    // Fingerprint randomization
+    fingerprint: {
+        enabled: process.env.ENABLE_FINGERPRINT !== 'false',
+        poolSize: parseInt(process.env.FINGERPRINT_POOL_SIZE || antiDetectionProfile.fingerprint.poolSize, 10),
+        randomizePerRequest: process.env.RANDOMIZE_FINGERPRINT !== undefined
+            ? process.env.RANDOMIZE_FINGERPRINT === 'true'
+            : antiDetectionProfile.fingerprint.randomizePerRequest,
+        advanced: antiDetectionProfile.fingerprint.advanced,
+    },
+    // IPv6 support
+    ipv6: {
+        enabled: process.env.ENABLE_IPV6 !== 'false',
+        preferIPv6: process.env.PREFER_IPV6 !== undefined
+            ? process.env.PREFER_IPV6 === 'true'
+            : antiDetectionProfile.ipv6.preferIPv6,
+    },
+    // Tor network
+    tor: {
+        enabled: process.env.ENABLE_TOR !== undefined
+            ? process.env.ENABLE_TOR === 'true'
+            : antiDetectionProfile.tor.enabled,
+        host: process.env.TOR_HOST || 'localhost',
+        port: parseInt(process.env.TOR_PORT || '9050', 10),
+        controlPort: parseInt(process.env.TOR_CONTROL_PORT || '9051', 10),
+        circuitRotation: antiDetectionProfile.tor.circuitRotation || false,
+    },
+    // I2P network
+    i2p: {
+        enabled: process.env.ENABLE_I2P !== undefined
+            ? process.env.ENABLE_I2P === 'true'
+            : antiDetectionProfile.i2p.enabled,
+        host: process.env.I2P_HOST || 'localhost',
+        samPort: parseInt(process.env.I2P_SAM_PORT || '7656', 10),
+    },
+    // WiFi/Tether rotation
+    wifiRotation: {
+        enabled: process.env.ENABLE_WIFI_ROTATION !== 'false',
+        aggressive: antiDetectionProfile.wifiRotation.aggressive,
+    },
+    // Ultimate fallback chain
+    fallback: {
+        enabled: process.env.ENABLE_FALLBACK !== 'false',
+        maxRetries: parseInt(process.env.FALLBACK_MAX_RETRIES || antiDetectionProfile.fallback.maxRetries, 10),
+        retryDelay: parseInt(process.env.FALLBACK_RETRY_DELAY || '1000', 10),
+        useHeavyMethods: antiDetectionProfile.fallback.useHeavyMethods,
+    },
+    // Hardware profile info
+    hardwareProfile,
+};
+
+/**
  * Extraction schema options.
  */
 const extraction = {
@@ -208,9 +288,11 @@ const qdrant = {
 
 module.exports = {
     SCRAPE_PROFILES,
+    ANTI_DETECTION_PROFILES,
     getScrapeProfile,
     crawl4ai,
     antiBot,
+    antiDetection,
     extraction,
     langgraph,
     qdrant,

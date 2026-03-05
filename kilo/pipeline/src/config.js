@@ -13,16 +13,17 @@ let _hwProfile = process.env.HARDWARE_PROFILE || 'n100_like';
 
 // Validate hardware profile
 const VALID_PROFILES = [
-    'n100_like', 'celeron',
+    'n100_like', 'n305', 'celeron',
     'core_i3', 'core_i5', 'core_i7',
     'amd_low', 'amd_mid', 'amd_high',
-    'arm64_rpi5', 'arm64_server',
+    'arm64_rpi5', 'arm64_server', 'arm64_rk3588',
     'nvidia_small', 'nvidia_medium', 'nvidia_large',
     'nvidia_rtx', 'apple_silicon'
 ];
 
 if (!VALID_PROFILES.includes(_hwProfile)) {
-    console.warn(`[CONFIG] Unknown HARDWARE_PROFILE="${_hwProfile}". Defaulting to n100_like.`);
+    // Creative fallback: pick the most conservative profile but log a detailed warning
+    console.warn(`[CONFIG] Unknown HARDWARE_PROFILE="${_hwProfile}". Falling back to "n100_like" (conservative/max compatibility).`);
     _hwProfile = 'n100_like';
 }
 
@@ -44,6 +45,7 @@ const HARDWARE_PROFILE = _hwProfile;
 const PROFILE_THRESHOLDS = {
     // Low-power Intel
     'n100_like': 0.15,
+    'n305': 0.25,
     'celeron': 0.20,
 
     // Standard Intel
@@ -59,6 +61,7 @@ const PROFILE_THRESHOLDS = {
     // ARM (Raspberry Pi, ARM servers)
     'arm64_rpi5': 0.20,
     'arm64_server': 0.25,
+    'arm64_rk3588': 0.30,
 
     // GPU-accelerated (dedicated VRAM)
     'nvidia_small': 0.30,   // 4GB VRAM
@@ -81,6 +84,7 @@ const CIRCUIT_BREAKER_THRESHOLD = parseFloat(process.env.OLLAMA_CIRCUIT_BREAKER_
 const PROFILE_CONCURRENCY = {
     // Low-power Intel
     'n100_like': 1,           // 8GB RAM - single task only, safe for N100
+    'n305': 2,                // 16GB RAM / 8-core - 2 parallel
     'celeron': 1,
 
     // Standard Intel
@@ -99,6 +103,7 @@ const PROFILE_CONCURRENCY = {
     // ARM (Raspberry Pi, ARM servers)
     'arm64_rpi5': 1,
     'arm64_server': 2,
+    'arm64_rk3588': 2,        // RK3588 with 8-16GB RAM
 
     // GPU-accelerated (dedicated VRAM helps parallelism)
     'nvidia_small': 2,        // 4GB VRAM

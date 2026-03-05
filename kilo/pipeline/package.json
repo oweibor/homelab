@@ -22,6 +22,7 @@
     "json2csv": "^6.0.0-alpha.2",
     "node-cron": "^3.0.3",
     "prom-client": "^15.1.0",
+    "socks": "^2.4.4",
     "uuid": "^10.0.0",
     "winston": "^3.14.0"
   }
