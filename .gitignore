@@ -6,6 +6,7 @@ Thumbs.db
 .env
 *.env
 !config.env.template
+.kilocodemodes
 
 # Docker
 docker-compose.override.yml

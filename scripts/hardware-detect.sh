@@ -380,29 +380,232 @@ get_cstate_flags() {
 # COMPREHENSIVE HARDWARE PROFILE
 # =============================================================================
 
+# Get total system RAM in GB
+# Usage: get_total_ram_gb
+get_total_ram_gb() {
+    local total_mem
+    
+    case "$(uname)" in
+        Linux)
+            # Linux: read from /proc/meminfo
+            total_mem=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}')
+            if [ -n "$total_mem" ]; then
+                echo $((total_mem / 1024 / 1024))
+            else
+                echo "8"
+            fi
+            ;;
+        Darwin)
+            # macOS: use sysctl
+            local mem_bytes
+            mem_bytes=$(sysctl -n hw.memsize 2>/dev/null)
+            if [ -n "$mem_bytes" ]; then
+                echo $((mem_bytes / 1024 / 1024 / 1024))
+            else
+                echo "8"
+            fi
+            ;;
+        *)
+            # Try wsl.exe for Windows WSL, or default
+            if command -v wsl.exe &>/dev/null; then
+                total_mem=$(wsl.exe grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}')
+                if [ -n "$total_mem" ]; then
+                    echo $((total_mem / 1024 / 1024))
+                else
+                    echo "8"
+                fi
+            else
+                echo "8"
+            fi
+            ;;
+    esac
+}
+
+# Get specific NVIDIA GPU model name
+# Usage: get_nvidia_gpu_model
+get_nvidia_gpu_model() {
+    if command -v nvidia-smi &>/dev/null; then
+        if nvidia-smi &>/dev/null; then
+            nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1
+            return
+        fi
+    fi
+    echo "none"
+}
+
+# Get specific AMD GPU model name (Linux)
+# Usage: get_amd_gpu_model
+get_amd_gpu_model() {
+    if command -v lspci &>/dev/null; then
+        local gpu
+        gpu=$(lspci 2>/dev/null | grep -i "VGA.*AMD" | head -1)
+        if [ -n "$gpu" ]; then
+            # Extract useful part of GPU name
+            echo "$gpu" | sed 's/.*Radeon //' | sed 's/(Rev.*//' | xargs
+            return
+        fi
+    fi
+    echo "none"
+}
+
+# Get iGPU VRAM from sysfs (more accurate than estimation)
+# Usage: get_igpu_vram_mb
+get_igpu_vram_mb() {
+    local vram_path
+    for card in /sys/class/drm/card*; do
+        vram_path="$card/device/mem_info_vram_total"
+        if [ -f "$vram_path" ]; then
+            local vram
+            vram=$(cat "$vram_path" 2>/dev/null)
+            if [ -n "$vram" ]; then
+                echo $((vram / 1024 / 1024))
+                return
+            fi
+        fi
+    done
+    # Fallback to estimation
+    echo "0"
+}
+
+# Get Raspberry Pi model from device tree (more reliable)
+# Usage: get_raspberry_pi_model
+get_raspberry_pi_model() {
+    if [ -f /proc/device-tree/model ]; then
+        local model
+        model=$(cat /proc/device-tree/model 2>/dev/null | tr -d '\0')
+        if echo "$model" | grep -qi "raspberry pi"; then
+            echo "$model"
+            return
+        fi
+    fi
+    echo "none"
+}
+
+# Check if NVIDIA GPU supports AV1 encoding (RTX 40xx+)
+# Usage: get_nvenc_av1_support
+get_nvenc_av1_support() {
+    local gpu_name
+    gpu_name=$(get_nvidia_gpu_model)
+    if [ "$gpu_name" = "none" ]; then
+        echo "0"
+        return
+    fi
+    # RTX 40xx (Ada Lovelace) supports AV1
+    if echo "$gpu_name" | grep -qiE "RTX (4060|4070|4080|4090|50)"; then
+        echo "1"
+    else
+        echo "0"
+    fi
+}
+
+# Improved AMD Ryzen detection with better regex
+# Usage: detect_amd_ryzen_full
+detect_amd_ryzen_full() {
+    local cpu_model
+    cpu_model=$(detect_cpu_model)
+    
+    if echo "$cpu_model" | grep -qiE "Ryzen [0-9]"; then
+        # Ryzen 3/5/7/9 with 4-digit model numbers
+        if echo "$cpu_model" | grep -qiE "Ryzen (3|5|7|9) [0-9]{4}"; then
+            # Check for specific tiers
+            if echo "$cpu_model" | grep -qiE "Ryzen [35] [0-9]{4}"; then
+                echo "AMD_RYZEN_MID"
+                return
+            elif echo "$cpu_model" | grep -qiE "Ryzen [79] [0-9]{4}"; then
+                echo "AMD_RYZEN_HIGH"
+                return
+            fi
+        fi
+        echo "AMD_RYZEN"
+        return
+    fi
+    echo ""
+}
+
+# Get improved hardware profile with N305 support
+# Usage: get_hardware_profile_v2
+get_hardware_profile_v2() {
+    local cpu_family cpu_model profile
+    cpu_family=$(detect_cpu_family)
+    cpu_model=$(detect_cpu_model)
+    
+    case $cpu_family in
+        INTEL_N_SERIES)
+            # Distinguish N305 (8-core) from N100/N95/N97/N200 (4-core)
+            if echo "$cpu_model" | grep -qiE "N305"; then
+                echo "n305"
+            else
+                echo "n100_like"
+            fi
+            ;;
+        INTEL_LOW_END|INTEL_ATOM)
+            echo "celeron"
+            ;;
+        INTEL_CORE_LOW)
+            echo "core_i3"
+            ;;
+        INTEL_CORE_MID)
+            echo "core_i5"
+            ;;
+        INTEL_CORE_HIGH)
+            echo "core_i7"
+            ;;
+        AMD_LOW)
+            echo "amd_low"
+            ;;
+        AMD_MID)
+            echo "amd_mid"
+            ;;
+        AMD_HIGH)
+            echo "amd_high"
+            ;;
+        AMD)
+            echo "amd_low"
+            ;;
+        ARM64)
+            # Check if Raspberry Pi
+            local pi_model
+            pi_model=$(get_raspberry_pi_model)
+            if [ "$pi_model" != "none" ]; then
+                echo "arm64_rpi5"
+            elif echo "$cpu_model" | grep -qi "RK3588"; then
+                echo "arm64_rk3588"
+            else
+                echo "arm64_server"
+            fi
+            ;;
+        *)
+            echo "unknown"
+            ;;
+    esac
+}
+
 # Print all hardware detection results as key=value pairs
 # Usage: print_hardware_profile
 print_hardware_profile() {
-    local cpu_model cpu_family profile quicksync avx2 avx512 tdp gpu_vram encoder
+    local cpu_model cpu_family profile quicksync avx2 avx512 tdp gpu_vram encoder nvidia_model
     
     cpu_model=$(detect_cpu_model)
     cpu_family=$(detect_cpu_family)
-    profile=$(get_hardware_profile)
+    profile=$(get_hardware_profile_v2)
     quicksync=$(has_quicksync)
     avx2=$(has_avx2)
     avx512=$(has_avx512)
     tdp=$(get_tdp_watts)
     gpu_vram=$(get_gpu_vram_gb)
     encoder=$(get_encoder_type)
-    
+    nvidia_model=$(get_nvidia_gpu_model)
+
     printf 'CPU_MODEL=%q\n' "$cpu_model"
     echo "CPU_FAMILY=${cpu_family}"
     echo "HARDWARE_PROFILE=${profile}"
+    echo "TOTAL_RAM_GB=$(get_total_ram_gb)"
     echo "HAS_QUICKSYNC=${quicksync}"
     echo "HAS_AVX2=${avx2}"
     echo "HAS_AVX512=${avx512}"
     echo "TDP_WATTS=${tdp}"
     echo "GPU_VRAM_GB=${gpu_vram}"
+    echo "NVIDIA_GPU_MODEL=${nvidia_model}"
     echo "ENCODER_TYPE=${encoder}"
     printf 'CSTATE_FLAGS=%q\n' "$(get_cstate_flags)"
 }

@@ -237,9 +237,9 @@
         "type": "openai-completions",
         "baseUrl": "http://ollama:11434/v1",
         "models": [
-          "qwen2.5-coder:3b",
-          "llama3.2:3b",
-          "llama3.2:1b"
+          "${OLLAMA_MODEL_CODING:-qwen2.5-coder:3b-q4}",
+          "${OLLAMA_MODEL_PLANNING:-llama3.2:3b-q4}",
+          "${OLLAMA_MODEL_QUICK:-llama3.2:1b-q4}"
         ],
         "circuit_breaker": {
           "timeout_s": 30,
@@ -253,12 +253,12 @@
   "agents": {
     "defaults": {
       "model": {
-        "architect": "ollama/qwen2.5-coder:3b",
-        "orchestrator": "ollama/qwen2.5-coder:3b",
-        "coding": "ollama/qwen2.5-coder:3b",
-        "planning": "ollama/llama3.2:3b",
-        "delegation": "ollama/llama3.2:1b",
-        "fast": "ollama/llama3.2:1b"
+        "architect": "${OLLAMA_MODEL_CODING:-qwen2.5-coder:3b-q4}",
+        "orchestrator": "${OLLAMA_MODEL_CODING:-qwen2.5-coder:3b-q4}",
+        "coding": "${OLLAMA_MODEL_CODING:-qwen2.5-coder:3b-q4}",
+        "planning": "${OLLAMA_MODEL_PLANNING:-llama3.2:3b-q4}",
+        "delegation": "${OLLAMA_MODEL_QUICK:-llama3.2:1b-q4}",
+        "fast": "${OLLAMA_MODEL_QUICK:-llama3.2:1b-q4}"
       },
       "behavior": {
         "autonomous_iteration": true,

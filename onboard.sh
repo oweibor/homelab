@@ -42,9 +42,11 @@ fi
 if [ -f "$SCRIPT_DIR/scripts/hardware-detect.sh" ]; then
     source "$SCRIPT_DIR/scripts/hardware-detect.sh"
     
-    # Detect hardware profile
-    HARDWARE_PROFILE=$(get_hardware_profile)
-    # Note: export_hardware_profile renamed to print_hardware_profile - it only prints values, doesn't export
+    # Detect hardware profile (v2 with N305 support)
+    HARDWARE_PROFILE=$(get_hardware_profile_v2)
+    TOTAL_RAM_GB=$(get_total_ram_gb)
+    GPU_VRAM_GB=$(get_gpu_vram_gb)
+    NVIDIA_GPU_MODEL=$(get_nvidia_gpu_model)
     
     # Export hardware detection variables for use throughout script
     HAS_QUICKSYNC=$(has_quicksync)
@@ -54,6 +56,41 @@ if [ -f "$SCRIPT_DIR/scripts/hardware-detect.sh" ]; then
     CPU_FAMILY=$(detect_cpu_family)
     TDP_WATTS=$(get_tdp_watts)
     ENCODER_TYPE=$(get_encoder_type)
+    
+    # Source LLM mapping module
+    if [ -f "$SCRIPT_DIR/scripts/hardware-llm-map.sh" ]; then
+        if source "$SCRIPT_DIR/scripts/hardware-llm-map.sh"; then
+            # Get hardware-aware LLM models
+            LLM_MODELS=$(get_llm_models)
+            
+            # Parse model values using robust bash parameter expansion
+            # Format: CODING=model:PLANNING=model:QUICK=model
+            IFS=':' read -ra PARTS <<< "$LLM_MODELS"
+            for part in "${PARTS[@]}"; do
+                case "$part" in
+                    CODING=*)
+                        OLLAMA_MODEL_CODING="${part#CODING=}"
+                        ;;
+                    PLANNING=*)
+                        OLLAMA_MODEL_PLANNING="${part#PLANNING=}"
+                        ;;
+                    QUICK=*)
+                        OLLAMA_MODEL_QUICK="${part#QUICK=}"
+                        ;;
+                esac
+            done
+            
+            log_info "Hardware-aware LLM models selected:"
+            log_info "  Coding: $OLLAMA_MODEL_CODING"
+            log_info "  Planning: $OLLAMA_MODEL_PLANNING"
+            log_info "  Quick: $OLLAMA_MODEL_QUICK"
+        else
+            log_warn "Failed to source hardware-llm-map.sh, using defaults"
+        fi
+        
+        # Export for Docker/container use
+        export OLLAMA_MODEL_CODING OLLAMA_MODEL_PLANNING OLLAMA_MODEL_QUICK
+    fi
 else
     log_warn "hardware-detect.sh not found, using legacy detection"
     HARDWARE_PROFILE="unknown"
