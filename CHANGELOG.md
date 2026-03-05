@@ -2,6 +2,76 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0] - 2026-03-05
+
+### 🚀 Anti-Detection Scraping Stack (Major Feature)
+
+- **New Docker Services** (`docker-compose.yml`):
+  - **Tor** (`tor`): Anonymous SOCKS5 proxy for IP rotation
+    - Port 9050 for SOCKS5 proxy
+    - Port 9051 for control port with password authentication
+    - Uses Docker Secrets for secure password storage
+  - **I2P** (`i2p`): Anonymous network for additional IP options
+    - Port 7656 for I2P SAM port
+    - Port 7657 for I2P HTTP proxy
+    - Persistent volume for I2P data
+
+- **New Anti-Detection Configuration** (`config.env.template`):
+  - Tor Configuration: ENABLE_TOR, TOR_HOST, TOR_PORT, TOR_CONTROL_PORT, TOR_PASSWORD_FILE, TOR_PASSWORD_HASH
+  - I2P Configuration: ENABLE_I2P, I2P_HOST, I2P_SAM_PORT, I2P_HTTP_PORT
+  - Fingerprint Randomization: ENABLE_FINGERPRINT, FINGERPRINT_POOL_SIZE, RANDOMIZE_FINGERPRINT
+  - IPv6 Configuration: ENABLE_IPV6, PREFER_IPV6
+  - WiFi Rotation: ENABLE_WIFI_ROTATION
+  - Ultimate Fallback Chain: ENABLE_FALLBACK, FALLBACK_MAX_RETRIES, FALLBACK_RETRY_DELAY
+
+- **New Scraper Services** (`kilo/pipeline/src/services/scraper/`):
+  - **`config.js`**: Hardware-aware scraper profiles (14 profiles)
+    - max_concurrent, max_pages_per_minute, browser_instances, memory_limit, timeout_ms per profile
+    - Profile inheritance from HARDWARE_PROFILE
+  - **`hardwareProfiles.js`**: Anti-detection profiles mapping
+    - ANTI_DETECTION_PROFILES constant with hardware-specific settings
+    - getHardwareProfile() function
+  - **`fingerprintManager.js`**: Browser fingerprint randomization (477 lines)
+    - User agent rotation
+    - Canvas/WebGL fingerprinting
+    - Screen resolution randomization
+  - **`hybridNetworkManager.js`**: Network stack management (475 lines)
+    - Tor/I2P proxy integration
+    - IP rotation management
+    - Circuit breaker for network failures
+  - **`ipv6Manager.js`**: IPv6 connectivity management (404 lines)
+    - IPv6 preference handling
+    - Dual-stack support
+  - **`ultimateFallback.js`**: Fallback chain orchestration (447 lines)
+    - fingerprint → IPv6 → Tor → I2P → WiFi
+    - Retry logic with configurable delays
+  - **`wifiRotationManager.js`**: WiFi/tether IP rotation (618 lines)
+    - Network interface monitoring
+    - IP change detection
+  - **`index.js`**: Scraper integration entry point (129 lines)
+
+- **Hardware Profile Updates** (`kilo/pipeline/src/config.js`):
+  - Added `n305` profile: Intel N305 8-core (16GB RAM)
+    - Circuit breaker threshold: 0.25
+    - Concurrency: 3
+  - Added `arm64_rk3588` profile: Rockchip RK3588 (8-16GB RAM)
+    - Circuit breaker threshold: 0.30
+    - Concurrency: 2
+
+- **Hardware Detection Updates** (`scripts/hardware-detect.sh`):
+  - Added `get_hardware_profile_v2()` function
+    - N305 (Intel N305 8-core) detection
+    - RK3588 ARM64 detection
+
+- **Setup Script Updates** (`setup.sh`):
+  - Changed from `get_hardware_profile()` to `get_hardware_profile_v2()`
+
+### 🐛 Bug Fixes
+
+- **docker-compose.yml**: Fixed healthcheck compatibility
+  - Changed from `bash -c "/dev/tcp/..."` to `wget -q --spider` for Windows compatibility
+  - Affects: ollama, kilo-proxy, kilo-pipeline, prometheus, crawl4ai, jellyfin, plex
+
 ## [1.4.1] - 2026-03-02
 
 ### 🐛 Bug Fixes
