@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### 🚀 Anti-Detection Scraping Stack (Major Feature)
 
 - **New Docker Services** (`docker-compose.yml`):
+
   - **Tor** (`tor`): Anonymous SOCKS5 proxy for IP rotation
     - Port 9050 for SOCKS5 proxy
     - Port 9051 for control port with password authentication
@@ -15,16 +16,16 @@ All notable changes to this project will be documented in this file.
     - Port 7656 for I2P SAM port
     - Port 7657 for I2P HTTP proxy
     - Persistent volume for I2P data
-
 - **New Anti-Detection Configuration** (`config.env.template`):
+
   - Tor Configuration: ENABLE_TOR, TOR_HOST, TOR_PORT, TOR_CONTROL_PORT, TOR_PASSWORD_FILE, TOR_PASSWORD_HASH
   - I2P Configuration: ENABLE_I2P, I2P_HOST, I2P_SAM_PORT, I2P_HTTP_PORT
   - Fingerprint Randomization: ENABLE_FINGERPRINT, FINGERPRINT_POOL_SIZE, RANDOMIZE_FINGERPRINT
   - IPv6 Configuration: ENABLE_IPV6, PREFER_IPV6
   - WiFi Rotation: ENABLE_WIFI_ROTATION
   - Ultimate Fallback Chain: ENABLE_FALLBACK, FALLBACK_MAX_RETRIES, FALLBACK_RETRY_DELAY
-
 - **New Scraper Services** (`kilo/pipeline/src/services/scraper/`):
+
   - **`config.js`**: Hardware-aware scraper profiles (14 profiles)
     - max_concurrent, max_pages_per_minute, browser_instances, memory_limit, timeout_ms per profile
     - Profile inheritance from HARDWARE_PROFILE
@@ -49,21 +50,21 @@ All notable changes to this project will be documented in this file.
     - Network interface monitoring
     - IP change detection
   - **`index.js`**: Scraper integration entry point (129 lines)
-
 - **Hardware Profile Updates** (`kilo/pipeline/src/config.js`):
+
   - Added `n305` profile: Intel N305 8-core (16GB RAM)
     - Circuit breaker threshold: 0.25
     - Concurrency: 3
   - Added `arm64_rk3588` profile: Rockchip RK3588 (8-16GB RAM)
     - Circuit breaker threshold: 0.30
     - Concurrency: 2
-
 - **Hardware Detection Updates** (`scripts/hardware-detect.sh`):
+
   - Added `get_hardware_profile_v2()` function
     - N305 (Intel N305 8-core) detection
     - RK3588 ARM64 detection
-
 - **Setup Script Updates** (`setup.sh`):
+
   - Changed from `get_hardware_profile()` to `get_hardware_profile_v2()`
 
 ### 🐛 Bug Fixes
@@ -131,6 +132,7 @@ All notable changes to this project will be documented in this file.
 ### 🚀 Hardware-Agnostic Architecture (Major Feature)
 
 - **New Hardware Detection Module** (`scripts/hardware-detect.sh`):
+
   - Comprehensive CPU detection supporting Intel N-series (N95/N97/N100/N200), Celeron, Core i3/i5/i7, AMD (Athlon, Ryzen), and ARM64 (Raspberry Pi, ARM servers)
   - QuickSync hardware acceleration detection
   - AVX2/AVX512 capability detection
@@ -138,24 +140,24 @@ All notable changes to this project will be documented in this file.
   - GPU VRAM detection (NVIDIA, AMD ROCm, Apple Silicon, Intel iGPU)
   - Encoder type detection (quicksync, vaapi, nvenc, amf, videotoolbox)
   - C-state stability fix detection for N-series processors
-
 - **Hardware Profile System**:
+
   - 14 hardware profiles: n100_like, celeron, core_i3, core_i5, core_i7, amd_low, amd_mid, amd_high, arm64_rpi5, arm64_server, nvidia_small, nvidia_medium, nvidia_large, apple_silicon
   - Profile-based circuit breaker thresholds (0.15 for N100 up to 0.40 for high-end GPUs)
   - Profile-based token budgets for context compression (2000 for RPi5 up to 32768 for GPU servers)
-
 - **Updated `kilo/pipeline/src/config.js`**:
+
   - Added HARDWARE_PROFILE environment variable support with validation
   - Hardware-aware circuit breaker threshold based on profile
   - 14-profile threshold mapping for adaptive failure tolerance
   - Exported HARDWARE_PROFILE in config object
-
 - **Updated `kilo/pipeline/src/services/ollama/circuitBreaker.js`**:
+
   - Profile-based thresholds with windowSize, failureThreshold, resetTimeout
   - Adaptive failure tolerance: conservative (0.15) for low-power, aggressive (0.40) for high-end
   - Integration with shared config module
-
 - **Updated `kilo/pipeline/src/services/recovery/compressor.js`**:
+
   - Hardware-aware token budgets: 2000 (n100_like) to 32768 (nvidia_large)
   - Profile-based context compression limits
   - Removed N100-specific hardcoded values
@@ -163,25 +165,26 @@ All notable changes to this project will be documented in this file.
 ### 🔧 Configuration Updates
 
 - **Extended `config.env.template`**:
+
   - Added HARDWARE_PROFILE for pipeline constraints
   - Added GPU_VRAM_GB, ENCODER_TYPE for streaming hardware
   - Added PLEX_HW_ACCEL, PLEX_TRANSCODE_HW for Plex hardware transcoding
   - Added JELLYFIN_HW_ACCEL, JELLYFIN_TRANSCODE_HW for Jellyfin hardware transcoding
   - Added CPU_FAMILY, HAS_QUICKSYNC, HAS_AVX2, HAS_AVX512, TDP_WATTS, CSTATE_FLAGS
-
 - **Updated `docker-compose.yml`**:
+
   - Added HARDWARE_PROFILE environment variable to kilo-pipeline service
   - Changed kilo-proxy port from 2375 to 2376 to avoid conflict with docker-proxy
   - Added PLEX_HW_ACCEL and PLEX_TRANSCODE environment variables to Plex service
   - Added devices mapping for DRI (GPU) access
-
 - **Updated `setup.sh`**:
+
   - Added hardware detection module sourcing
   - Added config migration for existing installations (backward compatibility)
   - Dynamic C-state configuration based on CPU family
   - Default values for new hardware variables: GPU_VRAM_GB, ENCODER_TYPE, PLEX_HW_ACCEL, etc.
-
 - **Updated `onboard.sh`**:
+
   - Integrated hardware detection module for comprehensive hardware profiling
   - Added QuickSync detection for Intel iGPU hardware acceleration
   - Added AVX2/AVX512 detection for Ollama optimization
@@ -192,22 +195,22 @@ All notable changes to this project will be documented in this file.
 ### 📚 Documentation Updates
 
 - **Updated `README.md`**:
+
   - Rebranded from "Intel N100" to "Low-Power x86 Systems"
   - Added support for Intel N-series (N95/N97/N100/N200) and similar low-power processors
   - Updated hardware requirements to reflect broader compatibility
   - Updated architecture diagram with "Low-Power x86" branding
   - Added AI model recommendations for Intel N-series
   - Changed copyright to "Homelab Contributors"
-
 - **New `plans/hardware-agnostic-refactor-plan.md`**: Detailed planning document for the hardware-agnostic architecture
 
 ### 🧹 Cleanup
 
 - **Removed deprecated onboarding documents**:
+
   - Deleted `implementation_plan/homelab_onboarding_v3.docx`
   - Deleted `implementation_plan/homelab_onboarding_v5.docx`
   - Deleted `implementation_plan/homelab_onboarding_v6.docx`
-
 - **Added new implementation plan**: `implementation_plan/openclaw_langgraph_crawl4ai_plan.docx`
 
 ### 🐛 Bug Fixes
@@ -222,18 +225,15 @@ All notable changes to this project will be documented in this file.
 ### 🐛 Bug Fixes
 
 - **config.env.template**: Added missing environment variables:
+
   - `PUID` and `PGID` for user permissions
   - `RENDER_GID` for GPU/VAAPI access (referenced in docker-compose.yml)
   - `NEXTCLOUD_DATA_PATH` for Nextcloud data location
-
 - **setup.sh**: Fixed ANTIGRAVITY_VNC_PASSWORD logic to generate random password if not provided
 - **setup.sh**: Removed duplicate comment for OpenClaw Token
-
 - **docker-compose.yml**: Added healthchecks to docker-proxy and kilo-proxy services
 - **docker-compose.yml**: Fixed service dependencies to use `service_healthy` instead of `service_started`
-
 - **kilo/pipeline/src/services/ollama/client.js**: Fixed Ollama fallback URL from `host.docker.internal` to `ollama` for reliable internal DNS resolution
-
 - **onboard-lib.sh**: Added automatic installation check for `bc` command to prevent hardware detection failures on minimal Ubuntu installations
 
 ## [1.3.0] - 2026-02-28
@@ -241,25 +241,26 @@ All notable changes to this project will be documented in this file.
 ### 🚀 Onboarding Wizard (New Feature)
 
 - **New `onboard.sh` Script**: Added a full-featured bash-based onboarding wizard (v6) that automatically:
+
   - Detects hardware (RAM, CPU cores, GPU type)
   - Classifies hardware into tiers (INSUFFICIENT, MINIMAL, LOW, MID, HIGH, ULTRA)
   - Selects optimal Ollama models based on available resources
   - Calculates performance tuning parameters (threads, GPU layers, flash attention)
   - Supports NVIDIA, AMD ROCm, Apple Silicon (Metal), and Intel iGPU
   - Generates `config.env` with all settings
-
 - **New `onboard-lib.sh`**: Shared library with reusable functions for:
+
   - Hardware detection (RAM, CPU, GPU)
   - Speed classification
   - Model selection by tier
   - Performance calculations
   - Config file generation
-
 - **New `onboard-hardware.sh`**: Isolated hardware detection module designed for unit testing
 
 ### 🔧 Configuration Improvements
 
 - **Extended `config.env.template`**: Added 90+ new configuration options:
+
   - Hardware classification variables (SPEED_CLASS, RESOURCE_TIER)
   - Individual model selection (OLLAMA_DEFAULT_MODEL, OLLAMA_GENERAL_MODEL, OLLAMA_QUICK_MODEL)
   - Performance tuning (OLLAMA_NUM_THREADS, OLLAMA_NUM_GPU, OLLAMA_FLASH_ATTENTION, OLLAMA_METAL)
@@ -267,10 +268,9 @@ All notable changes to this project will be documented in this file.
   - AI mode selection (local, hybrid, cloud-primary)
   - Trust modes (supervised, graduated, autonomous)
   - Legacy variable support for backward compatibility
-
 - **Updated `docker-compose.yml`**: Added Ollama environment variables with proper defaults for all new parameters
-
 - **Updated `setup.sh`**:
+
   - Now loads configuration from `config.env` (generated by onboard.sh)
   - Supports both new OLLAMA_*and legacy MODEL_* variable names
   - Enhanced OpenClaw v9 configuration with Kilo pipeline integration
@@ -279,10 +279,10 @@ All notable changes to this project will be documented in this file.
 ### 🧪 Testing & Validation
 
 - **Updated `test-ai-stack.sh`**:
+
   - Now sources configuration from `config.env`
   - Dynamic model validation based on configured models
   - Supports deduplication of model lists
-
 - **Fixed Bash Compatibility**: Replaced ternary operators with if/else blocks for Bash 3.x compatibility
 
 ### 🤖 Kilo Pipeline Integration
@@ -460,3 +460,4 @@ All notable changes to this project will be documented in this file.
 - 🔒 Traefik dashboard now secured with basic authentication
 - ✅ Environment variable validation prevents incomplete deployments
 - 📅 SSL certificate monitoring with expiry warnings
+  s

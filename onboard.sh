@@ -4,6 +4,57 @@
 # Full-featured bash-based onboarding wizard
 # =============================================================================
 
+# =============================================================================
+# WINDOWS DETECTION - Check if bash is available
+# =============================================================================
+
+# If bash is not available, show Windows installation guide
+if ! command -v bash &>/dev/null; then
+    clear
+    echo ""
+    echo "╔═══════════════════════════════════════════════════════════════════════╗"
+    echo "║            HOMELAB ONBOARDING - BASH REQUIRED                       ║"
+    echo "╚═══════════════════════════════════════════════════════════════════════╝"
+    echo ""
+    echo "This script requires bash, which is not available in your current environment."
+    echo ""
+    echo "You have TWO options to run this script on Windows:"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "OPTION 1: Git Bash (Recommended - Quick setup)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "1. Download: https://git-scm.com/download/win"
+    echo "2. Run installer with default options"
+    echo "3. After install, right-click in folder → 'Git Bash Here'"
+    echo "4. Run: ./onboard.sh"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "OPTION 2: WSL (Full Linux in Windows)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "1. Open PowerShell as Administrator"
+    echo "2. Run: wsl --install"
+    echo "3. Restart computer when prompted"
+    echo "4. In Ubuntu terminal: cd /mnt/c/Users/YOUR_USER/Desktop/homelab"
+    echo "5. Run: ./onboard.sh"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    read -p "Type 'git' to open Git download page, or 'wsl' for WSL help: " CHOICE
+    
+    if [[ "$CHOICE" == "wsl" || "$CHOICE" == "WSL" ]]; then
+        echo ""
+        echo "In PowerShell (as Admin), run: wsl --install"
+        echo "After restart, in Ubuntu: cd /mnt/c/Users/$(whoami)/Desktop/homelab && ./onboard.sh"
+    else
+        echo ""
+        echo "Opening Git download page..."
+        start https://git-scm.com/download/win
+    fi
+    echo ""
+    echo "After installation, run: ./onboard.sh"
+    exit 1
+fi
+
 set -euo pipefail
 
 # =============================================================================
@@ -28,7 +79,14 @@ log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 # SCRIPT DIRECTORY & HARDWARE DETECTION MODULE
 # =============================================================================
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve script directory - handles both ./onboard.sh and bash onboard.sh
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# If SCRIPT_DIR is empty or ".", use current working directory
+if [ -z "$SCRIPT_DIR" ] || [ "$SCRIPT_DIR" = "." ]; then
+    SCRIPT_DIR="$(pwd)"
+fi
+
+echo "DEBUG: Initial SCRIPT_DIR = $SCRIPT_DIR"
 
 # Source shared library for hardware detection, model selection, and config generation
 if [ -f "$SCRIPT_DIR/onboard-lib.sh" ]; then
@@ -122,6 +180,7 @@ spin() {
 # =============================================================================
 
 preflight_checks() {
+    log_info "In preflight_checks, SCRIPT_DIR = $SCRIPT_DIR"
     log_step "Running pre-flight checks..."
     
     # Check if running as root or with sudo
@@ -154,8 +213,14 @@ preflight_checks() {
     
     # Check required files
     # SCRIPT_DIR already defined at top of script
+    log_info "Checking for setup.sh in: $SCRIPT_DIR"
     if [ ! -f "$SCRIPT_DIR/setup.sh" ]; then
-        log_error "setup.sh not found"
+        log_error "setup.sh not found in $SCRIPT_DIR"
+        # Try alternative paths
+        if [ -f "./setup.sh" ]; then
+            log_info "Found setup.sh in current directory"
+        fi
+        ls -la "$SCRIPT_DIR/" 2>/dev/null || log_error "Cannot list SCRIPT_DIR contents"
         exit 1
     fi
     

@@ -186,6 +186,7 @@ async function extractCategoriesNode(state, context) {
 
 /**
  * Node: Extract products from page content.
+ * Enhanced to support JSON-LD and Schema.org for variable products.
  * @param {object} state - Current state
  * @param {object} context - Context
  * @returns {Promise<object>} Updated state
@@ -198,23 +199,86 @@ async function extractProductsNode(state, context) {
         return state;
     }
 
-    if (!last_fetch_result?.links) {
+    if (!last_fetch_result) {
         return state;
     }
 
-    // Extract product links
-    const productPatterns = ['product', 'item', '/p/', '/products/', 'pdp'];
-    const newProducts = last_fetch_result.links.filter(link => {
-        const href = (link.href || '').toLowerCase();
-        const text = (link.text || '').toLowerCase();
-        return productPatterns.some(p => href.includes(p) || text.includes(p));
-    });
+    const foundProducts = [];
 
-    const uniqueProducts = newProducts.filter(
-        p => !state.products.some(existing => existing.href === p.href)
+    // 1. Extract from JSON-LD (Schema.org) - Best for variable products
+    if (last_fetch_result.html) {
+        try {
+            const cheerio = require('cheerio');
+            const $ = cheerio.load(last_fetch_result.html);
+            $('script[type="application/ld+json"]').each((i, el) => {
+                try {
+                    const json = JSON.parse($(el).html());
+                    const productsChunks = Array.isArray(json) ? json : [json];
+
+                    for (const item of productsChunks) {
+                        if (item['@type'] === 'Product' || item['@type'] === 'schema:Product') {
+                            const product = {
+                                name: item.name,
+                                description: item.description,
+                                sku: item.sku,
+                                brand: item.brand?.name || item.brand,
+                                url: item.url || state.current_url,
+                                source: 'json-ld',
+                                variants: []
+                            };
+
+                            // Multi-variant support (Offers)
+                            const offers = Array.isArray(item.offers) ? item.offers : (item.offers ? [item.offers] : []);
+                            for (const offer of offers) {
+                                if (offer['@type'] === 'Offer' || offer['@type'] === 'schema:Offer') {
+                                    product.variants.push({
+                                        price: offer.price,
+                                        currency: offer.priceCurrency,
+                                        availability: offer.availability,
+                                        sku: offer.sku || product.sku
+                                    });
+                                }
+                            }
+
+                            foundProducts.push(product);
+                        }
+                    }
+                } catch (e) {
+                    // Ignore parse errors for specific snippets
+                }
+            });
+        } catch (error) {
+            logger.warn('JSON-LD extraction failed', { error: error.message });
+        }
+    }
+
+    // 2. Extract product links (Fallback/Discovery)
+    if (last_fetch_result.links) {
+        const productPatterns = ['product', 'item', '/p/', '/products/', 'pdp'];
+        const linkProducts = last_fetch_result.links
+            .filter(link => {
+                const href = (link.href || '').toLowerCase();
+                const text = (link.text || '').toLowerCase();
+                return productPatterns.some(p => href.includes(p) || text.includes(p));
+            })
+            .map(link => ({
+                name: link.text,
+                url: link.href,
+                source: 'link'
+            }));
+
+        foundProducts.push(...linkProducts);
+    }
+
+    // Deduplicate and filter new products
+    const uniqueProducts = foundProducts.filter(
+        p => !state.products.some(existing => existing.url === p.url || (existing.sku && existing.sku === p.sku))
     );
 
-    logger.debug('Extracted products', { count: uniqueProducts.length });
+    logger.debug('Extracted products', {
+        count: uniqueProducts.length,
+        jsonLdCount: uniqueProducts.filter(p => p.source === 'json-ld').length
+    });
 
     return {
         ...state,

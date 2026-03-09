@@ -35,6 +35,7 @@ let _lastCheckTime = 0;
 const WOOCOMMERCE_FIELD_MAP = {
     // WooCommerce CSV columns
     ID: 'id',
+    Type: 'type',
     SKU: 'sku',
     Name: 'title',
     Published: 'published',
@@ -59,7 +60,7 @@ const WOOCOMMERCE_FIELD_MAP = {
     Images: 'images',
     'Download limit': 'download_limit',
     'Download expiry': 'download_expiry',
-    Parent: 'parent_id',
+    Parent: 'parent_sku',
     'Grouped products': 'grouped_products',
     Upsells: 'upsell_ids',
     'Cross-sells': 'cross_sell_ids',
@@ -112,58 +113,84 @@ function getExportPath(jobId) {
 }
 
 /**
- * Transform scraped data to WooCommerce format
- * @param {object} item - Scraped item
- * @returns {object} WooCommerce-formatted item
+ * Transform scraped data to one or more WooCommerce rows (Parent + Variations)
+ * @param {object} item - Scraped item (might contain item.variants)
+ * @returns {object[]} Array of WooCommerce-formatted rows
  */
 function transformToWooCommerce(item) {
-    const wooProduct = {};
+    const rows = [];
+    const parentSku = item.sku || item.product_id || `scraped-${Date.now()}`;
 
-    // Map common fields
-    wooProduct.ID = '';
-    wooProduct.SKU = item.sku || item.product_id || '';
-    wooProduct.Name = item.title || item.name || '';
-    wooProduct.Published = '1';
-    wooProduct['Short description'] = item.summary || item.excerpt || '';
-    wooProduct.Description = item.content || item.description || '';
-    wooProduct['Regular price'] = item.price || item.regular_price || '';
-    wooProduct['Sale price'] = item.sale_price || '';
-    wooProduct.Stock = item.stock_quantity || item.stock || '';
-    wooProduct['Stock status'] = item.stock_status || (item.in_stock ? 'instock' : 'outofstock');
-    wooProduct['Weight (kg)'] = item.weight || '';
-    wooProduct['Dimensions (L×W×H cm)'] = item.dimensions || '';
+    // 1. Create Parent Row
+    const parentRow = {
+        ID: '',
+        Type: item.variants?.length > 0 ? 'variable' : 'simple',
+        SKU: parentSku,
+        Name: item.title || item.name || '',
+        Published: '1',
+        'Short description': item.summary || item.excerpt || '',
+        Description: item.content || item.description || '',
+        'Regular price': item.price || item.regular_price || '',
+        'Sale price': item.sale_price || '',
+        Stock: item.stock_quantity || item.stock || '',
+        'Stock status': item.stock_status || (item.in_stock ? 'instock' : 'outofstock'),
+        'Weight (kg)': item.weight || '',
+        'Dimensions (L×W×H cm)': item.dimensions || '',
+        Parent: ''
+    };
 
-    // Categories (semicolon-separated)
+    // Images & Categories
     if (item.categories && Array.isArray(item.categories)) {
-        wooProduct.Categories = item.categories.join('; ');
+        parentRow.Categories = item.categories.join('; ');
     } else if (item.category) {
-        wooProduct.Categories = item.category;
+        parentRow.Categories = item.category;
     }
 
-    // Tags
     if (item.tags && Array.isArray(item.tags)) {
-        wooProduct.Tags = item.tags.join(', ');
+        parentRow.Tags = item.tags.join(', ');
     }
 
-    // Images (comma-separated URLs)
     if (item.images && Array.isArray(item.images)) {
-        wooProduct.Images = item.images.join(', ');
+        parentRow.Images = item.images.join(', ');
     } else if (item.image) {
-        wooProduct.Images = item.image;
+        parentRow.Images = item.image;
     }
 
-    // Attributes (for variations)
-    if (item.attributes && Array.isArray(item.attributes)) {
-        wooProduct['Attribute 1 name'] = 'Variation';
-        wooProduct['Attribute 1 value'] = item.attributes.join(', ');
-        wooProduct['Attribute 1 visible'] = '1';
+    // Attributes hint for parent
+    if (item.variants?.length > 0) {
+        parentRow['Attribute 1 name'] = 'Size/Color/Variant';
+        parentRow['Attribute 1 value'] = item.variants.map(v => v.sku || v.name || 'Variant').join(', ');
+        parentRow['Attribute 1 visible'] = '1';
+        parentRow['Attribute 1 global'] = '1';
     }
 
-    // Meta data
-    wooProduct['Meta: _scraped_url'] = item.url || '';
-    wooProduct['Meta: _scraped_at'] = item.extracted_at || '';
+    parentRow['Meta: _scraped_url'] = item.url || '';
+    parentRow['Meta: _scraped_at'] = item.extracted_at || '';
 
-    return wooProduct;
+    rows.push(parentRow);
+
+    // 2. Create Child Rows (Variations)
+    if (item.variants && Array.isArray(item.variants)) {
+        for (const variant of item.variants) {
+            const childRow = {
+                ID: '',
+                Type: 'variation',
+                SKU: variant.sku || `${parentSku}-${variant.name || 'var'}`,
+                Name: `${parentRow.Name} - ${variant.name || variant.sku}`,
+                Published: '1',
+                'Regular price': variant.price || parentRow['Regular price'],
+                'Sale price': variant.sale_price || '',
+                Stock: variant.stock || '',
+                'Stock status': 'instock',
+                Parent: parentSku,
+                'Attribute 1 name': 'Size/Color/Variant',
+                'Attribute 1 value': variant.sku || variant.name || 'Variant'
+            };
+            rows.push(childRow);
+        }
+    }
+
+    return rows;
 }
 
 /**
@@ -199,7 +226,7 @@ async function exportToNextcloud(jobId, data, format = 'simple') {
 
     switch (format) {
         case EXPORT_FORMATS.WOOCOMMERCE:
-            transformedData = data.map(transformToWooCommerce);
+            transformedData = data.flatMap(transformToWooCommerce);
             fields = Object.keys(WOOCOMMERCE_FIELD_MAP);
             break;
 

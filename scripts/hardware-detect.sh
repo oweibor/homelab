@@ -498,6 +498,51 @@ get_nvenc_av1_support() {
     fi
 }
 
+# Infer GPU memory bandwidth tier based on model
+# Returns: ULTRA (HBM), HIGH (GDDR6X), STANDARD (GDDR6), UNIFIED (Apple), NONE
+# Usage: get_memory_bandwidth_tier
+get_memory_bandwidth_tier() {
+    local gpu_name apple_chip
+    gpu_name=$(get_nvidia_gpu_model)
+    
+    # Check Apple Silicon first
+    if command -v system_profiler &>/dev/null; then
+        apple_chip=$(system_profiler SPHardwareDataType 2>/dev/null | grep "Chip" | awk '{print $NF}')
+        if [ -n "$apple_chip" ]; then
+            echo "UNIFIED"
+            return
+        fi
+    fi
+
+    if [ "$gpu_name" = "none" ]; then
+        # Check AMD (simplified inference)
+        gpu_name=$(get_amd_gpu_model)
+        if [ "$gpu_name" != "none" ]; then
+            # High-end AMD (7900+) has very high GDDR6 bandwidth, but usually classed as Standard/High
+            if echo "$gpu_name" | grep -qiE "(7900|6900|6950)"; then
+                echo "HIGH"
+            else
+                echo "STANDARD"
+            fi
+            return
+        fi
+        echo "NONE"
+        return
+    fi
+
+    # NVIDIA Tiers
+    # ULTRA: HBM2/HBM3 (Data Center / Professional)
+    if echo "$gpu_name" | grep -qiE "(A100|H100|H800|A30|V100|P100|Tesla)"; then
+        echo "ULTRA"
+    # HIGH: GDDR6X (High-end Consumer/Workstation)
+    elif echo "$gpu_name" | grep -qiE "(3080|3090|4070 Ti|4080|4090|6000 Ada|5000 Ada)"; then
+        echo "HIGH"
+    # STANDARD: GDDR6 / GDDR5
+    else
+        echo "STANDARD"
+    fi
+}
+
 # Improved AMD Ryzen detection with better regex
 # Usage: detect_amd_ryzen_full
 detect_amd_ryzen_full() {
@@ -606,6 +651,7 @@ print_hardware_profile() {
     echo "TDP_WATTS=${tdp}"
     echo "GPU_VRAM_GB=${gpu_vram}"
     echo "NVIDIA_GPU_MODEL=${nvidia_model}"
+    echo "MEMORY_BANDWIDTH_TIER=$(get_memory_bandwidth_tier)"
     echo "ENCODER_TYPE=${encoder}"
     printf 'CSTATE_FLAGS=%q\n' "$(get_cstate_flags)"
 }
@@ -633,6 +679,7 @@ print_hardware_summary() {
     echo "  AVX2: $avx2"
     echo "  TDP: ${tdp}W"
     echo "  GPU VRAM: ${gpu_vram}GB"
+    echo "  Memory Tier: $(get_memory_bandwidth_tier)"
     echo "  Encoder: $encoder"
     if [ -n "$cstate" ]; then
         echo "  C-State Flags: $cstate"
