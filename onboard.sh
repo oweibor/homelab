@@ -753,13 +753,21 @@ main() {
     fi
     
     echo ""
-    echo "  ┌─────────────────────────────────────────────────────────────┐"
-    echo "  │  Configuration complete!                                     │"
-    echo "  │                                                             │"
-    echo "  │  Next steps:                                                │"
-    echo "  │    sudo ./setup.sh                                          │"
-    echo "  └─────────────────────────────────────────────────────────────┘"
-    echo ""
+    read -p "  Configuration complete! Start setup.sh now? [y/N]: " START_SETUP
+    if [[ "$START_SETUP" =~ ^[Yy]$ ]]; then
+        echo ""
+        log_info "Launching setup.sh..."
+        exec sudo "$BASE_DIR/setup.sh"
+    else
+        echo ""
+        echo "  ┌─────────────────────────────────────────────────────────────┐"
+        echo "  │  Configuration complete!                                     │"
+        echo "  │                                                             │"
+        echo "  │  Next steps:                                                │"
+        echo "  │    sudo ./setup.sh                                          │"
+        echo "  └─────────────────────────────────────────────────────────────┘"
+        echo ""
+    fi
 }
 
 main "$@"
