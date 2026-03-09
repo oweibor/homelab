@@ -86,16 +86,18 @@ log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 # =============================================================================
 
 # Resolve script directory - handles both ./onboard.sh and bash onboard.sh
-BASE_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-# If BASE_DIR is empty or ".", use current working directory
+# Use a more robust absolute path resolution
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 if [ -z "$BASE_DIR" ] || [ "$BASE_DIR" = "." ]; then
-    BASE_DIR="$(pwd)"
+    BASE_DIR="$(pwd -P)"
 fi
 
-echo "DEBUG: Initial BASE_DIR = $BASE_DIR"
+# Export for sub-shells if needed
+export BASE_DIR
 
 # Source shared library for hardware detection, model selection, and config generation
 if [ -f "$BASE_DIR/onboard-lib.sh" ]; then
+    # shellcheck source=./onboard-lib.sh
     source "$BASE_DIR/onboard-lib.sh"
     log_info "Loaded onboard-lib.sh"
 else
@@ -218,16 +220,17 @@ preflight_checks() {
     fi
     
     # Check required files
-    # BASE_DIR already defined at top of script
     log_info "Checking for setup.sh in: $BASE_DIR"
     if [ ! -f "$BASE_DIR/setup.sh" ]; then
         log_error "setup.sh not found in $BASE_DIR"
-        # Try alternative paths
+        # Try relative as fallback
         if [ -f "./setup.sh" ]; then
-            log_info "Found setup.sh in current directory"
+            BASE_DIR="$(pwd -P)"
+            log_info "Re-resolved BASE_DIR to: $BASE_DIR"
+        else
+            ls -la "$BASE_DIR/" 2>/dev/null || log_error "Cannot list BASE_DIR contents"
+            exit 1
         fi
-        ls -la "$BASE_DIR/" 2>/dev/null || log_error "Cannot list BASE_DIR contents"
-        exit 1
     fi
     
     # Check disk space (10GB minimum)
@@ -614,15 +617,26 @@ main() {
             exit 1
         fi
         
-        # Check for sudo availability
-        if command -v sudo >/dev/null 2>&1; then
+        # Check for Windows/Git Bash environment
+        local is_windows=0
+        if [[ "${OSTYPE:-}" == "msys" || "${OSTYPE:-}" == "cygwin" ]]; then
+            is_windows=1
+        fi
+        
+        # Execution logic
+        if [ "$is_windows" -eq 1 ]; then
+            log_info "Windows detected, launching directly with bash: $setup_path"
+            # Use 'bash' explicitly to avoid execution bit issues
+            exec bash "$setup_path"
+        elif command -v sudo >/dev/null 2>&1; then
             log_info "Launching with sudo: $setup_path"
-            exec sudo "$setup_path"
+            # Use 'sudo bash' to ensure script runs in bash even if sudo environment is restricted
+            exec sudo bash "$setup_path"
         else
             log_warn "sudo not found in PATH."
             if [ "$EUID" -eq 0 ]; then
                 log_info "Already running as root, launching directly..."
-                exec "$setup_path"
+                exec bash "$setup_path"
             else
                 log_error "This script requires root privileges. Please run: sudo ./setup.sh"
                 exit 1
