@@ -27,39 +27,101 @@ log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 # ============================================
 
 # Source hardware detection module with fallback
+# Determine script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export SCRIPT_DIR
 
-# Check for config.env
-if [ ! -f "$SCRIPT_DIR/config.env" ]; then
-    log_error "config.env not found! Please run onboard.sh first to create it."
-    echo "  Expected location: $SCRIPT_DIR/config.env"
-    echo "  Run: ./onboard.sh"
-    exit 1
-fi
-
-log_info "Found config.env"
+# Initial log (config.env check is now handled in main())
+log_info "Initializing Homelab Setup Stack..."
 
 # Source hardware detection module with fallback (matching onboard.sh)
+if [ -f "$SCRIPT_DIR/onboard-lib.sh" ]; then
+    source "$SCRIPT_DIR/onboard-lib.sh"
+    log_info "Loaded onboard-lib.sh"
+fi
+
 if [ -f "$SCRIPT_DIR/scripts/hardware-detect.sh" ]; then
     source "$SCRIPT_DIR/scripts/hardware-detect.sh"
     
     # Detect hardware profile
     HARDWARE_PROFILE=$(get_hardware_profile_v2)
     log_info "Detected hardware profile: $HARDWARE_PROFILE"
-else
-    log_warn "hardware-detect.sh not found, using legacy detection"
-    HARDWARE_PROFILE="unknown"
-    
-    # Fallback functions when hardware-detect.sh is missing
-    get_hardware_profile() { echo "unknown"; }
-    has_quicksync() { echo "0"; }
-    has_avx2() { echo "0"; }
-    has_avx512() { echo "0"; }
-    get_cstate_flags() { echo ""; }
-    detect_cpu_family() { echo "UNKNOWN"; }
-    get_tdp_watts() { echo "15"; }
-    get_encoder_type() { echo "none"; }
 fi
+
+# ============================================
+# ONBOARDING WIZARD FUNCTIONS
+# ============================================
+
+run_onboarding_wizard() {
+    log_step "Starting Homelab Onboarding Wizard..."
+    
+    # 1. Physical detection
+    local RAM_GB=$(detect_ram)
+    local CPU_CORES=$(detect_cpu_cores)
+    local GPU_RES=$(detect_gpu)
+    local GPU_TYPE=$(echo $GPU_RES | awk '{print $1}')
+    local VRAM_GB=$(echo $GPU_RES | awk '{print $2}')
+    
+    # 2. Classification
+    local CLASS_RES=$(classify_hardware "$RAM_GB" "$CPU_CORES" "$GPU_TYPE" "$VRAM_GB")
+    local TIER=$(echo $CLASS_RES | awk '{print $1}')
+    local SPEED_CLASS=$(echo $CLASS_RES | awk '{print $2}')
+    
+    # 3. Interactive Selection (Wizard Style)
+    echo ""
+    echo "  Detected Hardware Summary:"
+    echo "  - RAM: $RAM_GB GB"
+    echo "  - CPU: $CPU_CORES cores"
+    echo "  - GPU: $GPU_TYPE ($VRAM_GB GB VRAM)"
+    echo "  - Tier: $TIER ($SPEED_CLASS)"
+    echo ""
+    
+    echo "  Select Setup Mode:"
+    echo "    1) QuickStart - Use auto hardware defaults (Recommended)"
+    echo "    2) Custom     - Interactively choose models and modes"
+    echo ""
+    read -p "  Select [1]: " MODE_CHOICE
+    MODE_CHOICE="${MODE_CHOICE:-1}"
+    
+    local CODING_MODEL GENERAL_MODEL QUICK_MODEL
+    local AI_MODE="local"
+    local TRUST_MODE="supervised"
+
+    if [ "$MODE_CHOICE" = "2" ]; then
+        # Actually choose models from tiers
+        # (Simplified for now - can use select_models library function)
+        read -r CODING_MODEL GENERAL_MODEL QUICK_MODEL <<< "$(select_models "$TIER" "$GPU_TYPE")"
+        
+        echo ""
+        echo "  Default Models for your system:"
+        echo "  - Coding: $CODING_MODEL"
+        echo "  - General: $GENERAL_MODEL"
+        echo "  - Quick: $QUICK_MODEL"
+        echo ""
+        read -p "  Use these models? [Y/n]: " MODEL_CONFIRM
+        if [[ ! "${MODEL_CONFIRM:-y}" =~ ^[Yy] ]]; then
+            read -p "  Enter Coding Model: " CODING_MODEL
+            read -p "  Enter General Model: " GENERAL_MODEL
+            read -p "  Enter Quick Model: " QUICK_MODEL
+        fi
+        
+        echo ""
+        echo "  Select AI Mode: (1: local, 2: hybrid)"
+        read -p "  Select [1]: " AI_VAL
+        [ "$AI_VAL" = "2" ] && AI_MODE="hybrid" || AI_MODE="local"
+    else
+        # QuickStart
+        read -r CODING_MODEL GENERAL_MODEL QUICK_MODEL <<< "$(select_models "$TIER" "$GPU_TYPE")"
+    fi
+    
+    # 4. Config writing
+    generate_config "$SCRIPT_DIR/config.env" \
+        "$RAM_GB" "$CPU_CORES" "$GPU_TYPE" "$VRAM_GB" \
+        "$TIER" "$SPEED_CLASS" \
+        "$CODING_MODEL" "$GENERAL_MODEL" "$QUICK_MODEL"
+    
+    log_success "Onboarding complete! Configuration saved to config.env"
+}
 
 # Classic spinner (fallback)
 show_spinner() {
@@ -177,25 +239,24 @@ cleanup() {
 trap cleanup EXIT
 
 # ============================================
-# PRE-CHECKS & USER VALIDATION
+# SYSTEM SETUP LOGIC
 # ============================================
-if [ "$EUID" -ne 0 ]; then 
-    log_error "Please run as root: sudo ./setup.sh"
-    exit 1
-fi
 
-# Get the actual user who ran sudo
-ACTUAL_USER="${SUDO_USER:-}"
-if [ -z "$ACTUAL_USER" ] || [ "$ACTUAL_USER" = "root" ]; then
-    log_error "Cannot determine non-root user. Do not run directly as root."
-    log_error "Usage: sudo ./setup.sh"
-    exit 1
-fi
-
-if ! id "$ACTUAL_USER" >/dev/null 2>&1; then
-    log_error "User $ACTUAL_USER does not exist"
-    exit 1
-fi
+run_setup() {
+    log_info "Starting system setup logic..."
+    
+    # Get the actual user who ran sudo/script
+    # If in sudo, SUDO_USER is set. Otherwise use get_actual_user if available
+    if [ -f "$SCRIPT_DIR/onboard-lib.sh" ]; then
+        ACTUAL_USER=$(get_actual_user)
+    else
+        ACTUAL_USER="${SUDO_USER:-$(whoami)}"
+    fi
+    
+    if [ -z "$ACTUAL_USER" ] || [ "$ACTUAL_USER" = "root" ]; then
+        log_error "Cannot determine non-root user. Please run with sudo."
+        exit 1
+    fi
 
 USER_HOME=$(getent passwd "$ACTUAL_USER" | cut -d: -f6)
 if [ -z "$USER_HOME" ] || [ ! -d "$USER_HOME" ]; then
@@ -2002,4 +2063,93 @@ echo "  - docker ps                        # Check running containers"
 echo "  - ip addr show ${INTERFACE:-}      # Verify network config"
 echo "  - bluetoothctl show                # Check Bluetooth status"
 echo ""
-show_success_banner "Setup complete! Enjoy your updated homelab."
+    show_success_banner "Setup complete! Enjoy your updated homelab."
+}
+
+# ============================================
+# MAIN ENTRY POINT
+# ============================================
+
+main() {
+    local force_wizard=0
+    
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --wizard)
+                force_wizard=1
+                shift
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
+
+    # 1. Onboarding check (Smart Auto-Start)
+    if [ "$force_wizard" -eq 1 ] || [ ! -f "$SCRIPT_DIR/config.env" ]; then
+        if [ ! -f "$SCRIPT_DIR/config.env" ]; then
+            echo ""
+            echo "  ┌─────────────────────────────────────────────────────────────┐"
+            echo "  │  Welcome to Homelab Setup!                                   │"
+            echo "  │  No configuration found. I'll run the wizard now.           │"
+            echo "  └─────────────────────────────────────────────────────────────┘"
+            echo ""
+        fi
+        
+        # If running as root, re-run as non-root for wizard (proper file ownership)
+        if [ "$EUID" -eq 0 ]; then
+            if [ -n "$SUDO_USER" ]; then
+                log_info "Re-running wizard as $SUDO_USER for proper file ownership..."
+                exec sudo -u "$SUDO_USER" bash "$0" --wizard
+            fi
+        fi
+        
+        # Run wizard phase
+        run_onboarding_wizard
+        
+        # Ask if they want to proceed with installation or just save config
+        echo ""
+        read -p "  Config saved. Continue with installation? [Y/n]: " CONTINUE
+        if [[ ! "${CONTINUE:-y}" =~ ^[Yy]$ ]]; then
+            log_info "Config saved to config.env. Run './setup.sh' again to install."
+            exit 0
+        fi
+    fi
+
+    # 2. Elevation Check
+    if [ "$EUID" -ne 0 ]; then
+        # Check if we should re-exec as root
+        if command -v sudo >/dev/null 2>&1; then
+            log_info "Elevating to root for installation..."
+            
+            # Filter out --wizard from arguments to avoid repeating it
+            local args=()
+            for arg in "$@"; do
+                [[ "$arg" != "--wizard" ]] && args+=("$arg")
+            done
+            
+            exec sudo bash "$0" "${args[@]}"
+        else
+            log_error "Significant system changes require root. Please run as root."
+            exit 1
+        fi
+    fi
+
+    # 3. Final Execution
+    # Ensure config is loaded
+    if [ -f "$SCRIPT_DIR/config.env" ]; then
+        source "$SCRIPT_DIR/config.env"
+    else
+        log_error "config.env not found even after wizard. Fatal error."
+        exit 1
+    fi
+
+    run_setup
+}
+
+# Trap cleanup for the whole process
+trap cleanup EXIT
+
+# GO!
+main "$@"
