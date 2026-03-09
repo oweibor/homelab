@@ -6,9 +6,9 @@
 # =============================================================================
 
 # Source hardware detection if not already loaded
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -z "$HARDWARE_PROFILE" ]; then
-    source "$SCRIPT_DIR/hardware-detect.sh" 2>/dev/null || true
+MAP_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -z "${HARDWARE_PROFILE:-}" ]; then
+    source "$MAP_SCRIPT_DIR/hardware-detect.sh" 2>/dev/null || true
 fi
 
 # =============================================================================

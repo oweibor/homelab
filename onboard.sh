@@ -80,25 +80,25 @@ log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 # =============================================================================
 
 # Resolve script directory - handles both ./onboard.sh and bash onboard.sh
-SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-# If SCRIPT_DIR is empty or ".", use current working directory
-if [ -z "$SCRIPT_DIR" ] || [ "$SCRIPT_DIR" = "." ]; then
-    SCRIPT_DIR="$(pwd)"
+BASE_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# If BASE_DIR is empty or ".", use current working directory
+if [ -z "$BASE_DIR" ] || [ "$BASE_DIR" = "." ]; then
+    BASE_DIR="$(pwd)"
 fi
 
-echo "DEBUG: Initial SCRIPT_DIR = $SCRIPT_DIR"
+echo "DEBUG: Initial BASE_DIR = $BASE_DIR"
 
 # Source shared library for hardware detection, model selection, and config generation
-if [ -f "$SCRIPT_DIR/onboard-lib.sh" ]; then
-    source "$SCRIPT_DIR/onboard-lib.sh"
+if [ -f "$BASE_DIR/onboard-lib.sh" ]; then
+    source "$BASE_DIR/onboard-lib.sh"
     log_info "Loaded onboard-lib.sh"
 else
     log_warn "onboard-lib.sh not found, using inline functions"
 fi
 
 # Source hardware detection module
-if [ -f "$SCRIPT_DIR/scripts/hardware-detect.sh" ]; then
-    source "$SCRIPT_DIR/scripts/hardware-detect.sh"
+if [ -f "$BASE_DIR/scripts/hardware-detect.sh" ]; then
+    source "$BASE_DIR/scripts/hardware-detect.sh"
     
     # Detect hardware profile (v2 with N305 support)
     HARDWARE_PROFILE=$(get_hardware_profile_v2)
@@ -116,8 +116,8 @@ if [ -f "$SCRIPT_DIR/scripts/hardware-detect.sh" ]; then
     ENCODER_TYPE=$(get_encoder_type)
     
     # Source LLM mapping module
-    if [ -f "$SCRIPT_DIR/scripts/hardware-llm-map.sh" ]; then
-        if source "$SCRIPT_DIR/scripts/hardware-llm-map.sh"; then
+    if [ -f "$BASE_DIR/scripts/hardware-llm-map.sh" ]; then
+        if source "$BASE_DIR/scripts/hardware-llm-map.sh"; then
             # Get hardware-aware LLM models
             LLM_MODELS=$(get_llm_models)
             
@@ -180,7 +180,7 @@ spin() {
 # =============================================================================
 
 preflight_checks() {
-    log_info "In preflight_checks, SCRIPT_DIR = $SCRIPT_DIR"
+    log_info "In preflight_checks, BASE_DIR = $BASE_DIR"
     log_step "Running pre-flight checks..."
     
     # Check if running as root or with sudo
@@ -197,7 +197,7 @@ preflight_checks() {
     elif [ -n "${USER:-}" ]; then
         ACTUAL_USER="$USER"
     else
-        ACTUAL_USER="$(\"whoami\")"
+        ACTUAL_USER="$(whoami)"
     fi
     
     if [ -z "$ACTUAL_USER" ] || [ "$ACTUAL_USER" = "root" ]; then
@@ -212,21 +212,21 @@ preflight_checks() {
     fi
     
     # Check required files
-    # SCRIPT_DIR already defined at top of script
-    log_info "Checking for setup.sh in: $SCRIPT_DIR"
-    if [ ! -f "$SCRIPT_DIR/setup.sh" ]; then
-        log_error "setup.sh not found in $SCRIPT_DIR"
+    # BASE_DIR already defined at top of script
+    log_info "Checking for setup.sh in: $BASE_DIR"
+    if [ ! -f "$BASE_DIR/setup.sh" ]; then
+        log_error "setup.sh not found in $BASE_DIR"
         # Try alternative paths
         if [ -f "./setup.sh" ]; then
             log_info "Found setup.sh in current directory"
         fi
-        ls -la "$SCRIPT_DIR/" 2>/dev/null || log_error "Cannot list SCRIPT_DIR contents"
+        ls -la "$BASE_DIR/" 2>/dev/null || log_error "Cannot list BASE_DIR contents"
         exit 1
     fi
     
     # Check disk space (10GB minimum)
     local available_gb
-    available_gb=$(df -P "$SCRIPT_DIR" | tail -1 | awk '{print int($4/1024/1024)}')
+    available_gb=$(df -P "$BASE_DIR" | tail -1 | awk '{print int($4/1024/1024)}')
     if [ "$available_gb" -lt 10 ]; then
         log_error "Insufficient disk space: ${available_gb}GB (need 10GB)"
         exit 1
@@ -583,7 +583,7 @@ confirm_review() {
 generate_config() {
     log_step "Generating configuration..."
     
-    local config_file="$SCRIPT_DIR/config.env"
+    local config_file="$BASE_DIR/config.env"
     
     # Backup existing config if present
     if [ -f "$config_file" ]; then
@@ -722,9 +722,9 @@ main() {
     
     if [ "$MODE_CHOICE" = "3" ]; then
         # Restore mode
-        if [ -f "$SCRIPT_DIR/config.env" ]; then
+        if [ -f "$BASE_DIR/config.env" ]; then
             log_info "Loading existing config..."
-            . "$SCRIPT_DIR/config.env"
+            . "$BASE_DIR/config.env"
         else
             log_error "No config.env found"
             exit 1
