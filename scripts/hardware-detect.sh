@@ -620,7 +620,7 @@ get_hardware_profile_v2() {
             fi
             ;;
         *)
-            echo "unknown"
+            echo "n100_like"
             ;;
     esac
 }

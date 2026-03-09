@@ -27,25 +27,51 @@ log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 # HARDWARE DETECTION
 # =============================================================================
 
-# Check for bc (required for RAM calculation)
-if ! command -v bc &>/dev/null; then
-    echo "Installing bc (required for hardware detection)..."
-    if command -v apt-get &>/dev/null; then
-        sudo apt-get update && sudo apt-get install -y bc
-    elif command -v yum &>/dev/null; then
-        sudo yum install -y bc
-    elif command -v dnf &>/dev/null; then
-        sudo dnf install -y bc
+# Helper: Robust float math using awk (replaces bc)
+# Usage: calc <expression>
+calc() {
+    awk "BEGIN { print $1 }"
+}
+
+# Helper: Robust GB calculation from KB
+# Usage: calc_gb <kb_value>
+calc_gb() {
+    local kb=$1
+    if [[ -z "$kb" || "$kb" -le 0 ]]; then echo "0.0"; return; fi
+    awk -v kb="$kb" 'BEGIN { printf "%.1f", kb / 1024 / 1024 }'
+}
+
+# Helper: Robust user detection
+# Returns: The non-root user that initiated the script
+get_actual_user() {
+    local actual_user=""
+    if [ -n "${SUDO_USER:-}" ]; then
+        actual_user="$SUDO_USER"
+    elif [ -n "${USERNAME:-}" ]; then
+        actual_user="$USERNAME"
+    elif [ -n "${USER:-}" ]; then
+        actual_user="$USER"
+    else
+        actual_user="$(whoami)"
     fi
-fi
+    
+    # If still root and not in a special testing environment, we might have an issue
+    if [[ "$actual_user" == "root" && "${ALLOW_ROOT:-0}" != "1" ]]; then
+        # Check logged in users
+        actual_user=$(who | awk '{print $1}' | head -1)
+    fi
+    
+    echo "${actual_user:-root}"
+}
 
 detect_ram() {
     # Uses MemAvailable, not total RAM
     local ram_kb
-    ram_kb=$(grep MemAvailable /proc/meminfo | awk '{print $2}')
-    local ram_gb
-    ram_gb=$(echo "scale=1; $ram_kb / 1024 / 1024" | bc)
-    echo "$ram_gb"
+    ram_kb=$(grep MemAvailable /proc/meminfo 2>/dev/null | awk '{print $2}')
+    if [ -z "$ram_kb" ]; then
+        ram_kb=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}')
+    fi
+    calc_gb "${ram_kb:-4194304}"
 }
 
 detect_cpu_cores() {
@@ -113,15 +139,15 @@ classify_hardware() {
     local speed_class="CPU_ONLY"
     
     # Base tier by RAM
-    if (( $(echo "$ram_gb < 3" | bc -l) )); then
+    if (( $(awk -v r="$ram_gb" 'BEGIN { print (r < 3.0) }') )); then
         tier="INSUFFICIENT"
-    elif (( $(echo "$ram_gb < 6" | bc -l) )); then
+    elif (( $(awk -v r="$ram_gb" 'BEGIN { print (r < 6.0) }') )); then
         tier="MINIMAL"
-    elif (( $(echo "$ram_gb < 10" | bc -l) )); then
+    elif (( $(awk -v r="$ram_gb" 'BEGIN { print (r < 10.0) }') )); then
         tier="LOW"
-    elif (( $(echo "$ram_gb < 20" | bc -l) )); then
+    elif (( $(awk -v r="$ram_gb" 'BEGIN { print (r < 20.0) }') )); then
         tier="MID"
-    elif (( $(echo "$ram_gb < 40" | bc -l) )); then
+    elif (( $(awk -v r="$ram_gb" 'BEGIN { print (r < 40.0) }') )); then
         tier="HIGH"
     else
         tier="ULTRA"

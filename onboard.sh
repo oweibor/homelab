@@ -58,6 +58,12 @@ fi
 set -euo pipefail
 
 # =============================================================================
+# ENVIRONMENT SANITIZATION
+# =============================================================================
+# Ensure a basic stable PATH
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${PATH:-}"
+
+# =============================================================================
 # COLORS & UI
 # =============================================================================
 
@@ -235,221 +241,64 @@ preflight_checks() {
     log_info "Pre-flight checks passed (user: $ACTUAL_USER)"
 }
 
-# =============================================================================
-# HARDWARE DETECTION
-# =============================================================================
-
+# Wrapper: Unified hardware detection
 detect_hardware() {
     log_step "Detecting hardware..."
     
     # RAM
-    local ram_kb
-    ram_kb=$(grep MemAvailable /proc/meminfo 2>/dev/null | awk '{print $2}')
-    RAM_GB=$(echo "scale=1; ${ram_kb:-3145728} / 1024 / 1024" | bc 2>/dev/null || echo "3")
-    EFFECTIVE_RAM=$(echo "scale=1; $RAM_GB - 2.0" | bc 2>/dev/null || echo "1")
-    if (( $(echo "$EFFECTIVE_RAM < 0" | bc -l 2>/dev/null || echo 0) )); then
-        EFFECTIVE_RAM=1
+    RAM_GB=$(detect_ram)
+    EFFECTIVE_RAM=$(awk -v r="$RAM_GB" 'BEGIN { printf "%.1f", r - 2.0 }')
+    # Ensure it's not negative
+    if (( $(awk -v e="$EFFECTIVE_RAM" 'BEGIN { print (e < 0.0) }') )); then
+        EFFECTIVE_RAM="0.0"
     fi
     
-    # CPU cores
-    CPU_CORES=$(lscpu 2>/dev/null | awk '/^Core\(s\) per socket/{c=$NF} /^Socket\(s\)/{s=$NF} END{print c*s}' || echo "4")
-    CPU_CORES=${CPU_CORES:-4}
+    CPU_CORES=$(detect_cpu_cores)
     
-    # GPU detection
-    GPU_TYPE="none"
-    VRAM_GB=0
+    # GPU detection (returns "type vram")
+    read -r GPU_TYPE VRAM_GB <<< "$(detect_gpu)"
     
-    # NVIDIA
-    if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null; then
-        GPU_TYPE="nvidia"
-        VRAM_GB=$(nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits 2>/dev/null | awk '{print int($1/1024)}')
-        GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1)
-    fi
+    # Classification
+    read -r TIER SPEED_CLASS <<< "$(classify_hardware "$RAM_GB" "$CPU_CORES" "$GPU_TYPE" "$VRAM_GB")"
     
-    # AMD ROCm
-    if [ "$GPU_TYPE" = "none" ] && command -v rocm-smi &>/dev/null; then
-        if rocm-smi &>/dev/null 2>&1; then
-            GPU_TYPE="amd"
-            local vram_free
-            vram_free=$(rocm-smi --showmeminfo vram 2>/dev/null | grep "Free Memory" | awk '{print $NF}' | head -1)
-            if [ -n "$vram_free" ]; then
-                VRAM_GB=$((vram_free / 1024))
-            fi
-        fi
-    fi
-    
-    # Apple Silicon
-    if [ "$GPU_TYPE" = "none" ] && command -v system_profiler &>/dev/null; then
-        local chip
-        chip=$(system_profiler SPHardwareDataType 2>/dev/null | grep 'Chip' | awk '{print $NF}')
-        if [[ "$chip" =~ Apple ]]; then
-            GPU_TYPE="metal"
-            local total_mem
-            total_mem=$(sysctl -n hw.memsize 2>/dev/null | awk '{printf "%.0f", $1/1073741824}')
-            VRAM_GB=$((total_mem - 2))
-        fi
-    fi
-    
-    # Intel iGPU with QuickSync support
-    if [ "$GPU_TYPE" = "none" ] && lspci 2>/dev/null | grep -qi "vga.*intel"; then
-        # Check if QuickSync is available for hardware acceleration
-        if [ "$HAS_QUICKSYNC" = "1" ]; then
-            GPU_TYPE="quicksync"
-        else
-            GPU_TYPE="igpu"
-        fi
-        VRAM_GB=1
-    fi
-    
-    # Classify hardware
-    classify_hardware
+    # Profile (already detected at top level, but ensure it's synced)
+    HARDWARE_PROFILE=$(get_hardware_profile_v2)
     
     log_info "Detected: ${RAM_GB}GB RAM, ${CPU_CORES} cores, ${GPU_TYPE:-none} (${VRAM_GB}GB VRAM), Profile: ${HARDWARE_PROFILE}"
-    log_info "CPU Features: QuickSync=${HAS_QUICKSYNC}, AVX2=${HAS_AVX2}, AVX512=${HAS_AVX512}, TDP=${TDP_WATTS}W"
+    log_info "Classification: Tier=$TIER, Speed Class=$SPEED_CLASS"
 }
 
-# =============================================================================
-# HARDWARE CLASSIFICATION
-# =============================================================================
-
-classify_hardware() {
-    # Determine tier
-    if (( $(echo "$EFFECTIVE_RAM < 1" | bc -l 2>/dev/null || echo 1) )); then
-        TIER="INSUFFICIENT"
-    elif (( $(echo "$EFFECTIVE_RAM < 4" | bc -l 2>/dev/null || echo 0) )); then
-        TIER="MINIMAL"
-    elif (( $(echo "$EFFECTIVE_RAM < 8" | bc -l 2>/dev/null || echo 0) )); then
-        TIER="LOW"
-    elif (( $(echo "$EFFECTIVE_RAM < 16" | bc -l 2>/dev/null || echo 0) )); then
-        TIER="MID"
-    elif (( $(echo "$EFFECTIVE_RAM < 32" | bc -l 2>/dev/null || echo 0) )); then
-        TIER="HIGH"
-    else
-        TIER="ULTRA"
-    fi
+# Wrapper: Model selection
+select_models_wrapped() {
+    log_step "Selecting optimal models for $TIER tier..."
     
-    # GPU bonus
-    if [ "$GPU_TYPE" = "nvidia" ] || [ "$GPU_TYPE" = "amd" ] || [ "$GPU_TYPE" = "metal" ]; then
-        if [ "$VRAM_GB" -ge 8 ]; then
-            case $TIER in
-                MINIMAL) TIER="LOW" ;;
-                LOW) TIER="MID" ;;
-                MID) TIER="HIGH" ;;
-                HIGH) TIER="ULTRA" ;;
-            esac
-        fi
-    fi
-    
-    # Speed class
-    case $TIER in
-        INSUFFICIENT) SPEED_CLASS="INSUFFICIENT" ;;
-        MINIMAL) SPEED_CLASS="CPU_MARGINAL" ;;
-        LOW) SPEED_CLASS="LOW_CPU" ;;
-        MID)
-            if [ "$GPU_TYPE" = "none" ]; then
-                SPEED_CLASS="LOW_CPU"
-            elif [ "$GPU_TYPE" = "igpu" ] || [ "$GPU_TYPE" = "quicksync" ]; then
-                SPEED_CLASS="IGPU_OK"
-            else
-                SPEED_CLASS="GPU_GOOD"
-            fi
-            ;;
-        HIGH|ULTRA) SPEED_CLASS="GPU_GREAT" ;;
-        *) SPEED_CLASS="UNKNOWN" ;;
-    esac
-}
-
-# =============================================================================
-# MODEL SELECTION
-# =============================================================================
-
-select_models() {
-    log_step "Selecting models for $TIER tier..."
-    
-    case $TIER in
-        INSUFFICIENT)
-            log_error "Insufficient RAM to run AI models"
-            exit 1
-            ;;
-        MINIMAL)
-            CODING_MODEL="qwen2.5-coder:3b"
-            GENERAL_MODEL="llama3.2:3b"
-            QUICK_MODEL="llama3.2:1b"
-            ;;
-        LOW)
-            CODING_MODEL="qwen2.5-coder:3b"
-            GENERAL_MODEL="llama3.2:3b"
-            QUICK_MODEL="qwen2.5:3b"
-            ;;
-        MID)
-            if [ "$GPU_TYPE" = "none" ]; then
-                CODING_MODEL="qwen2.5-coder:7b"
-                GENERAL_MODEL="llama3.2:8b"
-                QUICK_MODEL="phi4-mini:3.8b"
-            else
-                CODING_MODEL="qwen2.5-coder:7b"
-                GENERAL_MODEL="llama3.2:8b"
-                QUICK_MODEL="phi4-mini:3.8b"
-            fi
-            ;;
-        HIGH)
-            CODING_MODEL="qwen2.5-coder:14b"
-            GENERAL_MODEL="mistral-small:22b"
-            QUICK_MODEL="phi4-mini:3.8b"
-            ;;
-        ULTRA)
-            CODING_MODEL="deepseek-r1-distill:14b"
-            GENERAL_MODEL="qwen2.5:32b"
-            QUICK_MODEL="phi4-mini:3.8b"
-            ;;
-    esac
+    # Use library function (returns "coding general quick")
+    read -r CODING_MODEL GENERAL_MODEL QUICK_MODEL <<< "$(select_models "$TIER" "$GPU_TYPE")"
     
     log_info "Selected: $CODING_MODEL (coding), $GENERAL_MODEL (general), $QUICK_MODEL (quick)"
 }
 
-# =============================================================================
-# PERFORMANCE CALCULATIONS
-# =============================================================================
-
-calculate_performance() {
-    # Threads
-    if [ "$GPU_TYPE" = "metal" ]; then
-        if [ "$CPU_CORES" -gt 8 ]; then
-            OLLAMA_THREADS=8
-        else
-            OLLAMA_THREADS=$CPU_CORES
-        fi
-    else
-        OLLAMA_THREADS=$((CPU_CORES * 75 / 100))
-        [ "$OLLAMA_THREADS" -lt 1 ] && OLLAMA_THREADS=1
-        [ "$OLLAMA_THREADS" -gt 12 ] && OLLAMA_THREADS=12
-    fi
+# Wrapper: Performance calculation
+calculate_performance_wrapped() {
+    log_step "Calculating performance parameters..."
     
-    # GPU layers
+    OLLAMA_THREADS=$(calculate_threads "$CPU_CORES" "$GPU_TYPE")
+    
+    # GPU layers and Flash Attention
     OLLAMA_NUM_GPU=0
-    if [ "$GPU_TYPE" = "nvidia" ] || [ "$GPU_TYPE" = "amd" ]; then
-        [ "$VRAM_GB" -ge 6 ] && OLLAMA_NUM_GPU=999
-    elif [ "$GPU_TYPE" = "metal" ]; then
-        OLLAMA_NUM_GPU=999
+    if [[ "$GPU_TYPE" == "nvidia" || "$GPU_TYPE" == "amd" || "$GPU_TYPE" == "metal" ]]; then
+        if [ "$VRAM_GB" -ge 6 ]; then
+            OLLAMA_NUM_GPU=999
+        fi
     fi
     
-    # Flash attention - enable for GPU or when CPU has AVX2/AVX512
-    if [ "$GPU_TYPE" = "nvidia" ] || [ "$GPU_TYPE" = "metal" ]; then
+    FLASH_ATTN=0
+    if [[ "$GPU_TYPE" == "nvidia" || "$GPU_TYPE" == "metal" || "$HAS_AVX2" == "1" ]]; then
         FLASH_ATTN=1
-    elif [ "$HAS_AVX2" = "1" ] || [ "$HAS_AVX512" = "1" ]; then
-        FLASH_ATTN=1
-    else
-        FLASH_ATTN=0
     fi
     
-    # Metal
-    [ "$GPU_TYPE" = "metal" ] && METAL=1 || METAL=0
-    
-    # QuickSync optimization - reduce threads for iGPU encoding
-    if [ "$GPU_TYPE" = "quicksync" ]; then
-        # QuickSync uses iGPU for encoding, limit CPU threads
-        [ "$OLLAMA_THREADS" -gt 4 ] && OLLAMA_THREADS=4
-    fi
+    METAL=0
+    if [ "$GPU_TYPE" = "metal" ]; then METAL=1; fi
 }
 
 # =============================================================================
@@ -731,8 +580,8 @@ main() {
         fi
     else
         # Auto-select models
-        select_models
-        calculate_performance
+        select_models_wrapped
+        calculate_performance_wrapped
         show_model_selection
         
         if [ "$MODE_CHOICE" = "2" ]; then
@@ -756,8 +605,29 @@ main() {
     read -p "  Configuration complete! Start setup.sh now? [y/N]: " START_SETUP
     if [[ "$START_SETUP" =~ ^[Yy]$ ]]; then
         echo ""
-        log_info "Launching setup.sh..."
-        exec sudo "$BASE_DIR/setup.sh"
+        log_info "Preparing to launch setup.sh..."
+        
+        # Absolute path verification
+        local setup_path="$BASE_DIR/setup.sh"
+        if [ ! -f "$setup_path" ]; then
+            log_error "Critical: setup.sh not found at: $setup_path"
+            exit 1
+        fi
+        
+        # Check for sudo availability
+        if command -v sudo >/dev/null 2>&1; then
+            log_info "Launching with sudo: $setup_path"
+            exec sudo "$setup_path"
+        else
+            log_warn "sudo not found in PATH."
+            if [ "$EUID" -eq 0 ]; then
+                log_info "Already running as root, launching directly..."
+                exec "$setup_path"
+            else
+                log_error "This script requires root privileges. Please run: sudo ./setup.sh"
+                exit 1
+            fi
+        fi
     else
         echo ""
         echo "  ┌─────────────────────────────────────────────────────────────┐"
