@@ -179,7 +179,7 @@ get_gpu_vram_gb() {
     if command -v rocm-smi &>/dev/null; then
         if rocm-smi &>/dev/null 2>&1; then
             local vram_mb
-            vram_mb=$(rocm-smi --showmeminfo vram 2>/dev/null | grep "Total Memory" | awk '{print $NF}' | head -1)
+            vram_mb=$(rocm-smi --showmeminfo vram 2>/dev/null | grep "Total Memory" | awk '{print $NF}' | head -1 | tr -cd '0-9')
             # Convert MB to GB, default to 0 if empty
             if [ -n "$vram_mb" ]; then
                 vram_gb=$((vram_mb / 1024))
@@ -195,7 +195,7 @@ get_gpu_vram_gb() {
         chip=$(system_profiler SPHardwareDataType 2>/dev/null | grep "Chip" | awk '{print $NF}')
         if [ -n "$chip" ]; then
             local total_mem
-            total_mem=$(sysctl -n hw.memsize 2>/dev/null)
+            total_mem=$(sysctl -n hw.memsize 2>/dev/null | tr -cd '0-9')
             if [ -n "$total_mem" ]; then
                 vram_gb=$((total_mem / 1024 / 1024 / 1024))
             fi
@@ -209,8 +209,8 @@ get_gpu_vram_gb() {
     if lspci 2>/dev/null | grep -qi "vga.*intel"; then
         # Estimate based on total system RAM
         local total_mem
-        total_mem=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}')
-        local total_gb=$((total_mem / 1024 / 1024))
+        total_mem=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}' | tr -cd '0-9')
+        local total_gb=$((${total_mem:-0} / 1024 / 1024))
         
         # iGPU typically gets 1-2GB from system RAM
         if [ "$total_gb" -ge 16 ]; then
@@ -388,7 +388,7 @@ get_total_ram_gb() {
     case "$(uname)" in
         Linux)
             # Linux: read from /proc/meminfo
-            total_mem=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}')
+            total_mem=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}' | tr -cd '0-9')
             if [ -n "$total_mem" ]; then
                 echo $((total_mem / 1024 / 1024))
             else
@@ -398,7 +398,7 @@ get_total_ram_gb() {
         Darwin)
             # macOS: use sysctl
             local mem_bytes
-            mem_bytes=$(sysctl -n hw.memsize 2>/dev/null)
+            mem_bytes=$(sysctl -n hw.memsize 2>/dev/null | tr -cd '0-9')
             if [ -n "$mem_bytes" ]; then
                 echo $((mem_bytes / 1024 / 1024 / 1024))
             else
@@ -408,7 +408,7 @@ get_total_ram_gb() {
         *)
             # Try wsl.exe for Windows WSL, or default
             if command -v wsl.exe &>/dev/null; then
-                total_mem=$(wsl.exe grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}')
+                total_mem=$(wsl.exe grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}' | tr -cd '0-9')
                 if [ -n "$total_mem" ]; then
                     echo $((total_mem / 1024 / 1024))
                 else
