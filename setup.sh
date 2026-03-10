@@ -379,11 +379,12 @@ systemctl start bluetooth 2>/dev/null || log_warn "Could not start Bluetooth ser
 
 # Verify Bluetooth hardware
 if command -v bluetoothctl &> /dev/null; then
-     if bluetoothctl show | grep -q "Controller"; then
+    # Use timeout to prevent hanging on systems without Bluetooth or in containers
+    if timeout 5 bluetoothctl show 2>/dev/null | grep -q "Controller"; then
         log_info "Bluetooth controller detected via bluetoothctl"
-     else
-        log_warn "No Bluetooth controller found via bluetoothctl"
-     fi
+    else
+        log_warn "No Bluetooth controller found via bluetoothctl (timeout or no hardware)"
+    fi
 elif command -v hcitool &> /dev/null && hcitool dev 2>/dev/null | grep -q "hci"; then
     log_info "Bluetooth hardware detected via hcitool:"
     hcitool dev | grep hci
