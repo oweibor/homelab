@@ -59,8 +59,8 @@ run_onboarding_wizard() {
     local RAM_GB=$(detect_ram)
     local CPU_CORES=$(detect_cpu_cores)
     local GPU_RES=$(detect_gpu)
-    local GPU_TYPE=$(echo $GPU_RES | awk '{print $1}')
-    local VRAM_GB=$(echo $GPU_RES | awk '{print $2}')
+    local GPU_TYPE=$(echo "$GPU_RES" | awk '{print $1}')
+    local VRAM_GB=$(echo "$GPU_RES" | awk '{print $2}')
     
     # 2. Classification
     local CLASS_RES=$(classify_hardware "$RAM_GB" "$CPU_CORES" "$GPU_TYPE" "$VRAM_GB")
@@ -100,9 +100,18 @@ run_onboarding_wizard() {
         echo ""
         read -p "  Use these models? [Y/n]: " MODEL_CONFIRM
         if [[ ! "${MODEL_CONFIRM:-y}" =~ ^[Yy] ]]; then
-            read -p "  Enter Coding Model: " CODING_MODEL
-            read -p "  Enter General Model: " GENERAL_MODEL
-            read -p "  Enter Quick Model: " QUICK_MODEL
+            while true; do
+                read -p "  Enter Coding Model: " CODING_MODEL
+                read -p "  Enter General Model: " GENERAL_MODEL
+                read -p "  Enter Quick Model: " QUICK_MODEL
+                if [[ "$CODING_MODEL" =~ ^[a-zA-Z0-9:\.-]+$ ]] && \
+                   [[ "$GENERAL_MODEL" =~ ^[a-zA-Z0-9:\.-]+$ ]] && \
+                   [[ "$QUICK_MODEL" =~ ^[a-zA-Z0-9:\.-]+$ ]]; then
+                    break
+                else
+                    echo "  [!] Invalid model format. Use alphanumeric characters, colons, or dashes."
+                fi
+            done
         fi
         
         echo ""
@@ -221,16 +230,10 @@ cleanup() {
             log_info "Backup restored."
         fi
 
-        # Stop any started containers if we were in the middle of deployment
+        # Note: We intentionally do not run `docker compose down` here.
+        # Tearing down the stack on a failed update could destroy a working production environment.
         if [ -n "${HOMELAB_DIR:-}" ] && [ -f "$HOMELAB_DIR/docker-compose.yml" ]; then
-             # Check if docker is running first
-             if systemctl is-active --quiet docker; then
-                 log_warn "Stopping any started containers..."
-                 # We need to su to the user to run docker compose down correctly with user context
-                 if [ -n "${ACTUAL_USER:-}" ]; then
-                     su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose down" 2>/dev/null || true
-                 fi
-             fi
+            log_warn "If containers were partially deployed, they have been left running to prevent data loss."
         fi
         log_error "Setup failed. Check logs above for details."
     fi
@@ -320,10 +323,14 @@ show_step_header "1" "Updating Ubuntu & Installing Dependencies"
 export DEBIAN_FRONTEND=noninteractive
 
 apt update -qq &
-show_fancy_spinner $! "Updating package lists"
+APT_PID=$!
+show_fancy_spinner $APT_PID "Updating package lists"
+wait $APT_PID || { log_error "apt update failed"; exit 1; }
 
 apt upgrade -y -qq &
-show_fancy_spinner $! "Upgrading packages (this may take a while)"
+APT_PID=$!
+show_fancy_spinner $APT_PID "Upgrading packages (this may take a while)"
+wait $APT_PID || { log_error "apt upgrade failed"; exit 1; }
 
 apt install -y -qq \
     ca-certificates \
@@ -337,7 +344,9 @@ apt install -y -qq \
     dbus \
     cpufrequtils \
     openssl 2>&1 | grep -v "already installed" || true &
-show_fancy_spinner $! "Installing dependencies"
+APT_PID=$!
+show_fancy_spinner $APT_PID "Installing dependencies"
+wait $APT_PID || { log_error "Failed to install dependencies"; exit 1; }
 
 unset DEBIAN_FRONTEND
 show_success_banner "System updated successfully"
@@ -472,6 +481,7 @@ else
         echo "Auto-selected: $INTERFACE"
         
         TIMEOUT_OCCURRED=false
+        USER_INPUT=""
         read -t 30 -p "Accept auto-selection? (Y/n): " USER_INPUT || TIMEOUT_OCCURRED=true
         
         if [ "$TIMEOUT_OCCURRED" != "true" ]; then
@@ -825,10 +835,8 @@ else
     # Backup GRUB config
     cp "$GRUB_FILE" "${GRUB_FILE}.backup-$(date +%Y%m%d-%H%M%S)"
 
-    # Only append if not present - Safer sed to target the closing quote of the variable
-    # NOTE: This assumes GRUB_CMDLINE_LINUX_DEFAULT is on one line and ends with a double quote.
-    # Standard Ubuntu Server defaults match this.
-    if sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/"$/ '"$FLAGS"'"/' "$GRUB_FILE"; then
+    # Only append if not present - robust regex to insert flags before the closing quote
+    if sed -i -E 's/^(GRUB_CMDLINE_LINUX_DEFAULT=".*)(".*)/\1 '"$FLAGS"'\2/' "$GRUB_FILE"; then
         update-grub
         GRUB_MODIFIED=true
         log_info "GRUB updated (backup saved)"
@@ -873,9 +881,11 @@ declare -a DIRS=(
     "homeassistant"
     "plex/config"
     "plex/transcode"
-    "jellyfin/config"
     "jellyfin/cache"
-    "onlyoffice/{logs,data,lib,db}"
+    "onlyoffice/logs"
+    "onlyoffice/data"
+    "onlyoffice/lib"
+    "onlyoffice/db"
     "nextcloud/data"
     "media"
     "n8n"
@@ -903,12 +913,8 @@ declare -a DIRS=(
 )
 
 for dir in "${DIRS[@]}"; do
-    # Handle brace expansion for directories like "onlyoffice/{logs,data,lib,db}"
-    # This creates multiple directories if braces are present
-    eval "mkdir -p \"$HOMELAB_DIR/$dir\""
-    # Chown the parent directory or the individual directories created by brace expansion
-    # For simplicity, chown the base path, assuming subdirs inherit or are handled by docker later
-    chown -R "$ACTUAL_USER:$ACTUAL_USER" "$(echo "$HOMELAB_DIR/$dir" | cut -d'{' -f1)"
+    mkdir -p "$HOMELAB_DIR/$dir"
+    chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/$dir"
 done
 
 # Ensure Nextcloud Obsidian vault path exists
@@ -970,7 +976,7 @@ if ! curl -sfL https://github.com/hacs/integration/releases/latest/download/hacs
 else
     # Install unzip if missing (required for HACS)
     if ! command -v unzip >/dev/null 2>&1; then
-        apt-get install -y unzip >/dev/null 2>&1
+        apt-get install -y unzip >/dev/null 2>&1 || log_warn "Failed to install unzip. HACS setup may fail."
     fi
     unzip -qo "$HOMELAB_DIR/hacs.zip" -d "$HACS_DIR"
     rm "$HOMELAB_DIR/hacs.zip"
@@ -1172,8 +1178,8 @@ if ! command -v node &>/dev/null; then
     log_info "Installing Node.js 20 LTS..."
     # Check if we're on a Debian-based system
     if [ -f /etc/debian_version ]; then
-        curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >/dev/null 2>&1
-        apt install -y -qq nodejs >/dev/null 2>&1
+        curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >/dev/null 2>&1 || true
+        apt install -y -qq nodejs >/dev/null 2>&1 || log_warn "Failed to install nodejs via apt"
     else
         # Fallback for non-Debian systems - try package manager or nvm
         if command -v dnf &>/dev/null; then
@@ -1240,10 +1246,16 @@ mkdir -p "$OPENCLAW_CONFIG_DIR"
 # Load model configuration from config.env if available
 CONFIG_ENV_FILE="$HOMELAB_DIR/.env"
 if [ -f "$CONFIG_ENV_FILE" ]; then
-    # Temporarily auto-export all variables from config, then source
-    set -a
-    source "$CONFIG_ENV_FILE"
-    set +a
+    # Safely export variables without evaluating arbitrary strings
+    while IFS='=' read -r key val; do
+        [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]] && continue
+        # Strip exact leading/trailing single/double quotes safely
+        val="${val%\"}"
+        val="${val#\"}"
+        val="${val%\'}"
+        val="${val#\'}"
+        export "$key=$val"
+    done < "$CONFIG_ENV_FILE"
 fi
 
 # Set defaults if not loaded from config
@@ -1283,7 +1295,8 @@ else
 fi
 
 # 2. Generate OpenClaw Config (Dynamic Model Routing)
-cat > "$OPENCLAW_CONFIG_FILE" <<EOF
+TEMP_JSON=$(mktemp)
+cat > "$TEMP_JSON" <<EOF
 {
   "_meta": {
     "version": "v9",
@@ -1469,6 +1482,20 @@ cat > "$OPENCLAW_CONFIG_FILE" <<EOF
   }
 }
 EOF
+
+if command -v jq >/dev/null 2>&1; then
+    if jq . "$TEMP_JSON" >/dev/null 2>&1; then
+        mv "$TEMP_JSON" "$OPENCLAW_CONFIG_FILE"
+        log_info "OpenClaw configuration validated and saved."
+    else
+        log_error "Generated OpenClaw JSON is invalid! Please check variables."
+        mv "$TEMP_JSON" "$OPENCLAW_CONFIG_FILE.invalid"
+        log_warn "Saved invalid config to $OPENCLAW_CONFIG_FILE.invalid for debugging."
+    fi
+else
+    mv "$TEMP_JSON" "$OPENCLAW_CONFIG_FILE"
+fi
+
 chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/openclaw"
 log_info "OpenClaw configured: Coding=$MODEL_CODING, General=$MODEL_GENERAL, Quick=$MODEL_QUICK"
 
@@ -1722,8 +1749,10 @@ echo "MODEL_QUICK=$MODEL_QUICK" >> "$ENV_FILE"
 echo ""
 log_info "Plex server claim token (from https://plex.tv/claim, expires in 4 minutes)"
 log_warn "Leave blank if this server is already claimed or you'll claim it later."
+# Initialize to empty string first to handle edge cases with set -e
+PLEX_CLAIM_INPUT=""
 read -p "PLEX_CLAIM (or Enter to skip): " PLEX_CLAIM_INPUT
-if [ -n "${PLEX_CLAIM_INPUT:-}" ]; then
+if [ -n "${PLEX_CLAIM_INPUT}" ]; then
     echo "PLEX_CLAIM=$PLEX_CLAIM_INPUT" >> "$ENV_FILE"
 else
     echo "PLEX_CLAIM=" >> "$ENV_FILE"
@@ -1867,9 +1896,9 @@ show_step_header "10" "Downloading Ollama Model"
 
 log_info "Waiting for Ollama API (max 60s)..."
 TIMEOUT=60
-until curl -s http://localhost:11434/api/tags >/dev/null 2>&1 || [ $TIMEOUT -eq 0 ]; do
+until curl -s http://localhost:11434/api/tags >/dev/null 2>&1 || [ $TIMEOUT -le 0 ]; do
     sleep 2
-    ((TIMEOUT-=2))
+    ((TIMEOUT-=2)) || true
 done
 
 if [ $TIMEOUT -gt 0 ]; then
@@ -1879,8 +1908,10 @@ if [ $TIMEOUT -gt 0 ]; then
     
     # Iterate through models and pull each one
     for model in $OLLAMA_MODEL; do
-        (su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose exec -T ollama ollama pull '$model'" >/dev/null 2>&1) &
-        show_fancy_spinner $! "Ollama model: $model"
+        su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose exec -T ollama ollama pull '$model'" >/dev/null 2>&1 &
+        MOD_PID=$!
+        show_fancy_spinner $MOD_PID "Ollama model: $model"
+        wait $MOD_PID || log_warn "Ollama model download failed for $model"
     done
     show_success_banner "Ollama models downloaded successfully"
 else
@@ -2033,12 +2064,12 @@ chmod +x "$HOMELAB_DIR/update.sh"
 chmod +x "$HOMELAB_DIR/backup-homelab.sh"
 
 # Register weekly SSL check cron job (Every Sunday at midnight)
-CRON_JOB="0 0 * * 0 $HOMELAB_DIR/check-ssl-expiry.sh >/dev/null 2>&1"
+CRON_JOB="0 0 * * 0 $HOMELAB_DIR/check-ssl-expiry.sh >> /var/log/homelab-cron.log 2>&1"
 (crontab -l 2>/dev/null | grep -v "check-ssl-expiry.sh"; echo "$CRON_JOB") | crontab -
 log_success "Weekly SSL monitoring cron job registered."
 
 # Register weekly Homelab backup cron job (Every Sunday at 2 AM)
-BACKUP_CRON="0 2 * * 0 $HOMELAB_DIR/backup-homelab.sh >/dev/null 2>&1"
+BACKUP_CRON="0 2 * * 0 $HOMELAB_DIR/backup-homelab.sh >> /var/log/homelab-cron.log 2>&1"
 (crontab -l 2>/dev/null | grep -v "backup-homelab.sh"; echo "$BACKUP_CRON") | crontab -
 log_success "Weekly automated backup cron job registered (Sundays at 2 AM)."
 

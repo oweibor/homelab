@@ -36,8 +36,9 @@ calc() {
 # Helper: Robust GB calculation from KB
 # Usage: calc_gb <kb_value>
 calc_gb() {
-    local kb=$1
-    if [[ -z "$kb" || "$kb" -le 0 ]]; then echo "0.0"; return; fi
+    local kb
+    kb=$(echo "$1" | tr -cd '0-9')
+    if [[ -z "$kb" ]] || [[ "$kb" -le 0 ]]; then echo "0.0"; return; fi
     awk -v kb="$kb" 'BEGIN { printf "%.1f", kb / 1024 / 1024 }'
 }
 
@@ -97,8 +98,9 @@ detect_gpu() {
     if [ "$gpu_type" = "none" ] && command -v rocm-smi &>/dev/null; then
         if rocm-smi &>/dev/null; then
             gpu_type="amd"
-            vram_gb=$(rocm-smi --showmeminfo vram 2>/dev/null | grep "Free Memory" | awk '{print $NF}' | head -1)
-            vram_gb=$((vram_gb / 1024))
+            local vram_mb
+            vram_mb=$(rocm-smi --showmeminfo vram 2>/dev/null | grep "Free Memory" | awk '{print $NF}' | head -1 | tr -cd '0-9')
+            vram_gb=$((${vram_mb:-0} / 1024))
         fi
     fi
     
@@ -109,8 +111,9 @@ detect_gpu() {
         if [[ "$chip" =~ Apple ]]; then
             gpu_type="metal"
             local total_mem
-            total_mem=$(sysctl -n hw.memsize 2>/dev/null | awk '{printf "%.0f", $1/1073741824}')
-            vram_gb=$((total_mem - 2))  # Reserve 2GB for OS
+            total_mem=$(sysctl -n hw.memsize 2>/dev/null | tr -cd '0-9')
+            total_mem=$(( ${total_mem:-0} / 1073741824 ))
+            vram_gb=$(( total_mem > 2 ? total_mem - 2 : 0 ))  # Reserve 2GB for OS
         fi
     fi
     

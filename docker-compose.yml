@@ -71,7 +71,7 @@ services:
       - "homepage.description=Smart home platform"
       - "homepage.widget.type=homeassistant"
       - "homepage.widget.url=http://host.docker.internal:8123"
-      - "homepage.widget.key=${HOME_ASSISTANT_TOKEN}"
+      - "homepage.widget.key=${HOME_ASSISTANT_TOKEN:-}"
     logging:
       driver: "json-file"
       options:
@@ -87,7 +87,7 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
-      - PLEX_CLAIM=${PLEX_CLAIM}
+      - PLEX_CLAIM=${PLEX_CLAIM:-}
       - PLEX_HW_ACCEL=${PLEX_HW_ACCEL:-disabled}
       - PLEX_TRANSCODE=${PLEX_TRANSCODE_HW:-0}
     devices:
