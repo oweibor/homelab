@@ -367,7 +367,7 @@ else
 fi
 
 # Unblock Bluetooth
-if rfkill list bluetooth 2>/dev/null | grep -q "yes"; then
+if rfkill list bluetooth 2>/dev/null | grep -qiE "(blocked|yes)"; then
     log_warn "Bluetooth is blocked. Unblocking now..."
     rfkill unblock bluetooth
     sleep 1
@@ -539,31 +539,40 @@ if grep -rIq "dhcp4: no" /etc/netplan/ 2>/dev/null; then
     if [[ ! "${RECONFIG:-no}" =~ ^[Yy][Ee]?[Ss]?$ ]]; then
         log_info "Keeping existing configuration"
         SKIP_NETWORK=true
+    else
+        # User wants to reconfigure - clear the flag to proceed with manual config
+        SKIP_NETWORK=false
+    fi
+else
+    # No existing static config - offer to configure current IP as static
+    if [ -n "${CURRENT_IP:-}" ]; then
+        read -p "Configure current IP ($CURRENT_IP) as static? (yes/no) [yes]: " CONFIG_STATIC
+        if [[ "${CONFIG_STATIC:-yes}" =~ ^[Yy][Ee]?[Ss]?$ ]] || [ -z "${CONFIG_STATIC:-}" ]; then
+            # Use current IP as static - set up variables for netplan generation
+            NEW_IP="${CURRENT_IP}"
+            # Network configuration will be generated below
+            log_info "Will configure current IP as static: $NEW_IP/$PREFIX"
+        else
+            # User declined - skip redundant prompt below
+            SKIP_NETWORK=true
+            CONFIGURED_IP=${CURRENT_IP:-}
+        fi
     fi
 fi
 
 # Configure static IP
 if [ "${SKIP_NETWORK:-false}" != "true" ]; then
-    read -p "Configure static IP? (yes/no) [no]: " OPTION
-    if [[ "${OPTION:-no}" =~ ^[Yy][Ee]?[Ss]?$ ]]; then
-        
-        log_info "Would you like to manually assign an IP address? (yes/no) [no]"
-        read -p "Choice: " MANUAL_IP
+    # If NEW_IP was already set (from earlier prompt), skip the static IP question
+    if [ -n "${NEW_IP:-}" ]; then
+        log_info "Using current IP as static: $NEW_IP/$PREFIX"
+    else
+        read -p "Configure static IP? (yes/no) [no]: " OPTION
+        if [[ "${OPTION:-no}" =~ ^[Yy][Ee]?[Ss]?$ ]]; then
+            
+            log_info "Would you like to manually assign an IP address? (yes/no) [no]"
+            read -p "Choice: " MANUAL_IP
 
-        if [[ "${MANUAL_IP:-no}" =~ ^[Yy][Ee]?[Ss]?$ ]]; then
-            while true; do
-                read -p "Enter IP address: " NEW_IP
-                if validate_ip "$NEW_IP"; then
-                    break
-                else
-                    log_error "Invalid IP address format. Please try again."
-                fi
-            done
-            log_info "Will configure static IP: $NEW_IP"
-        else
-            NEW_IP=${CURRENT_IP:-}
-            if [ -z "$NEW_IP" ]; then
-                log_warn "No current DHCP IP detected. Please enter a static IP manually."
+            if [[ "${MANUAL_IP:-no}" =~ ^[Yy][Ee]?[Ss]?$ ]]; then
                 while true; do
                     read -p "Enter IP address: " NEW_IP
                     if validate_ip "$NEW_IP"; then
@@ -574,9 +583,30 @@ if [ "${SKIP_NETWORK:-false}" != "true" ]; then
                 done
                 log_info "Will configure static IP: $NEW_IP"
             else
-                log_info "Will make current DHCP IP ($CURRENT_IP) static"
+                NEW_IP=${CURRENT_IP:-}
+                if [ -z "$NEW_IP" ]; then
+                    log_warn "No current DHCP IP detected. Please enter a static IP manually."
+                    while true; do
+                        read -p "Enter IP address: " NEW_IP
+                        if validate_ip "$NEW_IP"; then
+                            break
+                        else
+                            log_error "Invalid IP address format. Please try again."
+                        fi
+                    done
+                    log_info "Will configure static IP: $NEW_IP"
+                else
+                    log_info "Will make current DHCP IP ($CURRENT_IP) static"
+                fi
             fi
+        else
+            log_info "Skipping static IP configuration"
+            CONFIGURED_IP=${CURRENT_IP:-}
         fi
+    fi
+    
+    # If NEW_IP is set (either from above or from earlier prompt), generate netplan config
+    if [ -n "${NEW_IP:-}" ]; then
 
         # Get gateway if not detected
         while [ -z "${GATEWAY:-}" ]; do
@@ -679,9 +709,6 @@ EOF
             netplan apply
             exit 1
         fi
-    else
-        log_info "Skipping static IP configuration"
-        CONFIGURED_IP=${CURRENT_IP:-}
     fi
 else
     CONFIGURED_IP=${CURRENT_IP:-}
@@ -871,9 +898,8 @@ declare -a DIRS=(
     "kilo/.kilo/reasoning"
     "kilo/.kilo/rejected"
     "kilo/.kilo/staging" # Added this as it was missing from the original list
-    # Obsidian & RAG directories (Phase 8)
+    # Obsidian directory (Phase 8)
     "obsidian/config"
-    "anythingllm/storage"
 )
 
 for dir in "${DIRS[@]}"; do
@@ -913,7 +939,6 @@ chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/nextcloud"
 chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/homepage"
 chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/kilo"
 chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/obsidian"
-chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/anythingllm"
 
 # Correctly use user's UID for n8n ownership (usually maps to 1000, but safer to use PUID)
 chown -R "$PUID:$PGID" "$HOMELAB_DIR/n8n"
@@ -1032,7 +1057,15 @@ if [ ! -f "$CERT_KEY" ] || [ ! -f "$CERT_CRT" ]; then
     if ! command -v mkcert &>/dev/null; then
         log_info "Installing mkcert for locally-trusted SSL..."
         MKCERT_VERSION="v1.4.4"
-        MKCERT_URL="https://github.com/FiloSottile/mkcert/releases/download/${MKCERT_VERSION}/mkcert-${MKCERT_VERSION}-linux-amd64"
+        # Detect architecture for mkcert
+        ARCH=$(uname -m)
+        case "$ARCH" in
+            x86_64) MKCERT_ARCH="linux-amd64" ;;
+            aarch64|arm64) MKCERT_ARCH="linux-arm64" ;;
+            armv7l) MKCERT_ARCH="linux-armv6" ;;
+            *) log_warn "Unsupported architecture: $ARCH. Falling back to OpenSSL."; MKCERT_INSTALLED=false ;;
+        esac
+        MKCERT_URL="https://github.com/FiloSottile/mkcert/releases/download/${MKCERT_VERSION}/mkcert-${MKCERT_VERSION}-${MKCERT_ARCH}"
         if curl -sfL "$MKCERT_URL" -o /usr/local/bin/mkcert; then
             chmod +x /usr/local/bin/mkcert
             MKCERT_INSTALLED=true
@@ -1137,9 +1170,27 @@ log_info "Setting up Kilo CLI (AI agent orchestration)..."
 # Install Node.js 20 LTS if not present
 if ! command -v node &>/dev/null; then
     log_info "Installing Node.js 20 LTS..."
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >/dev/null 2>&1
-    apt install -y -qq nodejs >/dev/null 2>&1
-    log_info "Node.js $(node --version) installed"
+    # Check if we're on a Debian-based system
+    if [ -f /etc/debian_version ]; then
+        curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >/dev/null 2>&1
+        apt install -y -qq nodejs >/dev/null 2>&1
+    else
+        # Fallback for non-Debian systems - try package manager or nvm
+        if command -v dnf &>/dev/null; then
+            dnf module reset nodejs -y >/dev/null 2>&1 || true
+            dnf module enable nodejs:20 -y >/dev/null 2>&1 || true
+            dnf install -y nodejs >/dev/null 2>&1 || true
+        elif command -v pacman &>/dev/null; then
+            pacman -Sy --noconfirm nodejs >/dev/null 2>&1 || true
+        elif command -v apk &>/dev/null; then
+            apk add --no-cache nodejs npm >/dev/null 2>&1 || true
+        else
+            log_warn "Could not install Node.js automatically. Please install Node.js 20+ manually."
+        fi
+    fi
+    if command -v node &>/dev/null; then
+        log_info "Node.js $(node --version) installed"
+    fi
 else
     log_info "Node.js already installed: $(node --version)"
 fi
@@ -1488,6 +1539,7 @@ providers:
     updateIntervalSeconds: 10
     options:
       path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true
 EOF
 
 chown -R "$ACTUAL_USER:$ACTUAL_USER" "$GRAFANA_DIR"
@@ -1779,9 +1831,12 @@ show_step_header "9" "Deploying Docker Stack"
 
 cd "$HOMELAB_DIR"
 
-# Pull in background, capture error if fails
-(su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose pull" >/dev/null 2>&1) &
-show_fancy_spinner $! "Pulling latest images (this may take a while)"
+# Pull images (run in foreground to show proper progress)
+log_info "Pulling latest images (this may take a while)..."
+if ! su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose pull"; then
+    log_error "Failed to pull Docker images"
+    exit 1
+fi
 
 log_info "Starting containers..."
 if ! su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose up -d"; then
@@ -1917,12 +1972,11 @@ fi
 # So we check via container name if possible or just skip local port check if not mapped.
 # We'll check via Traefik if it's already up, or just skip.
 # Actually, let's use the 'docker inspect' method requested in the plan for health.
-if su - "$ACTUAL_USER" -c "docker inspect --format='{{.State.Health.Status}}' obsidian 2>/dev/null" | grep -qv "healthy"; then
-     FAILED_CHECKS+=("Obsidian (KasmVNC Health Check Failed)")
-fi
-
-if su - "$ACTUAL_USER" -c "docker inspect --format='{{.State.Health.Status}}' anythingllm 2>/dev/null" | grep -qv "healthy"; then
-     FAILED_CHECKS+=("AnythingLLM (RAG Health Check Failed)")
+if su - "$ACTUAL_USER" -c "docker inspect obsidian" >/dev/null 2>&1; then
+    OBSIDIAN_HEALTH=$(su - "$ACTUAL_USER" -c "docker inspect --format='{{.State.Health.Status}}' obsidian 2>/dev/null")
+    if [ -n "$OBSIDIAN_HEALTH" ] && [ "$OBSIDIAN_HEALTH" != "healthy" ]; then
+        FAILED_CHECKS+=("Obsidian (KasmVNC Health Check Failed)")
+    fi
 fi
 
 # Check Qdrant (6333) — Phase 1 Task 1.12
