@@ -1751,7 +1751,7 @@ log_info "Plex server claim token (from https://plex.tv/claim, expires in 4 minu
 log_warn "Leave blank if this server is already claimed or you'll claim it later."
 # Initialize to empty string first to handle edge cases with set -e
 PLEX_CLAIM_INPUT=""
-read -p "PLEX_CLAIM (or Enter to skip): " PLEX_CLAIM_INPUT
+read -p "PLEX_CLAIM (or Enter to skip): " PLEX_CLAIM_INPUT || true
 if [ -n "${PLEX_CLAIM_INPUT}" ]; then
     echo "PLEX_CLAIM=$PLEX_CLAIM_INPUT" >> "$ENV_FILE"
 else
@@ -1763,7 +1763,7 @@ fi
 if [ -n "${ANTIGRAVITY_VNC_PASSWORD:-}" ]; then
     echo "ANTIGRAVITY_VNC_PASSWORD=$ANTIGRAVITY_VNC_PASSWORD" >> "$ENV_FILE"
 elif [ -f "$HOMELAB_DIR/antigravity/.env" ]; then
-    grep "ANTIGRAVITY_VNC_PASSWORD" "$HOMELAB_DIR/antigravity/.env" >> "$ENV_FILE"
+    grep "ANTIGRAVITY_VNC_PASSWORD" "$HOMELAB_DIR/antigravity/.env" >> "$ENV_FILE" || true
 else
     # Generate a random password if none provided
     ANTIGRAVITY_VNC_PASSWORD=$(openssl rand -base64 12)
@@ -1775,14 +1775,14 @@ fi
 if [ -n "${OPENCLAW_TOKEN:-}" ]; then
     echo "OPENCLAW_TOKEN=$OPENCLAW_TOKEN" >> "$ENV_FILE"
 elif [ -f "$HOMELAB_DIR/openclaw/.env" ]; then
-    grep "OPENCLAW_TOKEN" "$HOMELAB_DIR/openclaw/.env" >> "$ENV_FILE"
+    grep "OPENCLAW_TOKEN" "$HOMELAB_DIR/openclaw/.env" >> "$ENV_FILE" || true
 fi
 
 # Home Assistant Token
 if [ -n "${HOME_ASSISTANT_TOKEN:-}" ]; then
     echo "HOME_ASSISTANT_TOKEN=$HOME_ASSISTANT_TOKEN" >> "$ENV_FILE"
 elif [ -f "$HOMELAB_DIR/openclaw/.env" ]; then
-    grep "HOME_ASSISTANT_TOKEN" "$HOMELAB_DIR/openclaw/.env" >> "$ENV_FILE"
+    grep "HOME_ASSISTANT_TOKEN" "$HOMELAB_DIR/openclaw/.env" >> "$ENV_FILE" || true
 fi
 
 # ONLYOFFICE & NEXTCLOUD
