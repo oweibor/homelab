@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.1] - 2026-03-10
+
+### 🚀 Setup Script Improvements
+
+- **Network configuration flow**: Refactored static IP setup to avoid redundant prompts. Now offers to use current DHCP IP as static IP automatically.
+
+- **Multi-platform support**:
+  - Added architecture detection for mkcert (x86_64, aarch64, armv7l)
+  - Added Node.js installation for RHEL/Fedora, Arch Linux, and Alpine
+
+- **Fixed container health checks**: Fixed bug where non-existent containers would cause false health check failures
+
+- **Docker pull improvements**: Changed to foreground execution with proper error handling instead of background with spinner
+
+- **Removed AnythingLLM**: Cleaned up references to AnythingLLM (replaced with Obsidian + Kilo Pipeline for RAG capabilities)
+
+- **Bluetooth detection**: Enhanced detection with case-insensitive pattern matching
+
 ## [1.6.0] - 2026-03-10
 
 ### 🔧 Setup Workflow Consolidation

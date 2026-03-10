@@ -84,7 +84,7 @@ This project provides:
 - **Productivity Suite**: Nextcloud (File Sync, Calendar, Contacts, Mail)
 - **Document Editing**: ONLYOFFICE collaborative document editor integrated with Nextcloud
 - **Note Taking**: Obsidian (Web-based Note Editor) with Nextcloud sync
-- **RAG Knowledge Engine**: AnythingLLM for AI-powered search over your personal notes
+- **RAG Knowledge Engine**: Obsidian with local embeddings via Kilo Pipeline for AI-powered search
 - **Workflow Automation**: n8n for connecting services and creating custom automations
 - **Home Automation**: Home Assistant, MQTT support
 
