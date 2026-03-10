@@ -187,11 +187,11 @@ git clone https://github.com/oweibor/homelab.git ~/homelab
 # Navigate to directory
 cd ~/homelab
 
-# Run the onboarding wizard (auto-detects hardware, selects models, configures everything)
-sudo ./onboard.sh
+# Run the setup script (auto-detects hardware, selects models, configures everything)
+sudo ./setup.sh
 ```
 
-**The wizard will:**
+**The setup script will:**
 
 1. ✅ Detect hardware (RAM, CPU cores, GPU type) using [`scripts/hardware-detect.sh`](scripts/hardware-detect.sh)
 2. ✅ Classify into performance tier (MINIMAL → ULTRA)
@@ -1323,8 +1323,7 @@ sudo systemctl stop <service-name>
 homelab/
 ├── docker-compose.yml           # Main service orchestration
 ├── config.env.template          # Environment configuration template
-├── setup.sh                     # Automated setup script
-├── onboard.sh                   # Onboarding wizard
+├── setup.sh                     # Automated setup script (includes hardware detection & config generation)
 ├── backup-homelab.sh            # Backup utility
 ├── check-ssl-expiry.sh          # SSL monitoring
 ├── update.sh                    # Update utility

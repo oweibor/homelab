@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0] - 2026-03-10
+
+### 🔧 Setup Workflow Consolidation
+
+- **Deleted onboard.sh**: Removed the separate onboarding wizard script (657 lines). The interactive wizard functionality has been consolidated directly into `setup.sh`.
+
+- **Updated setup.sh**: Now handles the full onboarding workflow including:
+  - Hardware detection (RAM, CPU, GPU)
+  - Performance tier classification
+  - Model selection
+  - Config generation
+
+- **Enhanced onboard-lib.sh**:
+  - Added ownership fix logic for config files generated as root (fixes sudo scenarios)
+  - Updated config header comment to reflect `setup.sh` as the generator
+
+- **Updated .gitignore**:
+  - Added `config.env.bak` to ignore backup files created during config regeneration
+
 ## [1.5.0] - 2026-03-05
 
 ### 🚀 Anti-Detection Scraping Stack (Major Feature)
