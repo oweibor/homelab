@@ -522,7 +522,7 @@ services:
       - OLLAMA_HOST=http://ollama:11434
       - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_TOKEN:-kilo_dev_token}
       - OPENCLAW_CONFIG_PATH=/home/node/.openclaw/openclaw.json
-      - HOME_ASSISTANT_TOKEN=${HOME_ASSISTANT_TOKEN}
+      - HOME_ASSISTANT_TOKEN=${HOME_ASSISTANT_TOKEN:-}
       - KILO_PIPELINE_ENDPOINT=http://kilo-pipeline:3100
       - TRUST_MODE=${TRUST_MODE:-supervised}
       - OPENCLAW_KILO_ENABLED=${OPENCLAW_KILO_ENABLED:-true}
