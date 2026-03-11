@@ -1752,6 +1752,7 @@ log_warn "Leave blank if this server is already claimed or you'll claim it later
 # Initialize to empty string first to handle edge cases with set -e
 PLEX_CLAIM_INPUT=""
 read -p "PLEX_CLAIM (or Enter to skip): " PLEX_CLAIM_INPUT || true
+# Use || true to prevent set -e from exiting when condition is false (empty string)
 if [ -n "${PLEX_CLAIM_INPUT}" ]; then
     echo "PLEX_CLAIM=$PLEX_CLAIM_INPUT" >> "$ENV_FILE"
 else
