@@ -266,41 +266,40 @@ services:
         max-size: "5m"
         max-file: "2"
 
-  # Google Antigravity Code Editor (VNC-based IDE)
-  antigravity:
-    image: ghcr.io/rawritude/antigravity-remote:latest
-    container_name: antigravity
+  # VS Code Server (Web-based IDE)
+  vscode:
+    image: codercom/code-server:latest
+    container_name: vscode
     restart: unless-stopped
     networks:
       - homelab
     ports:
-      - "6080:6080"
-      - "5900:5900"
+      - "8443:8443"
     volumes:
-      - ./antigravity/workspace:/home/devuser/workspace
-      - ./antigravity/config:/home/devuser/.config
+      - ./vscode/workspace:/home/coder/workspace
+      - ./vscode/config:/home/coder/.local/share/code-server
     environment:
-      - VNC_PASSWORD=${ANTIGRAVITY_VNC_PASSWORD}
+      - PASSWORD=${VSCOD_E_PASSWORD}
       - OLLAMA_HOST=http://ollama:11434
       - TZ=${TZ}
     healthcheck:
-      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/6080" ]
+      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/8443" ]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 20s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.antigravity.rule=Host(`antigravity.homelab.local`)"
-      - "traefik.http.routers.antigravity.entrypoints=websecure"
-      - "traefik.http.routers.antigravity.tls=true"
-      - "traefik.http.routers.antigravity.middlewares=secure-headers@file"
-      - "traefik.http.services.antigravity.loadbalancer.server.port=6080"
-      - "homepage.group=AI"
-      - "homepage.name=Antigravity"
+      - "traefik.http.routers.vscode.rule=Host(`vscode.homelab.local`)"
+      - "traefik.http.routers.vscode.entrypoints=websecure"
+      - "traefik.http.routers.vscode.tls=true"
+      - "traefik.http.routers.vscode.middlewares=secure-headers@file"
+      - "traefik.http.services.vscode.loadbalancer.server.port=8443"
+      - "homepage.group=DevTools"
+      - "homepage.name=VS Code"
       - "homepage.icon=vscode.png"
-      - "homepage.href=https://antigravity.homelab.local"
-      - "homepage.description=AI-powered code editor"
+      - "homepage.href=https://vscode.homelab.local"
+      - "homepage.description=Web-based VS Code editor"
     depends_on:
       - ollama
     logging:

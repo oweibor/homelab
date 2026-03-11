@@ -853,7 +853,7 @@ echo ""
 show_step_header "6" "Creating Homelab Directory Structure"
 
 HOMELAB_DIR="$USER_HOME/homelab"
-mkdir -p "$HOMELAB_DIR"/{homeassistant,plex/config,plex/transcode,jellyfin/config,jellyfin/cache,onlyoffice/{logs,data,lib,db},nextcloud/data,media,n8n,samba,backups,open-webui,traefik,antigravity/workspace,antigravity/config,openclaw,netbird,grafana/data,prometheus/data,homepage}
+mkdir -p "$HOMELAB_DIR"/{homeassistant,plex/config,plex/transcode,jellyfin/config,jellyfin/cache,onlyoffice/{logs,data,lib,db},nextcloud/data,media,n8n,samba,backups,open-webui,traefik,vscode/workspace,vscode/config,openclaw,netbird,grafana/data,prometheus/data,homepage}
 chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/onlyoffice"
 chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/nextcloud"
 chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/homepage"
@@ -893,8 +893,8 @@ declare -a DIRS=(
     "backups"
     "open-webui"
     "traefik"
-    "antigravity/workspace"
-    "antigravity/config"
+    "vscode/workspace"
+    "vscode/config"
     "openclaw"
     "netbird"
     "grafana/data"
@@ -1115,18 +1115,18 @@ else
     log_info "Using existing SSL certificates"
 fi
 
-# Antigravity VNC credentials (simple password)
-ANTIGRAVITY_ENV="$HOMELAB_DIR/antigravity/.env"
-if [ ! -f "$ANTIGRAVITY_ENV" ]; then
+# VS Code Server credentials (simple password)
+VSCODE_ENV="$HOMELAB_DIR/vscode/.env"
+if [ ! -f "$VSCODE_ENV" ]; then
     # Simple 8-character alphanumeric password
-    ANTIGRAVITY_VNC_PASSWORD=$(openssl rand -base64 6 | tr -d '/+=' | head -c 8)
-    echo "ANTIGRAVITY_VNC_PASSWORD=$ANTIGRAVITY_VNC_PASSWORD" > "$ANTIGRAVITY_ENV"
-    chmod 600 "$ANTIGRAVITY_ENV"
-    chown "$ACTUAL_USER:$ACTUAL_USER" "$ANTIGRAVITY_ENV"
-    log_info "Antigravity VNC credentials generated"
+    VSCOD_E_PASSWORD=$(openssl rand -base64 6 | tr -d '/+=' | head -c 8)
+    echo "VSCOD_E_PASSWORD=$VSCOD_E_PASSWORD" > "$VSCODE_ENV"
+    chmod 600 "$VSCODE_ENV"
+    chown "$ACTUAL_USER:$ACTUAL_USER" "$VSCODE_ENV"
+    log_info "VS Code credentials generated"
 else
-    log_info "Using existing Antigravity credentials"
-    source "$ANTIGRAVITY_ENV"
+    log_info "Using existing VS Code credentials"
+    source "$VSCODE_ENV"
 fi
 
 # OpenClaw gateway token
@@ -1760,16 +1760,16 @@ else
     log_warn "Plex claim skipped. Claim manually via Plex web UI after startup."
 fi
 
-# Antigravity VNC Password
-if [ -n "${ANTIGRAVITY_VNC_PASSWORD:-}" ]; then
-    echo "ANTIGRAVITY_VNC_PASSWORD=$ANTIGRAVITY_VNC_PASSWORD" >> "$ENV_FILE"
-elif [ -f "$HOMELAB_DIR/antigravity/.env" ]; then
-    grep "ANTIGRAVITY_VNC_PASSWORD" "$HOMELAB_DIR/antigravity/.env" >> "$ENV_FILE" || true
+# VS Code Password
+if [ -n "${VSCOD_E_PASSWORD:-}" ]; then
+    echo "VSCOD_E_PASSWORD=$VSCOD_E_PASSWORD" >> "$ENV_FILE"
+elif [ -f "$HOMELAB_DIR/vscode/.env" ]; then
+    grep "VSCOD_E_PASSWORD" "$HOMELAB_DIR/vscode/.env" >> "$ENV_FILE" || true
 else
     # Generate a random password if none provided
-    ANTIGRAVITY_VNC_PASSWORD=$(openssl rand -base64 12)
-    echo "ANTIGRAVITY_VNC_PASSWORD=$ANTIGRAVITY_VNC_PASSWORD" >> "$ENV_FILE"
-    log_info "Generated random Antigravity VNC password"
+    VSCOD_E_PASSWORD=$(openssl rand -base64 12)
+    echo "VSCOD_E_PASSWORD=$VSCOD_E_PASSWORD" >> "$ENV_FILE"
+    log_info "Generated random VS Code password"
 fi
 
 # OpenClaw Token
@@ -1807,7 +1807,7 @@ log_info "Environment configuration generated at $ENV_FILE"
 # Validate required environment variables
 log_info "Validating environment configuration..."
 REQUIRED_VARS=("PUID" "PGID" "TZ" "SAMBA_USER" "SAMBA_PASS" \
-    "ANTIGRAVITY_VNC_PASSWORD" "OPENCLAW_TOKEN" \
+    "VSCOD_E_PASSWORD" "OPENCLAW_TOKEN" \
     "ONLYOFFICE_JWT_SECRET" "NEXTCLOUD_ADMIN_PASSWORD" "ACTUAL_USER")
 MISSING_VARS=()
 
@@ -2117,7 +2117,7 @@ printf "  │  - Plex:            %-39s │\n" "https://plex.homelab.local"
 printf "  │  - n8n:             %-39s │\n" "https://n8n.homelab.local"
 printf "  │  - Open WebUI:        %-39s │\n" "https://chat.homelab.local"
 printf "  │  - Homepage:        %-39s │\n" "https://home.homelab.local"
-printf "  │  - Antigravity:     %-39s │\n" "https://antigravity.homelab.local"
+printf "  │  - VS Code:         %-39s │\n" "https://vscode.homelab.local"
 printf "  │  - OpenClaw:        %-39s │\n" "https://openclaw.homelab.local"
 printf "  │  - NetBird Dash:    %-39s │\n" "https://netbird.homelab.local"
 printf "  │  - Grafana Dash:    %-39s │\n" "https://grafana.homelab.local"
@@ -2129,7 +2129,7 @@ printf "  │  - AnythingLLM (RAG): %-37s │\n" "https://rag.homelab.local"
   echo "  ├─────────────────────────────────────────────────────────────┤"
 echo "  │  * NOTE: Add these domains to your local 'hosts' file:      │"
 printf "  │    %-56s │\n" "${CONFIGURED_IP:-192.168.x.x} ha.homelab.local"
-printf "  │    %-56s │\n" "traefik.homelab.local antigravity.homelab.local"
+printf "  │    %-56s │\n" "traefik.homelab.local vscode.homelab.local"
 printf "  │    %-56s │\n" "openclaw.homelab.local netbird.homelab.local"
 printf "  │    %-56s │\n" "grafana.homelab.local prometheus.homelab.local"
 printf "  │    %-56s │\n" "plex.homelab.local ha.homelab.local n8n.homelab.local"
