@@ -863,9 +863,14 @@ mkdir -p "$HOMELAB_DIR"/{homeassistant,plex/config,plex/transcode,jellyfin/confi
 log_info "Copying kilo-pipeline source to homelab directory..."
 if [ -d "$SCRIPT_DIR/kilo/pipeline" ]; then
     mkdir -p "$HOMELAB_DIR/kilo/pipeline"
-    cp -r "$SCRIPT_DIR/kilo/pipeline/." "$HOMELAB_DIR/kilo/pipeline/"
-    chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/kilo/pipeline"
-    log_success "kilo-pipeline source files copied"
+    # Only copy if source and destination are different (avoid 'same file' error)
+    if [ "$(readlink -f "$SCRIPT_DIR/kilo/pipeline" 2>/dev/null)" != "$(readlink -f "$HOMELAB_DIR/kilo/pipeline" 2>/dev/null)" ]; then
+        cp -r "$SCRIPT_DIR/kilo/pipeline/." "$HOMELAB_DIR/kilo/pipeline/"
+        chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/kilo/pipeline"
+        log_success "kilo-pipeline source files copied"
+    else
+        log_info "kilo-pipeline already in homelab directory (source and destination are the same)"
+    fi
 else
     log_warn "kilo/pipeline source not found in repo at $SCRIPT_DIR/kilo/pipeline"
 fi
