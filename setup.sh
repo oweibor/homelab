@@ -1864,8 +1864,15 @@ cd "$HOMELAB_DIR"
 # Build local images first (kilo-pipeline is built locally, not pulled)
 log_info "Building local images (kilo-pipeline)..."
 if ! su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose build kilo-pipeline"; then
-    log_error "Failed to build kilo-pipeline"
-    log_error "Check docker logs with: docker compose logs kilo-pipeline"
+    log_warn "Failed to build kilo-pipeline (node:20-slim base image may not be accessible)"
+    log_warn "If you see 'failed to solve node:20-slim' error, this is a DNS issue."
+    log_warn "Fix:"
+    log_warn "  Linux:   Create /etc/docker/daemon.json with: {\"dns\": [\"1.1.1.1\", \"8.8.8.8\"]}"
+    log_warn "           Then run: sudo systemctl restart docker"
+    log_warn "  Windows: Create C:\\ProgramData\\Docker\\config\\daemon.json with: {\"dns\": [\"1.1.1.1\", \"8.8.8.8\"]}"
+    log_warn "           Then restart Docker Desktop"
+    log_warn "  Or use a registry mirror: docker.io/library/node:20-slim"
+    log_error "Cannot continue without kilo-pipeline image. Exiting..."
     exit 1
 fi
 

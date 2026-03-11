@@ -8,6 +8,13 @@
 #
 # Build: docker compose build kilo-pipeline
 # Run:   docker compose up -d kilo-pipeline
+#
+# If you get "failed to solve node:20-slim" error:
+# Linux:   Create /etc/docker/daemon.json with: {"dns": ["1.1.1.1", "8.8.8.8"]}
+#          Then run: sudo systemctl restart docker
+# Windows: Create C:\\ProgramData\\Docker\\config\\daemon.json with: {"dns": ["1.1.1.1", "8.8.8.8"]}
+#          Then restart Docker Desktop
+# Or use a registry mirror: docker.io/library/node:20-slim
 
 # ── Stage 1: Install dependencies ──────────────────────────────
 FROM node:20-slim AS deps
