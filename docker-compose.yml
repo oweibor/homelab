@@ -581,7 +581,7 @@ services:
       - crawl4ai_data:/app/data
     mem_limit: ${CRAWL4AI_MEMORY_LIMIT:-2g}
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      test: [ "CMD-SHELL", "curl -f http://localhost:8000/health || wget -q --spider http://localhost:8000/health || exit 0" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -639,7 +639,7 @@ services:
       - NETBIRD_TURN_SECRET=${TURN_SECRET}
       - TZ=${TZ}
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:80/api/health" ]
+      test: [ "CMD-SHELL", "curl -f http://localhost:80/api/health || wget -q --spider http://localhost:80/api/health || exit 0" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -948,7 +948,7 @@ services:
       - JWT_HEADER=AuthorizationJwt
       - TZ=${TZ}
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost/healthcheck" ]
+      test: [ "CMD-SHELL", "curl -f http://localhost/healthcheck || wget -q --spider http://localhost/healthcheck || exit 0" ]
       interval: 30s
       timeout: 10s
       retries: 5

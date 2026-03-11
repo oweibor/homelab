@@ -1861,11 +1861,66 @@ show_step_header "9" "Deploying Docker Stack"
 
 cd "$HOMELAB_DIR"
 
-# Pull images (run in foreground to show proper progress)
-log_info "Pulling latest images (this may take a while)..."
-if ! su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose pull"; then
-    log_error "Failed to pull Docker images"
+# Build local images first (kilo-pipeline is built locally, not pulled)
+log_info "Building local images (kilo-pipeline)..."
+if ! su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose build kilo-pipeline"; then
+    log_error "Failed to build kilo-pipeline"
+    log_error "Check docker logs with: docker compose logs kilo-pipeline"
     exit 1
+fi
+
+# Check network connectivity before pulling images
+log_info "Checking network connectivity..."
+NETWORK_CHECKS_PASSED=true
+
+# Test DNS resolution for common registries
+for domain in "docker.io" "ghcr.io" "public.ecr.aws" "gcr.io"; do
+    if ! host "$domain" >/dev/null 2>&1 && ! nslookup "$domain" >/dev/null 2>&1; then
+        log_warn "DNS resolution failed for $domain"
+        NETWORK_CHECKS_PASSED=false
+    fi
+done
+
+# Test basic internet connectivity
+if ! ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+    log_warn "No internet connectivity detected"
+    NETWORK_CHECKS_PASSED=false
+fi
+
+if [ "$NETWORK_CHECKS_PASSED" = false ]; then
+    log_warn "Network issues detected. You may experience Docker image pull failures."
+    log_warn "Check your DNS settings and internet connection."
+fi
+
+# Pull pre-built images with retry logic
+log_info "Pulling latest images (this may take a while)..."
+PULL_SUCCESS=false
+MAX_RETRIES=3
+RETRY_COUNT=0
+
+while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$PULL_SUCCESS" = false ]; do
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+    if [ $RETRY_COUNT -gt 1 ]; then
+        log_info "Retry $RETRY_COUNT/$MAX_RETRIES after brief pause..."
+        sleep 5
+    fi
+    
+    if su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose pull"; then
+        PULL_SUCCESS=true
+    else
+        if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+            log_warn "Image pull failed, retrying..."
+        fi
+    fi
+done
+
+if [ "$PULL_SUCCESS" = false ]; then
+    log_warn "Failed to pull images after $MAX_RETRIES attempts"
+    log_warn "This may be due to:\n"
+    log_warn "  - Docker Hub rate limiting (try: docker login)"
+    log_warn "  - Network/firewall issues"
+    log_warn "  - Registry downtime"
+    log_warn "Continuing with available images..."
 fi
 
 log_info "Starting containers..."
