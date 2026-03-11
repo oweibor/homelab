@@ -386,6 +386,11 @@ services:
     restart: unless-stopped
     networks:
       - homelab
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+      # NOTE: Exposed on host for direct vector DB access (development).
+      # Production should use internal network only or add authentication.
     volumes:
       - qdrant_data:/qdrant/storage
     environment:
@@ -422,7 +427,7 @@ services:
     networks:
       - kilo-net # ONLY — never homelab
     ports:
-      - "2376:2375" # Changed from 2375 to avoid conflict with docker-proxy (line 323)
+      - "2376:2375" # Exposed on host for kilo-pipeline Docker sandbox access
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
@@ -1067,11 +1072,11 @@ services:
       - "3002:3000"
     volumes:
       - ./homepage:/app/config
-      - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       - TZ=${TZ}
       - PUID=${PUID}
       - PGID=${PGID}
+      - DOCKER_HOST=tcp://docker-proxy:2375
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:3000" ]
       interval: 30s
@@ -1111,13 +1116,12 @@ services:
     secrets:
       - tor_password
     command: >
-      sh -c ' if [ -f /run/secrets/tor_password ]; then
-        TOR_PWD=$(cat /run/secrets/tor_password);
-        # Password hash should be provided in hashed form normally, 
-        # but if we had a helper to hash it here we would use it.
-      fi; /usr/bin/tor -f /etc/tor/torrc --ControlPort 9051 --HashedControlPassword "${TOR_PASSWORD_HASH}" '
+      sh -c '
+        TOR_HASH="${TOR_PASSWORD_HASH:-}";
+        /usr/bin/tor -f /etc/tor/torrc --ControlPort 9051 --HashedControlPassword "$TOR_HASH"
+      '
     healthcheck:
-      test: [ "CMD-SHELL", "wget -q --spider http://localhost:9050 || exit 1" ]
+      test: [ "CMD-SHELL", "nc -z localhost 9050 || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -308,7 +308,7 @@ echo "  │  3. Static IP configuration                                │"
 echo "  │  4. Docker & Docker Compose                                │"
 echo "  │  5. Performance optimizations (CPU C-states, governor)     │"
 echo "  │  6. Docker stack (HA, Plex, Ollama, n8n, Samba, ...)       │"
-echo "  │  7. AI Tools (Antigravity & OpenClaw)                      │"
+echo "  │  7. AI Tools (OpenClaw)                                    │"
 echo "  │                                                            │"
 printf "  │  Running as user: %-40s │\n" "$ACTUAL_USER"
 echo "  └─────────────────────────────────────────────────────────────┘"
@@ -348,7 +348,7 @@ APT_PID=$!
 show_fancy_spinner $APT_PID "Installing dependencies"
 wait $APT_PID || { log_error "Failed to install dependencies"; exit 1; }
 
-unset DEBIAN_FRONTEND
+# Keep DEBIAN_FRONTEND=noninteractive for remaining apt operations
 show_success_banner "System updated successfully"
 echo ""
 
@@ -750,10 +750,14 @@ else
 
     # Install Docker
     apt update -qq &
-    show_fancy_spinner $! "Updating package lists for Docker"
+    APT_UPDATE_PID=$!
+    show_fancy_spinner $APT_UPDATE_PID "Updating package lists for Docker"
+    wait $APT_UPDATE_PID || { log_error "apt update failed"; exit 1; }
     
     apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin &
-    show_fancy_spinner $! "Installing Docker packages"
+    APT_DOCKER_PID=$!
+    show_fancy_spinner $APT_DOCKER_PID "Installing Docker packages"
+    wait $APT_DOCKER_PID || { log_error "Docker installation failed"; exit 1; }
 
     # Enable Docker
     systemctl enable docker
@@ -853,7 +857,19 @@ echo ""
 show_step_header "6" "Creating Homelab Directory Structure"
 
 HOMELAB_DIR="$USER_HOME/homelab"
-mkdir -p "$HOMELAB_DIR"/{homeassistant,plex/config,plex/transcode,jellyfin/config,jellyfin/cache,onlyoffice/{logs,data,lib,db},nextcloud/data,media,n8n,samba,backups,open-webui,traefik,vscode/workspace,vscode/config,openclaw,netbird,grafana/data,prometheus/data,homepage}
+mkdir -p "$HOMELAB_DIR"/{homeassistant,plex/config,plex/transcode,jellyfin/config,jellyfin/cache,onlyoffice/{logs,data,lib,db},nextcloud/data,media,n8n,samba,backups,open-webui,traefik,vscode/workspace,vscode/config,openclaw,netbird,grafana/data,prometheus/data,homepage,i2p/data}
+
+# Copy kilo-pipeline source from repo to homelab directory
+log_info "Copying kilo-pipeline source to homelab directory..."
+if [ -d "$SCRIPT_DIR/kilo/pipeline" ]; then
+    mkdir -p "$HOMELAB_DIR/kilo/pipeline"
+    cp -r "$SCRIPT_DIR/kilo/pipeline/." "$HOMELAB_DIR/kilo/pipeline/"
+    chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/kilo/pipeline"
+    log_success "kilo-pipeline source files copied"
+else
+    log_warn "kilo/pipeline source not found in repo at $SCRIPT_DIR/kilo/pipeline"
+fi
+
 chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/onlyoffice"
 chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/nextcloud"
 chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/homepage"
@@ -1035,6 +1051,27 @@ if [ ! -f "$NETBIRD_ENV" ]; then
 else
     log_info "Using existing NetBird TURN credentials"
     source "$NETBIRD_ENV"
+fi
+
+# Tor proxy password (for authenticated onion services)
+TOR_SECRETS_DIR="$HOMELAB_DIR/.secrets"
+mkdir -p "$TOR_SECRETS_DIR"
+chown "$ACTUAL_USER:$ACTUAL_USER" "$TOR_SECRETS_DIR"
+chmod 700 "$TOR_SECRETS_DIR"
+
+TOR_PASSWORD_FILE="$TOR_SECRETS_DIR/tor_password"
+if [ ! -f "$TOR_PASSWORD_FILE" ]; then
+    TOR_PASSWORD=$(openssl rand -hex 16)
+    echo -n "$TOR_PASSWORD" > "$TOR_PASSWORD_FILE"
+    chmod 600 "$TOR_PASSWORD_FILE"
+    chown "$ACTUAL_USER:$ACTUAL_USER" "$TOR_PASSWORD_FILE"
+    
+    # Generate hashed password for Tor control port
+    TOR_PASSWORD_HASH=$(tor --hash-password "$TOR_PASSWORD" 2>/dev/null || echo "")
+    export TOR_PASSWORD_HASH
+    log_info "Tor proxy password generated"
+else
+    log_info "Using existing Tor proxy password"
 fi
 
 # Traefik & SSL Setup (mkcert for locally-trusted certificates)
@@ -1794,6 +1831,11 @@ if [ -n "${NEXTCLOUD_ADMIN_PASSWORD:-}" ]; then
     echo "NEXTCLOUD_ADMIN_PASSWORD=$NEXTCLOUD_ADMIN_PASSWORD" >> "$ENV_FILE"
 fi
 
+# Tor Control Port Password Hash
+if [ -n "${TOR_PASSWORD_HASH:-}" ]; then
+    echo "TOR_PASSWORD_HASH=$TOR_PASSWORD_HASH" >> "$ENV_FILE"
+fi
+
 # PHASE 8 — Obsidian & RAG
 echo "OBSIDIAN_USER=${OBSIDIAN_USER:-admin}" >> "$ENV_FILE"
 echo "OBSIDIAN_PASSWORD=${OBSIDIAN_PASSWORD:-homelab_obsidian_pass}" >> "$ENV_FILE"
@@ -2050,11 +2092,6 @@ if ! curl -m 5 -sf http://localhost:3000 >/dev/null 2>&1; then
     FAILED_CHECKS+=("Open WebUI (3000)")
 fi
 
-# Check Antigravity (6080)
-if ! curl -m 5 -sf http://localhost:6080 >/dev/null 2>&1; then
-    FAILED_CHECKS+=("Antigravity (6080)")
-fi
-
 # Check OpenClaw (18789)
 if ! curl -m 5 -sf http://localhost:18789 >/dev/null 2>&1; then
     FAILED_CHECKS+=("OpenClaw (18789)")
@@ -2109,10 +2146,9 @@ if ! curl -m 5 -sf http://localhost:6333/healthz >/dev/null 2>&1; then
     FAILED_CHECKS+=("Qdrant vector DB (6333)")
 fi
 
-# Check kilo-pipeline (3100) — Phase 1 Task 1.12
-# SOFT WARN: Expected to fail until Phase 2 image is built.
+# Check kilo-pipeline (3100) — OpenClaw Kilo integration
 if ! curl -m 5 -sf http://localhost:3100/health >/dev/null 2>&1; then
-    log_warn "  [Phase 1] kilo-pipeline (3100) not responding — expected until Phase 2 image is built."
+    log_warn "  kilo-pipeline (3100) not responding — check docker compose logs kilo-pipeline"
 fi
 
 # Check Samba (445) - TCP check since it's not HTTP
@@ -2152,19 +2188,33 @@ echo ""
 show_step_header "12" "Setting up Automated Maintenance"
 
 # Ensure maintenance scripts are executable
-chmod +x "$HOMELAB_DIR/check-ssl-expiry.sh"
-chmod +x "$HOMELAB_DIR/update.sh"
-chmod +x "$HOMELAB_DIR/backup-homelab.sh"
+[ -f "$HOMELAB_DIR/check-ssl-expiry.sh" ] && chmod +x "$HOMELAB_DIR/check-ssl-expiry.sh"
+[ -f "$HOMELAB_DIR/update.sh" ] && chmod +x "$HOMELAB_DIR/update.sh"
+[ -f "$HOMELAB_DIR/backup-homelab.sh" ] && chmod +x "$HOMELAB_DIR/backup-homelab.sh"
 
 # Register weekly SSL check cron job (Every Sunday at midnight)
 CRON_JOB="0 0 * * 0 $HOMELAB_DIR/check-ssl-expiry.sh >> /var/log/homelab-cron.log 2>&1"
-(crontab -l 2>/dev/null | grep -v "check-ssl-expiry.sh"; echo "$CRON_JOB") | crontab -
-log_success "Weekly SSL monitoring cron job registered."
+if (crontab -l 2>/dev/null | grep -v "check-ssl-expiry.sh"; echo "$CRON_JOB") | crontab -u "$ACTUAL_USER" - 2>/dev/null; then
+    log_success "Weekly SSL monitoring cron job registered."
+else
+    # Fallback to system crontab if user crontab fails
+    log_warn "User crontab failed, trying system crontab..."
+    echo "$CRON_JOB" >> /etc/cron.d/homelab-ssl
+    chmod 0644 /etc/cron.d/homelab-ssl
+    log_success "Weekly SSL monitoring cron job registered (system crontab)."
+fi
 
 # Register weekly Homelab backup cron job (Every Sunday at 2 AM)
 BACKUP_CRON="0 2 * * 0 $HOMELAB_DIR/backup-homelab.sh >> /var/log/homelab-cron.log 2>&1"
-(crontab -l 2>/dev/null | grep -v "backup-homelab.sh"; echo "$BACKUP_CRON") | crontab -
-log_success "Weekly automated backup cron job registered (Sundays at 2 AM)."
+if (crontab -l 2>/dev/null | grep -v "backup-homelab.sh"; echo "$BACKUP_CRON") | crontab -u "$ACTUAL_USER" - 2>/dev/null; then
+    log_success "Weekly automated backup cron job registered (Sundays at 2 AM)."
+else
+    # Fallback to system crontab if user crontab fails
+    log_warn "User crontab failed for backup, trying system crontab..."
+    echo "$BACKUP_CRON" >> /etc/cron.d/homelab-backup
+    chmod 0644 /etc/cron.d/homelab-backup
+    log_success "Weekly automated backup cron job registered (system crontab, Sundays at 2 AM)."
+fi
 
 
 # ============================================
@@ -2191,12 +2241,11 @@ printf "  │  - n8n:             %-39s │\n" "http://${CONFIGURED_IP:-localhos
 printf "  │  - Ollama API:      %-39s │\n" "http://${CONFIGURED_IP:-localhost}:11434"
 printf "  │  - Open WebUI:        %-39s │\n" "http://${CONFIGURED_IP:-localhost}:3000"
 printf "  │  - Homepage:        %-39s │\n" "http://${CONFIGURED_IP:-localhost}:3002"
-printf "  │  - Antigravity:     %-39s │\n" "http://${CONFIGURED_IP:-localhost}:6080"
 printf "  │  - OpenClaw Agent:  %-39s │\n" "http://${CONFIGURED_IP:-localhost}:18789"
 printf "  │  - NetBird Dash:    %-39s │\n" "https://${CONFIGURED_IP:-localhost}:33071"
 printf "  │  - Grafana Dash:    %-39s │\n" "http://${CONFIGURED_IP:-localhost}:3001"
 printf "  │  - Prometheus:      %-39s │\n" "http://${CONFIGURED_IP:-localhost}:9090"
-printf "│  - Samba Media:     %-39s │\n" "smb://${CONFIGURED_IP:-localhost}/Media"
+printf "  │  - Samba Media:     %-39s │\n" "smb://${CONFIGURED_IP:-localhost}/Media"
 printf "  │  - OnlyOffice:      %-39s │\n" "http://${CONFIGURED_IP:-localhost}:9980"
 printf "  │  - Nextcloud:       %-39s │\n" "http://${CONFIGURED_IP:-localhost}:8080"
 printf "  │  - Obsidian:        %-39s │\n" "https://${CONFIGURED_IP:-localhost}/obsidian" # Access via Traefik
