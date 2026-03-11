@@ -1869,22 +1869,43 @@ if ! su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose build kilo-pipe
     exit 1
 fi
 
-# Check network connectivity before pulling images
+# Check network connectivity before pulling images (best effort - won't fail script)
 log_info "Checking network connectivity..."
 NETWORK_CHECKS_PASSED=true
 
-# Test DNS resolution for common registries
+# Test DNS resolution for common registries (with fallback for Windows)
 for domain in "docker.io" "ghcr.io" "public.ecr.aws" "gcr.io"; do
-    if ! host "$domain" >/dev/null 2>&1 && ! nslookup "$domain" >/dev/null 2>&1; then
-        log_warn "DNS resolution failed for $domain"
-        NETWORK_CHECKS_PASSED=false
+    if command -v host >/dev/null 2>&1; then
+        if ! host "$domain" >/dev/null 2>&1; then
+            log_warn "DNS resolution failed for $domain"
+            NETWORK_CHECKS_PASSED=false
+        fi
+    elif command -v nslookup >/dev/null 2>&1; then
+        if ! nslookup "$domain" >/dev/null 2>&1; then
+            log_warn "DNS resolution failed for $domain"
+            NETWORK_CHECKS_PASSED=false
+        fi
+    else
+        # Neither host nor nslookup available - skip DNS check
+        break
     fi
 done
 
-# Test basic internet connectivity
-if ! ping -c 1 8.8.8.8 >/dev/null 2>&1; then
-    log_warn "No internet connectivity detected"
-    NETWORK_CHECKS_PASSED=false
+# Test basic internet connectivity (with fallback for Windows)
+if command -v ping >/dev/null 2>&1; then
+    # Use -c for Linux, -n for Windows
+    PING_COUNT=1
+    if [ "$(uname)" = "Windows_NT" ] || [ "$(uname)" = "CYGWIN_NT-6.3" ]; then
+        if ! ping -n 1 8.8.8.8 >/dev/null 2>&1; then
+            log_warn "No internet connectivity detected"
+            NETWORK_CHECKS_PASSED=false
+        fi
+    else
+        if ! ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+            log_warn "No internet connectivity detected"
+            NETWORK_CHECKS_PASSED=false
+        fi
+    fi
 fi
 
 if [ "$NETWORK_CHECKS_PASSED" = false ]; then
@@ -1892,7 +1913,7 @@ if [ "$NETWORK_CHECKS_PASSED" = false ]; then
     log_warn "Check your DNS settings and internet connection."
 fi
 
-# Pull pre-built images with retry logic
+# Pull pre-built images with retry logic and verbose output
 log_info "Pulling latest images (this may take a while)..."
 PULL_SUCCESS=false
 MAX_RETRIES=3
@@ -1905,11 +1926,20 @@ while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$PULL_SUCCESS" = false ]; do
         sleep 5
     fi
     
-    if su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose pull"; then
+    # Capture full output for debugging
+    PULL_OUTPUT=$(su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose pull" 2>&1)
+    PULL_EXIT_CODE=$?
+    
+    if [ $PULL_EXIT_CODE -eq 0 ]; then
         PULL_SUCCESS=true
     else
+        # Check for specific errors
+        echo "$PULL_OUTPUT" | grep -i "resolve\|not found\|no such image" && log_warn "Image resolution failed - check registry/network"
+        echo "$PULL_OUTPUT" | grep -i "rate limit" && log_warn "Docker Hub rate limit exceeded - try: docker login"
+        echo "$PULL_OUTPUT" | grep -i "connection\|network\|timeout" && log_warn "Network error - check internet connection"
+        
         if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-            log_warn "Image pull failed, retrying..."
+            log_warn "Image pull failed with exit code $PULL_EXIT_CODE, retrying..."
         fi
     fi
 done
