@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.2] - 2026-03-11
+
+### 🔧 Script Robustness Improvements
+
+- Fixed script crashes: Resolved issues where read and grep exit codes could crash scripts running under set -e when skipping Plex Claim configuration
+- Improved timeout handling: Fixed race condition and timeout logic issues in setup.sh
+- Token defaults: Added default empty value for HOME_ASSISTANT_TOKEN to prevent warning messages
+- Variable expansion: Fixed variable expansion parsing in scripts/hardware-detect.sh
+- Calculation parsing: Fixed calculation parsing issues in onboard-lib.sh
+- Container configuration: Added token default in docker-compose.yml
+
+### 🔄 Infrastructure Updates
+
+- VS Code Server: Replaced Antigravity with VS Code (codercom/code-server) for improved browser-based development experience
+- Plex configuration: Added clarifying comments for Plex claim input and removed duplicate test files
+- Community contributions: Merged script robustness improvements from community PRs (@oweibor)
+
+---
+
 ## [1.6.1] - 2026-03-10
 
 ### 🚀 Setup Script Improvements
