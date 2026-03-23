@@ -1,117 +1,15 @@
+name: agent-factory
+
+# =============================================================================
+# AUTONOMOUS AGENT FACTORY — Lean Agentic Stack
+# OpenClaw + Kilo Pipeline + Crawl4AI + Qdrant + Ollama
+# Single-command deployment: docker compose up -d
+# =============================================================================
+
 services:
-  traefik:
-    image: traefik:v3.0
-    container_name: traefik
-    restart: unless-stopped
-    command:
-      - "--configFile=/etc/traefik/traefik.yaml"
-    networks:
-      - homelab
-      - proxy
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./traefik:/etc/traefik
-    environment:
-      - TZ=${TZ}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    depends_on:
-      docker-proxy:
-        condition: service_healthy
-    labels:
-      - "homepage.group=Network"
-      - "homepage.name=Traefik"
-      - "homepage.icon=traefik.png"
-      - "homepage.href=https://traefik.homelab.local"
-      - "homepage.description=Reverse proxy"
-      - "homepage.widget.type=traefik"
-      - "homepage.widget.url=http://traefik:8082"
-
-  watchtower:
-    image: containrrr/watchtower
-    container_name: watchtower
-    restart: unless-stopped
-    networks:
-      - homelab
-      - watchtower-net
-    depends_on:
-      - docker-proxy-watchtower
-    environment:
-      - DOCKER_HOST=tcp://docker-proxy-watchtower:2375
-      - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_SCHEDULE=0 0 3 * * SUN
-      - TZ=${TZ}
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  homeassistant:
-    image: ghcr.io/home-assistant/home-assistant:stable
-    container_name: homeassistant
-    network_mode: host
-    restart: unless-stopped
-    privileged: true
-    volumes:
-      - ./homeassistant:/config
-      - /run/dbus:/run/dbus:ro
-    environment:
-      - TZ=${TZ}
-    cap_add:
-      - NET_ADMIN
-      - NET_RAW
-    labels:
-      - "homepage.group=Home"
-      - "homepage.name=Home Assistant"
-      - "homepage.icon=home-assistant.png"
-      - "homepage.href=https://ha.homelab.local"
-      - "homepage.description=Smart home platform"
-      - "homepage.widget.type=homeassistant"
-      - "homepage.widget.url=http://host.docker.internal:8123"
-      - "homepage.widget.key=${HOME_ASSISTANT_TOKEN:-}"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  plex:
-    image: lscr.io/linuxserver/plex:latest
-    container_name: plex
-    network_mode: host
-    restart: unless-stopped
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-      - PLEX_CLAIM=${PLEX_CLAIM:-}
-      - PLEX_HW_ACCEL=${PLEX_HW_ACCEL:-disabled}
-      - PLEX_TRANSCODE=${PLEX_TRANSCODE_HW:-0}
-    devices:
-      - /dev/dri:/dev/dri
-    group_add:
-      - "${RENDER_GID}"
-    volumes:
-      - ./plex/config:/config
-      - ./media:/data
-      - ./plex/transcode:/transcode
-    labels:
-      - "homepage.group=Media"
-      - "homepage.name=Plex"
-      - "homepage.icon=plex.png"
-      - "homepage.href=https://plex.homelab.local"
-      - "homepage.description=4K media server"
-      - "homepage.widget.type=plex"
-      - "homepage.widget.url=http://host.docker.internal:32400"
-      - "homepage.widget.key=${PLEX_TOKEN}"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # CORE AI INFERENCE
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   ollama:
     image: ollama/ollama:latest
@@ -123,20 +21,6 @@ services:
       - "11434:11434"
     volumes:
       - ollama_models:/root/.ollama
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.ollama.rule=Host(`ollama.homelab.local`)"
-      - "traefik.http.routers.ollama.entrypoints=websecure"
-      - "traefik.http.routers.ollama.tls=true"
-      - "traefik.http.routers.ollama.middlewares=secure-headers@file"
-      - "traefik.http.services.ollama.loadbalancer.server.port=11434"
-      - "homepage.group=AI"
-      - "homepage.name=Ollama"
-      - "homepage.icon=ollama.png"
-      - "homepage.href=https://ollama.homelab.local"
-      - "homepage.description=Local LLM inference engine"
-      - "homepage.widget.type=ollama"
-      - "homepage.widget.url=http://ollama:11434"
     environment:
       - TZ=${TZ}
       - OLLAMA_KEEP_ALIVE=${OLLAMA_KEEP_ALIVE:-5m}
@@ -146,10 +30,10 @@ services:
       - OLLAMA_NUM_PARALLEL=${OLLAMA_NUM_PARALLEL:-1}
       - OLLAMA_MAX_LOADED_MODELS=${OLLAMA_MAX_LOADED_MODELS:-1}
       - OLLAMA_NUM_GPU=${OLLAMA_NUM_GPU:-0}
-      - OLLAMA_METAL=${OLLAMA_METAL:-0}
       - OLLAMA_DEFAULT_MODEL=${OLLAMA_DEFAULT_MODEL:-qwen2.5-coder:3b}
+    mem_limit: ${OLLAMA_MEM_LIMIT:-4g}
     healthcheck:
-      test: [ "CMD-SHELL", "wget -q --spider http://localhost:11434 || exit 1" ]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:11434 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -160,6 +44,7 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # Optional human UI for debugging & prompt testing
   open-webui:
     image: ghcr.io/open-webui/open-webui:v0.8.3
     container_name: open-webui
@@ -170,216 +55,79 @@ services:
       - "3000:8080"
     volumes:
       - ./open-webui:/app/backend/data
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.chat.rule=Host(`chat.homelab.local`)"
-      - "traefik.http.routers.chat.entrypoints=websecure"
-      - "traefik.http.routers.chat.tls=true"
-      - "traefik.http.routers.chat.middlewares=secure-headers@file"
-      - "traefik.http.services.chat.loadbalancer.server.port=8080"
-      - "homepage.group=AI"
-      - "homepage.name=Open WebUI"
-      - "homepage.icon=openwebui.png"
-      - "homepage.href=https://chat.homelab.local"
-      - "homepage.description=ChatGPT-like interface"
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
+    mem_limit: 1g
     healthcheck:
-      test: [ "CMD-SHELL", "wget -q --spider http://localhost:8080 || exit 1" ]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 30s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
     depends_on:
-      - ollama
-
-  n8n:
-    image: n8nio/n8n:latest
-    container_name: n8n
-    restart: unless-stopped
-    networks:
-      - homelab
-    ports:
-      - "5678:5678"
-    volumes:
-      - ./n8n:/home/node/.n8n
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.n8n.rule=Host(`n8n.homelab.local`)"
-      - "traefik.http.routers.n8n.entrypoints=websecure"
-      - "traefik.http.routers.n8n.tls=true"
-      - "traefik.http.routers.n8n.middlewares=secure-headers@file"
-      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
-      - "homepage.group=Home"
-      - "homepage.name=n8n"
-      - "homepage.icon=n8n.png"
-      - "homepage.href=https://n8n.homelab.local"
-      - "homepage.description=Workflow automation"
-    environment:
-      - N8N_USER_MANAGEMENT_DISABLED=false
-      - N8N_SECURE_COOKIE=true
-      - TZ=${TZ}
-    healthcheck:
-      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/5678" ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
+      ollama:
+        condition: service_healthy
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-  samba:
-    image: dperson/samba:latest
-    container_name: samba
-    restart: unless-stopped
-    networks:
-      - homelab
-    ports:
-      - "137-138:137-138/udp"
-      - "139:139"
-      - "445:445"
-    environment:
-      - USERID=${PUID}
-      - GROUPID=${PGID}
-      - TZ=${TZ}
-      - USER=${SAMBA_USER};${SAMBA_PASS}
-    volumes:
-      - ./media:/mount/media:rw
-    command: "-u \"${SAMBA_USER};${SAMBA_PASS}\" -s \"Media;/mount/media;yes;no;no;${SAMBA_USER}\""
-    healthcheck:
-      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/445" ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 10s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "2"
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # AUTONOMOUS AGENT BRAIN
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  # VS Code Server (Web-based IDE)
-  vscode:
-    image: codercom/code-server:latest
-    container_name: vscode
+  openclaw:
+    image: ghcr.io/openclaw/openclaw:latest
+    container_name: openclaw
     restart: unless-stopped
     networks:
       - homelab
     ports:
-      - "8443:8443"
+      - "18789:18789"
     volumes:
-      - ./vscode/workspace:/home/coder/workspace
-      - ./vscode/config:/home/coder/.local/share/code-server
+      - ./openclaw:/home/node/.openclaw
     environment:
-      - PASSWORD=${VSCOD_E_PASSWORD}
       - OLLAMA_HOST=http://ollama:11434
+      - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_TOKEN:-kilo_dev_token}
+      - OPENCLAW_CONFIG_PATH=/home/node/.openclaw/openclaw.json
+      - KILO_PIPELINE_ENDPOINT=http://kilo-pipeline:3100
+      - QDRANT_HOST=http://qdrant:6333
+      - TRUST_MODE=${TRUST_MODE:-supervised}
+      - OPENCLAW_KILO_ENABLED=${OPENCLAW_KILO_ENABLED:-true}
+      - DOCKER_HOST=tcp://docker-proxy:2375
       - TZ=${TZ}
+      # Scraper configuration
+      - CRAWL4AI_URL=http://crawl4ai:8000
+      - CRAWL4AI_MAX_CONCURRENT=${CRAWL4AI_MAX_CONCURRENT:-5}
+      - CHECKPOINT_DIR=/var/kilo/checkpoints
+      # Autonomy flags
+      - PERSISTENT_MODE=true
+      - NOTIFY_WEBHOOK=${NOTIFY_WEBHOOK:-}
+      - TASK_QUEUE_ENABLED=true
+    mem_limit: 2g
     healthcheck:
-      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/8443" ]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:18789 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 20s
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.vscode.rule=Host(`vscode.homelab.local`)"
-      - "traefik.http.routers.vscode.entrypoints=websecure"
-      - "traefik.http.routers.vscode.tls=true"
-      - "traefik.http.routers.vscode.middlewares=secure-headers@file"
-      - "traefik.http.services.vscode.loadbalancer.server.port=8443"
-      - "homepage.group=DevTools"
-      - "homepage.name=VS Code"
-      - "homepage.icon=vscode.png"
-      - "homepage.href=https://vscode.homelab.local"
-      - "homepage.description=Web-based VS Code editor"
     depends_on:
-      - ollama
+      ollama:
+        condition: service_healthy
+      docker-proxy:
+        condition: service_healthy
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-  # Secure Docker Socket Proxy (Zero-Trust Docker API gateway)
-  # Only exposes read-only container/service/network discovery.
-  # Traefik and OpenClaw connect here instead of the raw Docker socket.
-  docker-proxy:
-    image: tecnativa/docker-socket-proxy:latest
-    container_name: docker-proxy
-    restart: unless-stopped
-    networks:
-      - proxy
-      - homelab
-    ports:
-      - "127.0.0.1:2375:2375" # Expose for healthcheck (localhost only)
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    environment:
-      # Read-only discovery for Traefik
-      - CONTAINERS=1
-      - SERVICES=1
-      - NETWORKS=1
-      - TASKS=1
-      # Write access disabled (zero-trust)
-      - POST=0
-      - EXEC=0
-      - LOGS=0
-    healthcheck:
-      test: [ "CMD-SHELL", "wget -q --spider http://localhost:2375 || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "2"
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # CODE & APP FACTORY
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  # Dedicated Write-Proxy for Watchtower (Architectural Isolation)
-  # This instance has POST and IMAGES enabled to allow automated updates.
-  # Isolated on watchtower-net to prevent access from other containers.
-  docker-proxy-watchtower:
-    image: tecnativa/docker-socket-proxy:latest
-    container_name: docker-proxy-watchtower
-    restart: unless-stopped
-    networks:
-      - watchtower-net
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - CONTAINERS=1
-      - SERVICES=1
-      - NETWORKS=1
-      - TASKS=1
-      - IMAGES=1 # ✅ Added - allows image operations
-      - POST=1 # ✅ Changed - allows container updates
-      - LOGS=1 # ✅ Added - useful for debugging
-      - EXEC=0 # Keep disabled
-      - BUILD=0 # Keep disabled
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "2"
-
-  # ============================================================
-  # KILO PIPELINE INFRASTRUCTURE
-  # OpenClaw + Kilo Code v9 — Task 1.3, 1.4, 1.5, 1.6
-  # Phase 1 Infrastructure — N100 RAM budget: Qdrant 512m + pipeline 1g
-  # ============================================================
-
-  # Qdrant: Vector Database (5 collections for memory system)
-  # Network: homelab only — Traefik does NOT expose port 6333 externally.
-  # Data persists in named volume qdrant_data.
+  # Qdrant: Vector Database (persistent memory & self-learning)
   qdrant:
     image: qdrant/qdrant:latest
     container_name: qdrant
@@ -389,8 +137,6 @@ services:
     ports:
       - "6333:6333"
       - "6334:6334"
-      # NOTE: Exposed on host for direct vector DB access (development).
-      # Production should use internal network only or add authentication.
     volumes:
       - qdrant_data:/qdrant/storage
     environment:
@@ -398,64 +144,19 @@ services:
       - TZ=${TZ}
     mem_limit: 512m
     healthcheck:
-      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/6333" ]
+      test: ["CMD", "bash", "-c", "</dev/tcp/localhost/6333"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 20s
-    labels:
-      - "homepage.group=AI"
-      - "homepage.name=Qdrant"
-      - "homepage.icon=qdrant.png"
-      - "homepage.href=http://localhost:6333/dashboard"
-      - "homepage.description=Vector DB (kilo memory)"
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-  # kilo-proxy: Secure Docker Socket Proxy for kilo-pipeline
-  # SECURITY: Lives on kilo-net ONLY — must NEVER appear on the homelab network.
-  # Grants kilo-pipeline the ability to spawn Docker sandboxes for Kilo CLI.
-  # POST=1 EXEC=1 IMAGES=1 required for sandbox create/start/exec.
-  # BUILD=0 — pipeline never builds images directly.
-  kilo-proxy:
-    image: tecnativa/docker-socket-proxy:latest
-    container_name: kilo-proxy
-    restart: unless-stopped
-    networks:
-      - kilo-net # ONLY — never homelab
-    ports:
-      - "2376:2375" # Exposed on host for kilo-pipeline Docker sandbox access
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - CONTAINERS=1
-      - SERVICES=1
-      - NETWORKS=1
-      - TASKS=1
-      - IMAGES=1
-      - LOGS=1
-      - POST=1 # Required: sandbox create/start/stop
-      - EXEC=1 # Required: sandbox exec for Kilo CLI invocations
-      - BUILD=0 # Pipeline never builds images
-    healthcheck:
-      test: [ "CMD-SHELL", "wget -q --spider http://localhost:2375 || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "2"
-
-  # kilo-pipeline: Node.js orchestration service (STUB — Phase 1)
-  # Built locally from ./kilo/pipeline — Watchtower excluded (locally built).
-  # Phase 1: container stub only. Full implementation in Phase 2.
-  # Networks: homelab (receives tasks from OpenClaw) + kilo-net (Docker sandbox access).
+  # kilo-pipeline: Node.js orchestration service
+  # Built locally from ./kilo/pipeline — Watchtower excluded
   kilo-pipeline:
     build: ./kilo/pipeline
     container_name: kilo-pipeline
@@ -477,9 +178,9 @@ services:
       - DOCKER_HOST=tcp://kilo-proxy:2375
       - CRAWL4AI_URL=http://crawl4ai:8000
       - TZ=${TZ}
-    mem_limit: 1g
+    mem_limit: 1.5g
     healthcheck:
-      test: [ "CMD-SHELL", "wget -q --spider http://localhost:3100 || exit 1" ]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3100 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -492,18 +193,7 @@ services:
       ollama:
         condition: service_healthy
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.kilo.rule=Host(`kilo.homelab.local`)"
-      - "traefik.http.routers.kilo.entrypoints=websecure"
-      - "traefik.http.routers.kilo.tls=true"
-      - "traefik.http.routers.kilo.middlewares=secure-headers@file"
-      - "traefik.http.services.kilo.loadbalancer.server.port=3100"
-      - "homepage.group=AI"
-      - "homepage.name=Kilo Pipeline"
-      - "homepage.icon=kubernetes.png"
-      - "homepage.href=https://kilo.homelab.local/health"
-      - "homepage.description=AI coding pipeline"
-      # Exclude from Watchtower — locally built image, no registry to pull from
+      # Exclude from Watchtower — locally built image
       - "com.centurylinklabs.watchtower.enable=false"
     logging:
       driver: "json-file"
@@ -511,62 +201,42 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # OpenClaw AI Agent
-  openclaw:
-    image: ghcr.io/openclaw/openclaw:latest
-    container_name: openclaw
+  # kilo-proxy: Secure Docker Socket Proxy for kilo-pipeline sandbox
+  # SECURITY: kilo-net ONLY — never exposed to homelab network
+  kilo-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: kilo-proxy
     restart: unless-stopped
     networks:
-      - homelab
-      - proxy
-    ports:
-      - "18789:18789"
+      - kilo-net
     volumes:
-      - ./openclaw:/home/node/.openclaw
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - OLLAMA_HOST=http://ollama:11434
-      - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_TOKEN:-kilo_dev_token}
-      - OPENCLAW_CONFIG_PATH=/home/node/.openclaw/openclaw.json
-      - HOME_ASSISTANT_TOKEN=${HOME_ASSISTANT_TOKEN:-}
-      - KILO_PIPELINE_ENDPOINT=http://kilo-pipeline:3100
-      - TRUST_MODE=${TRUST_MODE:-supervised}
-      - OPENCLAW_KILO_ENABLED=${OPENCLAW_KILO_ENABLED:-true}
-      - DOCKER_HOST=tcp://docker-proxy:2375
-      - TZ=${TZ}
-      # Scraper configuration
-      - CRAWL4AI_URL=http://crawl4ai:8000
-      - CRAWL4AI_MAX_CONCURRENT=${CRAWL4AI_MAX_CONCURRENT:-5}
-      - CHECKPOINT_DIR=/var/kilo/checkpoints
+      - CONTAINERS=1
+      - SERVICES=1
+      - NETWORKS=1
+      - TASKS=1
+      - IMAGES=1
+      - LOGS=1
+      - POST=1
+      - EXEC=1
+      - BUILD=0
+    mem_limit: 256m
     healthcheck:
-      test: [ "CMD-SHELL", "wget -q --spider http://localhost:18789 || exit 1" ]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:2375 || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 5
-      start_period: 20s
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.openclaw.rule=Host(`openclaw.homelab.local`)"
-      - "traefik.http.routers.openclaw.entrypoints=websecure"
-      - "traefik.http.routers.openclaw.tls=true"
-      - "traefik.http.routers.openclaw.middlewares=secure-headers@file"
-      - "traefik.http.services.openclaw.loadbalancer.server.port=18789"
-      - "homepage.group=AI"
-      - "homepage.name=OpenClaw"
-      - "homepage.icon=openai.png"
-      - "homepage.href=https://openclaw.homelab.local"
-      - "homepage.description=Autonomous AI agent"
-    depends_on:
-      - ollama
-      - docker-proxy
+      retries: 3
+      start_period: 10s
     logging:
       driver: "json-file"
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: "5m"
+        max-file: "2"
 
-  # ============================================================
-  # CRAWL4AI - Web Scraping Service
-  # ============================================================
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # DEEP RESEARCH & WEB INTELLIGENCE
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   crawl4ai:
     image: public.ecr.aws/crawl4ai/crawl4ai:latest
@@ -580,606 +250,93 @@ services:
       - CRAWL4AI_API_TOKEN=${CRAWL4AI_API_TOKEN:-}
       - CRAWL4AI_MAX_CONCURRENT=${CRAWL4AI_MAX_CONCURRENT:-5}
       - CRAWL4AI_TIMEOUT=${CRAWL4AI_TIMEOUT:-30000}
-      - CRAWL4AI_MEMORY_LIMIT=${CRAWL4AI_MEMORY_LIMIT:-2g}
       - TZ=${TZ}
-    volumes:
-      - crawl4ai_data:/app/data
-    mem_limit: ${CRAWL4AI_MEMORY_LIMIT:-2g}
+    mem_limit: ${CRAWL4AI_MEMORY_LIMIT:-800m}
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:8000/health || wget -q --spider http://localhost:8000/health || exit 0" ]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || wget -q --spider http://localhost:8000/health || exit 0"]
       interval: 30s
       timeout: 10s
       retries: 3
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.crawl4ai.rule=Host(`crawl4ai.homelab.local`)"
-      - "traefik.http.routers.crawl4ai.entrypoints=websecure"
-      - "traefik.http.routers.crawl4ai.tls=true"
-      - "traefik.http.routers.crawl4ai.middlewares=secure-headers@file"
-      - "traefik.http.services.crawl4ai.loadbalancer.server.port=8000"
-      - "homepage.group=AI"
-      - "homepage.name=Crawl4AI"
-      - "homepage.icon=spider.png"
-      - "homepage.href=http://localhost:8000"
-      - "homepage.description=Web scraping service"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
     depends_on:
-      openclaw:
-        condition: service_started
-      kilo-pipeline:
-        condition: service_started
-
-  # ============================================================
-  # NETBIRD SELF-HOSTED STACK (Management + Dashboard + Signal)
-  # ============================================================
-
-  # NetBird Management: Coordination Server (with Embedded IdP)
-  netbird-management:
-    image: netbirdio/management:latest
-    container_name: netbird-management
-    restart: unless-stopped
-    networks:
-      - homelab
-    ports:
-      - "33071:443" # API / Dashboard
-      - "33073:33073" # gRPC
-    volumes:
-      - netbird_mgmt:/var/lib/netbird
-      - netbird_letsencrypt:/etc/letsencrypt
-    environment:
-      - NETBIRD_STORE_ENGINE=sqlite
-      - NETBIRD_DATA_DIR=/var/lib/netbird
-      - NETBIRD_LETSENCRYPT_DOMAIN=none
-      - NETBIRD_MGMT_API_ENDPOINT=https://netbird.homelab.local:33071
-      - NETBIRD_MGMT_GRPC_API_ENDPOINT=https://netbird.homelab.local:33073
-      - NETBIRD_MGMT_API_PORT=80
-      - NETBIRD_MGMT_GRPC_API_PORT=33073
-      - NETBIRD_IDP_TYPE=self-hosted
-      - NETBIRD_TURN_HOST=coturn
-      - NETBIRD_TURN_PORT=3478
-      - NETBIRD_TURN_SECRET=${TURN_SECRET}
-      - TZ=${TZ}
-    healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:80/api/health || wget -q --spider http://localhost:80/api/health || exit 0" ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 20s
-    labels:
-      - "traefik.enable=true"
-      # Management API & Dashboard routing
-      - "traefik.http.routers.netbird-api.rule=Host(`netbird.homelab.local`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.netbird-api.entrypoints=websecure"
-      - "traefik.http.routers.netbird-api.tls=true"
-      - "traefik.http.services.netbird-api.loadbalancer.server.port=80"
-      - "traefik.http.services.netbird-api.loadbalancer.server.scheme=http"
-      # gRPC routing needs distinct setup, simplified for HTTP/1.1 proxying here
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "2"
-
-  # NetBird Signal: Peer Discovery Messaging
-  netbird-signal:
-    image: netbirdio/signal:latest
-    container_name: netbird-signal
-    restart: unless-stopped
-    networks:
-      - homelab
-    volumes:
-      - netbird_signal:/var/lib/netbird
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.netbird-signal.rule=Host(`netbird.homelab.local`) && PathPrefix(`/signalexchange.SignalExchange/`)"
-      - "traefik.http.routers.netbird-signal.entrypoints=websecure"
-      - "traefik.http.routers.netbird-signal.tls=true"
-      - "traefik.http.services.netbird-signal.loadbalancer.server.port=80"
-      - "traefik.http.services.netbird-signal.loadbalancer.server.scheme=h2c"
-    healthcheck:
-      test: [ "CMD", "bash", "-c", "</dev/tcp/localhost/80" ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "2"
-
-  # NetBird Dashboard: Web UI
-  netbird-dashboard:
-    image: netbirdio/dashboard:latest
-    container_name: netbird-dashboard
-    restart: unless-stopped
-    networks:
-      - homelab
-    environment:
-      - NETBIRD_MGMT_API_ENDPOINT=https://netbird.homelab.local:33071
-      - NETBIRD_MGMT_GRPC_API_ENDPOINT=https://netbird.homelab.local:33073
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.netbird.rule=Host(`netbird.homelab.local`)"
-      - "traefik.http.routers.netbird.entrypoints=websecure"
-      - "traefik.http.routers.netbird.tls=true"
-      - "traefik.http.services.netbird.loadbalancer.server.port=80"
-      - "homepage.group=Network"
-      - "homepage.name=NetBird"
-      - "homepage.icon=wireguard.png"
-      - "homepage.href=https://netbird.homelab.local"
-      - "homepage.description=Self-hosted mesh VPN"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "2"
-
-  # Coturn: STUN/TURN for NAT Traversal
-  coturn:
-    image: coturn/coturn:latest
-    container_name: coturn
-    restart: unless-stopped
-    network_mode: host # Best performance for STUN/TURN
-    command:
-      - -n
-      - --log-file=stdout
-      - --lt-cred-mech
-      - --use-auth-secret
-      - --static-auth-secret=${TURN_SECRET}
-      - --realm=${TURN_REALM}
-      - --min-port=49152
-      - --max-port=65535
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "2"
-
-  # ============================================================
-  # OBSERVABILITY STACK (Prometheus + Grafana + Exporters)
-  # ============================================================
-
-  # Prometheus: Metrics Collection Engine
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
-    restart: unless-stopped
-    networks:
-      - homelab
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./prometheus/data:/prometheus
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.retention.time=30d"
-      - "--storage.tsdb.retention.size=5GB"
-    environment:
-      - TZ=${TZ}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.prometheus.rule=Host(`prometheus.homelab.local`)"
-      - "traefik.http.routers.prometheus.entrypoints=websecure"
-      - "traefik.http.routers.prometheus.tls=true"
-      - "traefik.http.routers.prometheus.middlewares=secure-headers@file"
-      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
-      - "homepage.group=Observability"
-      - "homepage.name=Prometheus"
-      - "homepage.icon=prometheus.png"
-      - "homepage.href=https://prometheus.homelab.local"
-      - "homepage.description=Metrics collection"
-      - "homepage.widget.type=prometheus"
-      - "homepage.widget.url=http://prometheus:9090"
+      qdrant:
+        condition: service_healthy
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-  # Grafana: Metrics Visualization & Dashboards
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # INFRASTRUCTURE — Security & Self-Healing
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  # Docker Socket Proxy — Zero-trust Docker API gateway
+  # Watchtower and OpenClaw connect here instead of the raw Docker socket
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: docker-proxy
     restart: unless-stopped
     networks:
       - homelab
-    ports:
-      - "3001:3000"
     volumes:
-      - ./grafana/data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASSWORD}
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=https://grafana.homelab.local
-      - TZ=${TZ}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`grafana.homelab.local`)"
-      - "traefik.http.routers.grafana.entrypoints=websecure"
-      - "traefik.http.routers.grafana.tls=true"
-      - "traefik.http.routers.grafana.middlewares=secure-headers@file"
-      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
-      - "homepage.group=Observability"
-      - "homepage.name=Grafana"
-      - "homepage.icon=grafana.png"
-      - "homepage.href=https://grafana.homelab.local"
-      - "homepage.description=Metrics dashboards"
-      - "homepage.widget.type=grafana"
-      - "homepage.widget.url=http://grafana:3000"
-      - "homepage.widget.username=admin"
-      - "homepage.widget.password=${GF_ADMIN_PASSWORD}"
+      # Read + write for Watchtower updates
+      - CONTAINERS=1
+      - SERVICES=1
+      - NETWORKS=1
+      - TASKS=1
+      - IMAGES=1
+      - POST=1
+      - LOGS=1
+      - EXEC=0
+      - BUILD=0
+    mem_limit: 128m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:2375 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # Watchtower: Automated container updates (self-healing)
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    networks:
+      - homelab
     depends_on:
-      - prometheus
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # cAdvisor: Container Resource Metrics Exporter
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
-    container_name: cadvisor
-    restart: unless-stopped
-    networks:
-      - homelab
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-      - /dev/disk/:/dev/disk:ro
-    privileged: true
-    devices:
-      - /dev/kmsg
-    labels:
-      - "homepage.group=Observability"
-      - "homepage.name=cAdvisor"
-      - "homepage.icon=cadvisor.png"
-      - "homepage.href=http://localhost:8080"
-      - "homepage.description=Container metrics"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # node-exporter: Host-level metrics (Disk, CPU, RAM)
-  node-exporter:
-    image: prom/node-exporter:latest
-    container_name: node-exporter
-    restart: unless-stopped
-    network_mode: host
-    pid: host
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - "--path.procfs=/host/proc"
-      - "--path.sysfs=/host/sys"
-      - "--path.rootfs=/rootfs"
-      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "2"
-
-  # Jellyfin: Open Source Media Server
-  jellyfin:
-    image: jellyfin/jellyfin:latest
-    container_name: jellyfin
-    restart: unless-stopped
-    networks:
-      - homelab
-    ports:
-      - "8096:8096"
+      docker-proxy:
+        condition: service_healthy
     environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-      - JELLYFIN_HardwareAcceleration=${JELLYFIN_HW_ACCEL:-None}
-      - JELLYFIN_EnableRealtimeMonitor=${JELLYFIN_TRANSCODE_HW:-0}
-    healthcheck:
-      test: [ "CMD-SHELL", "wget -q --spider http://localhost:8096 || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-    volumes:
-      - ./jellyfin/config:/config
-      - ./jellyfin/cache:/cache
-      - ./media:/data
-    devices:
-      - /dev/dri:/dev/dri # Hardware acceleration (VAAPI/QuickSync)
-    group_add:
-      - "${RENDER_GID}"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.homelab.local`)"
-      - "traefik.http.routers.jellyfin.entrypoints=websecure"
-      - "traefik.http.routers.jellyfin.tls=true"
-      - "traefik.http.routers.jellyfin.middlewares=secure-headers@file"
-      - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
-      - "homepage.group=Media"
-      - "homepage.name=Jellyfin"
-      - "homepage.icon=jellyfin.png"
-      - "homepage.href=https://jellyfin.homelab.local"
-      - "homepage.description=Open source media server"
-      - "homepage.widget.type=jellyfin"
-      - "homepage.widget.url=http://jellyfin:8096"
-      - "homepage.widget.key=${JELLYFIN_API_KEY}"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # ============================================================
-  # ONLYOFFICE DOCUMENT SERVER
-  # ============================================================
-
-  onlyoffice:
-    image: onlyoffice/documentserver:latest
-    container_name: onlyoffice
-    restart: unless-stopped
-    networks:
-      - homelab
-    ports:
-      - "9980:80"
-    volumes:
-      - ./onlyoffice/logs:/var/log/onlyoffice
-      - ./onlyoffice/data:/var/www/onlyoffice/Data
-      - ./onlyoffice/lib:/var/lib/onlyoffice
-      - ./onlyoffice/db:/var/lib/postgresql
-      # Mount the local cert for internal TLS validation if needed
-      - ./traefik/certs/homelab.local.crt:/etc/ssl/certs/homelab.local.crt:ro
-    environment:
-      - JWT_ENABLED=true
-      - JWT_SECRET=${ONLYOFFICE_JWT_SECRET}
-      - JWT_HEADER=AuthorizationJwt
-      - TZ=${TZ}
-    healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost/healthcheck || wget -q --spider http://localhost/healthcheck || exit 0" ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.onlyoffice.rule=Host(`office.homelab.local`)"
-      - "traefik.http.routers.onlyoffice.entrypoints=websecure"
-      - "traefik.http.routers.onlyoffice.tls=true"
-      - "traefik.http.routers.onlyoffice.middlewares=onlyoffice-headers@file"
-      - "traefik.http.services.onlyoffice.loadbalancer.server.port=80"
-      - "homepage.group=Documents"
-      - "homepage.name=ONLYOFFICE"
-      - "homepage.icon=onlyoffice.png"
-      - "homepage.href=https://office.homelab.local"
-      - "homepage.description=Collaborative document editor"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # Nextcloud: File Management Backend for OnlyOffice
-  nextcloud:
-    image: nextcloud:stable
-    container_name: nextcloud
-    restart: unless-stopped
-    networks:
-      - homelab
-    ports:
-      - "8080:80"
-    volumes:
-      - ./nextcloud/data:/var/www/html
-      # Re-use the existing media directory (mount read-only for safety or rw if shared)
-      - ./media:/var/www/html/data/${ACTUAL_USER}/files/Media:ro
-    environment:
-      - NEXTCLOUD_ADMIN_USER=admin
-      - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
-      - NEXTCLOUD_TRUSTED_DOMAINS=nextcloud.homelab.local localhost
-      - TZ=${TZ}
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost/status.php" ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.nextcloud.rule=Host(`nextcloud.homelab.local`)"
-      - "traefik.http.routers.nextcloud.entrypoints=websecure"
-      - "traefik.http.routers.nextcloud.tls=true"
-      - "traefik.http.routers.nextcloud.middlewares=nextcloud-headers@file"
-      - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
-      - "homepage.group=Documents"
-      - "homepage.name=Nextcloud"
-      - "homepage.icon=nextcloud.png"
-      - "homepage.href=https://nextcloud.homelab.local"
-      - "homepage.description=Private file sync"
-      - "homepage.widget.type=nextcloud"
-      - "homepage.widget.url=http://nextcloud:80"
-      - "homepage.widget.username=admin"
-      - "homepage.widget.password=${NEXTCLOUD_ADMIN_PASSWORD}"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # ============================================================
-  # OBSIDIAN & RAG (Phase 8)
-  # ============================================================
-
-  obsidian:
-    image: linuxserver/obsidian:latest
-    container_name: obsidian
-    restart: unless-stopped
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-      - CUSTOM_USER=${OBSIDIAN_USER}
-      - PASSWORD=${OBSIDIAN_PASSWORD}
-    volumes:
-      - ./obsidian/config:/config
-      - ${NEXTCLOUD_DATA_PATH}/${NC_ADMIN_USER}/files/Obsidian:/vaults
-    networks:
-      - proxy
-      - homelab # Using homelab instead of 'internal' as per current stack naming
-    mem_limit: 2g
-    cpus: 1.5
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.obsidian.rule=Host(`obsidian.homelab.local`)"
-      - "traefik.http.routers.obsidian.entrypoints=websecure"
-      - "traefik.http.routers.obsidian.tls=true"
-      - "traefik.http.routers.obsidian.middlewares=secure-headers@file"
-      - "traefik.http.services.obsidian.loadbalancer.server.port=3000"
-      - "homepage.group=Productivity"
-      - "homepage.name=Obsidian"
-      - "homepage.icon=obsidian.png"
-      - "homepage.href=https://obsidian.homelab.local"
-      - "homepage.description=Web-based note editor"
-    depends_on:
-      - nextcloud
-
-  # ============================================================
-  # HOMEPAGE — Service Dashboard
-  # ============================================================
-  homepage:
-    image: ghcr.io/gethomepage/homepage:latest
-    container_name: homepage
-    restart: unless-stopped
-    networks:
-      - homelab
-    ports:
-      - "3002:3000"
-    volumes:
-      - ./homepage:/app/config
-    environment:
-      - TZ=${TZ}
-      - PUID=${PUID}
-      - PGID=${PGID}
       - DOCKER_HOST=tcp://docker-proxy:2375
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:3000" ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 20s
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.homepage.rule=Host(`home.homelab.local`)"
-      - "traefik.http.routers.homepage.entrypoints=websecure"
-      - "traefik.http.routers.homepage.tls=true"
-      - "traefik.http.routers.homepage.middlewares=secure-headers@file"
-      - "traefik.http.services.homepage.loadbalancer.server.port=3000"
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_SCHEDULE=0 0 3 * * SUN
+      - TZ=${TZ}
+    mem_limit: 256m
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-  # ============================================================
-  # SCRAPING ENHANCEMENT STACK (Tor + I2P)
-  # ============================================================
-
-  # Tor: Anonymous network proxy for IP rotation
-  tor:
-    image: dperson/torproxy:latest
-    container_name: tor
-    restart: unless-stopped
-    networks:
-      - homelab
-    ports:
-      - "9050:9050" # SOCKS5 proxy
-      - "9051:9051" # Control port
-    environment:
-      - TZ=${TZ}
-      - TOR_PASSWORD_HASH=${TOR_PASSWORD_HASH:-}
-    secrets:
-      - tor_password
-    command: >
-      sh -c '
-        TOR_HASH="${TOR_PASSWORD_HASH:-}";
-        /usr/bin/tor -f /etc/tor/torrc --ControlPort 9051 --HashedControlPassword "$TOR_HASH"
-      '
-    healthcheck:
-      test: [ "CMD-SHELL", "nc -z localhost 9050 || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "2"
-
-  # I2P: Anonymous network for additional IP options
-  i2p:
-    image: geti2p/i2p:latest
-    container_name: i2p
-    restart: unless-stopped
-    networks:
-      - homelab
-    ports:
-      - "7656:7656" # I2P SAM port
-      - "7657:7657" # I2P HTTP proxy
-    environment:
-      - TZ=${TZ}
-    volumes:
-      - ./i2p/data:/i2p/data
-    healthcheck:
-      test: [ "CMD-SHELL", "wget -q --spider http://localhost:7657 || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "2"
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# PERSISTENCE
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 volumes:
-  crawl4ai_data:
-  ollama_models: # Large models kept in named volume for performance
-  qdrant_data: # Qdrant vector storage — persists across restarts and compose down
-  netbird_mgmt:
-  netbird_signal:
-  netbird_letsencrypt:
-
+  ollama_models:
+  qdrant_data:
 
 networks:
   homelab:
     driver: bridge
-  proxy:
-    driver: bridge
-    internal: true # No external access — socket proxy only
-  watchtower-net:
-    driver: bridge
-    internal: true # Private network for Watchtower <-> Proxy isolation
   kilo-net:
     driver: bridge
-    internal: true # kilo-proxy <-> kilo-pipeline only. Never exposed to homelab.
-
-secrets:
-  tor_password:
-    file: ${TOR_PASSWORD_FILE:-./.secrets/tor_password}
+    internal: true

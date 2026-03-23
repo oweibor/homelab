@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0] - 2026-03-24
+
+### 🤖 Autonomous Agent Factory Pivot (Major Architecture Shift)
+
+- **Complete Project Pivot**: Transformed the general-purpose "Homelab" into a specialized "Autonomous Business & Coding Agent Factory". 
+- **Agentic Core Focus**: Retained only the core AI and automation services necessary for an autonomous agent:
+  - OpenClaw (Orchestrator)
+  - Kilo Pipeline (Sandboxed Autonomous CI/CD loop)
+  - Crawl4AI (Deep Research)
+  - Qdrant (Long-term vector memory)
+  - Ollama & Open WebUI (Local LLMs)
+- **Massive Debloat**: Removed all "Lifestyle" and media services to drastically reduce system footprint and focus resources entirely on AI operations. 
+  - **Removed**: Nextcloud, ONLYOFFICE, Plex, Jellyfin, Home Assistant, n8n, Samba, Antigravity, Obsidian, AnythingLLM, Tor, I2P.
+- **Observability Cleanup**: Removed Grafana and Prometheus stacks to simplify the base deployment.
+- **Network Simplification**: Consolidating Docker proxies and removing Traefik routing rules that applied to the removed legacy lifestyle components.
+- **Persistence**: Added a dedicated `openclaw-agent.service` systemd file guaranteeing the agent stays online 24/7 across reboots.
+
+---
+
 ## [1.6.2] - 2026-03-11
 
 ### 🔧 Script Robustness Improvements

@@ -17,29 +17,20 @@ docker-compose.override.yml
 
 # Application Data (Exclude heavy/sensitive folders)
 homelab/
-media/
-plex/
-homeassistant/
-n8n/
-samba/
-open-webui/
 openclaw/config/
-nextcloud/
-implementation_plan/
-plans/
+qdrant/
+kilo/workspace/
+kilo/signals/
+kilo/queue/
+kilo/history/
+kilo/system/
+
+# Kilo & OpenClaw
+.kilocodemodes
+
+# Logs & Audit
 audit/
-
-# Monitoring Data
-grafana/data/
-prometheus/data/
-
-# NetBird Data
-netbird.env
-netbird/
-
-# mkcert CA & Client Certs (sensitive)
-certs-for-clients/
-traefik/certs/
+watchtower/
 
 # Node.js
 node_modules/
