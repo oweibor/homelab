@@ -3,7 +3,7 @@
 /**
  * Stage 3a: Search Router.
  * Determines if a COMPLEX error needs RAG, Web Search, or both.
- * Stubbed for Phase 1 homelab (RAG returns empty, web search is mocked).
+ * Stubbed for Phase 1 oweibo (RAG returns empty, web search is mocked).
  *
  * @module services/recovery/searchRouter
  */
@@ -49,7 +49,7 @@ function detectStackCategory(canonicalKey) {
  */
 async function performRagSearch(query) {
     logger.debug('RAG search invoked (stubbed)', { query });
-    return []; // Empty for Phase 1 homelab
+    return []; // Empty for Phase 1 oweibo
 }
 
 /**

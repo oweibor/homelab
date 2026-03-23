@@ -22,7 +22,7 @@ const router = express.Router();
  * Returns array of pending staging items.
  */
 router.get('/', (req, res) => {
-    // We assume the caller knows their workspace or we default to homelab
+    // We assume the caller knows their workspace or we default to oweibo
     const workspacePath = req.query.workspace || '/var/kilo/workspace_stub';
     const stagingDir = path.join(workspacePath, '.kilo', 'staging');
 

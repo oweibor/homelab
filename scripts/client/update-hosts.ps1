@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Automatically adds homelab domains to the Windows hosts file.
+    Automatically adds oweibo domains to the Windows hosts file.
     Usage: .\update-hosts.ps1 -ServerIp "192.168.1.100"
 #>
 
@@ -11,13 +11,8 @@ param (
 
 $HostsPath = "$env:SystemRoot\System32\drivers\etc\hosts"
 $Domains = @(
-    "traefik.homelab.local",
-    "ha.homelab.local",
-    "plex.homelab.local",
-    "n8n.homelab.local",
-    "chat.homelab.local",
-    "antigravity.homelab.local",
-    "openclaw.homelab.local"
+    "openclaw.oweibo.local",
+    "kilo.oweibo.local"
 )
 
 # Check for Administrator privileges
@@ -26,7 +21,7 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     exit 1
 }
 
-$NewEntries = "`n# --- Homelab Domains Start ---`n"
+$NewEntries = "`n# --- Oweibo Domains Start ---`n"
 $AddedCount = 0
 
 foreach ($Domain in $Domains) {
@@ -39,7 +34,7 @@ foreach ($Domain in $Domains) {
     }
 }
 
-$NewEntries += "# --- Homelab Domains End ---"
+$NewEntries += "# --- Oweibo Domains End ---"
 
 if ($AddedCount -gt 0) {
     Add-Content -Path $HostsPath -Value $NewEntries -Encoding ASCII
@@ -48,4 +43,4 @@ if ($AddedCount -gt 0) {
     Write-Host "`nAll domains already present in $HostsPath" -ForegroundColor DarkCyan
 }
 
-Write-Host "You can now access your services at https://traefik.homelab.local etc." -ForegroundColor White
+Write-Host "You can now access your services at https://traefik.oweibo.local etc." -ForegroundColor White

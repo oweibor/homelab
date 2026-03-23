@@ -84,7 +84,7 @@ This project provides a **production-ready, single-command deployment** for a co
 
 ```bash
 # Clone the repository
-git clone https://github.com/oweibor/homelab.git ~/agent-factory
+git clone https://github.com/oweibor/oweibo.git ~/agent-factory
 
 # Navigate to directory
 cd ~/agent-factory
@@ -104,15 +104,47 @@ sudo ./setup.sh
 
 ## Architecture Overview
 
-This platform strips away "lifestyle" homelab bloat to focus entirely on machine intelligence.
+This platform strips away "lifestyle" oweibo bloat to focus entirely on machine intelligence.
+
+### Hardware-Aware Orchestration
+
+The platform retains its intelligent hardware adaptation, ensuring the AI models run efficiently even on low-power devices. The process flow automatically optimizes for your physical hardware:
+
+```mermaid
+graph TD
+    subgraph Smart Detection
+        D1["1. Smart Detection<br/>(setup.sh)"]
+        H1["CPU Check"]
+        H2["RAM Check"]
+        H3["GPU/QSV Check"]
+        H1 -->|TDP/Family| P[Profile Generation]
+        H2 -->|Capacity| T[Tier Selection]
+        H3 -->|Driver/Acc| G[Encoder Setup]
+    end
+
+    subgraph Logic - Optimization Engine
+        D2["2. Optimization<br/>Engine"]
+        P --> Opt[apply-cstates.sh]
+        T --> MT[Model Tiering]
+        G --> Trans[VRAM Allocation]
+    end
+
+    subgraph Deployment - Optimized Stack
+        D3["3. Optimized<br/>Stack"]
+        Opt --> Perf["Performance Governor"]
+        MT --> O["Ollama Threads/Layers"]
+        Trans --> MS["GPU Offloading"]
+    end
+
+    D1 --> D2 --> D3
+```
+
+### Agentic Network Topology
 
 ```mermaid
 graph TB
-    User((User)) -->|HTTP/Chat| WebUI[Open WebUI]
-    WebUI -->|API| Ollama[Ollama Local Inference]
-    
-    User -->|gRPC/API| OpenClaw[OpenClaw Orchestrator]
-    OpenClaw -->|Reasoning| Ollama
+    User((User)) -->|gRPC/API| OpenClaw[OpenClaw Orchestrator]
+    OpenClaw -->|Reasoning| Ollama[Ollama Local Inference]
     
     subgraph Agentic Factory [The Factory Floor - kilo-net]
         OpenClaw -->|Task Delegation| Kilo[Kilo v9 Pipeline]
@@ -152,7 +184,6 @@ Kilo is a rigorous engineering lifecycle. It transitions from creative architect
 | Service | Purpose | Default Port |
 | :--- | :--- | :--- |
 | **Ollama** | Local LLM inference engine | 11434 |
-| **Open WebUI** | ChatGPT-like interface | 3000 |
 | **OpenClaw** | Autonomous orchestration brain | 18789 |
 | **Kilo Pipeline** | 9-stage autonomous CI/CD engine | 3100 |
 | **Crawl4AI** | Web scraping and research service | 8000 |

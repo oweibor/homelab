@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# HOMELAB ONBOARDING LIBRARY
+# OWEIBO ONBOARDING LIBRARY
 # Shared functions for hardware detection, model selection, and config generation
 # =============================================================================
 

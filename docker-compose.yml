@@ -16,7 +16,7 @@ services:
     container_name: ollama
     restart: unless-stopped
     networks:
-      - homelab
+      - oweibo
     ports:
       - "11434:11434"
     volumes:
@@ -44,35 +44,6 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Optional human UI for debugging & prompt testing
-  open-webui:
-    image: ghcr.io/open-webui/open-webui:v0.8.3
-    container_name: open-webui
-    restart: unless-stopped
-    networks:
-      - homelab
-    ports:
-      - "3000:8080"
-    volumes:
-      - ./open-webui:/app/backend/data
-    environment:
-      - OLLAMA_BASE_URL=http://ollama:11434
-    mem_limit: 1g
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080 || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-    depends_on:
-      ollama:
-        condition: service_healthy
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   # AUTONOMOUS AGENT BRAIN
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -82,7 +53,7 @@ services:
     container_name: openclaw
     restart: unless-stopped
     networks:
-      - homelab
+      - oweibo
     ports:
       - "18789:18789"
     volumes:
@@ -133,7 +104,7 @@ services:
     container_name: qdrant
     restart: unless-stopped
     networks:
-      - homelab
+      - oweibo
     ports:
       - "6333:6333"
       - "6334:6334"
@@ -162,7 +133,7 @@ services:
     container_name: kilo-pipeline
     restart: unless-stopped
     networks:
-      - homelab
+      - oweibo
       - kilo-net
     ports:
       - "3100:3100"
@@ -202,7 +173,7 @@ services:
         max-file: "3"
 
   # kilo-proxy: Secure Docker Socket Proxy for kilo-pipeline sandbox
-  # SECURITY: kilo-net ONLY — never exposed to homelab network
+  # SECURITY: kilo-net ONLY — never exposed to oweibo network
   kilo-proxy:
     image: tecnativa/docker-socket-proxy:latest
     container_name: kilo-proxy
@@ -243,7 +214,7 @@ services:
     container_name: crawl4ai
     restart: unless-stopped
     networks:
-      - homelab
+      - oweibo
     ports:
       - "8000:8000"
     environment:
@@ -277,7 +248,7 @@ services:
     container_name: docker-proxy
     restart: unless-stopped
     networks:
-      - homelab
+      - oweibo
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
@@ -310,7 +281,7 @@ services:
     container_name: watchtower
     restart: unless-stopped
     networks:
-      - homelab
+      - oweibo
     depends_on:
       docker-proxy:
         condition: service_healthy
@@ -335,7 +306,7 @@ volumes:
   qdrant_data:
 
 networks:
-  homelab:
+  oweibo:
     driver: bridge
   kilo-net:
     driver: bridge

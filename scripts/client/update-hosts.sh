@@ -1,19 +1,14 @@
 #!/bin/bash
 # ==========================================================
-# HOMELAB HOSTS UPDATER (macOS / Linux / Ubuntu)
+# OWEIBO HOSTS UPDATER (macOS / Linux / Ubuntu)
 # Usage: sudo ./update-hosts.sh 192.168.1.100
 # ==========================================================
 
 SERVER_IP=$1
 HOSTS_FILE="/etc/hosts"
 DOMAINS=(
-    "traefik.homelab.local"
-    "ha.homelab.local"
-    "plex.homelab.local"
-    "n8n.homelab.local"
-    "chat.homelab.local"
-    "antigravity.homelab.local"
-    "openclaw.homelab.local"
+    "openclaw.oweibo.local"
+    "kilo.oweibo.local"
 )
 
 if [ -z "$SERVER_IP" ]; then
@@ -27,7 +22,7 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 echo ""
-echo "Adding Homelab domains to $HOSTS_FILE..."
+echo "Adding Oweibo domains to $HOSTS_FILE..."
 echo "----------------------------------------"
 
 ADDED=0
@@ -44,12 +39,12 @@ for DOMAIN in "${DOMAINS[@]}"; do
 done
 
 if [ $ADDED -gt 0 ]; then
-    echo -e "\n# --- Homelab Domains Start ---" >> "$HOSTS_FILE"
+    echo -e "\n# --- Oweibo Domains Start ---" >> "$HOSTS_FILE"
     echo -ne "$TEMP_ENTRIES" >> "$HOSTS_FILE"
-    echo -e "# --- Homelab Domains End ---" >> "$HOSTS_FILE"
+    echo -e "# --- Oweibo Domains End ---" >> "$HOSTS_FILE"
     echo -e "\nSuccessfully added $ADDED domains."
 else
     echo -e "\nAll domains are already present."
 fi
 
-echo "Done! You can now access https://traefik.homelab.local"
+echo "Done! You can now access https://traefik.oweibo.local"

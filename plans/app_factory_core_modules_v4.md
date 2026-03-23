@@ -24,7 +24,7 @@
 
 1. **Module independence.** Every generated module can be independently installed, activated, deactivated, or deleted without breaking the core app or other modules.
 2. **Declared inter-module contracts only.** Modules that depend on each other do so through declared event schemas or typed API contracts — never through direct DB joins across schema namespaces or direct code imports.
-3. **Portable by design.** Every generated app is deployable on shared factory infra, a VPS, a homelab, or a major cloud provider from day one.
+3. **Portable by design.** Every generated app is deployable on shared factory infra, a VPS, a oweibo, or a major cloud provider from day one.
 4. **CI/CD continuity on export.** When a generated app migrates away from the factory, its CI/CD pipeline migrates with it.
 5. **Knowledge travels with the app.** When exported, the full knowledge artifact bundle — semantic index, ADRs, module contracts, generation provenance — exports with the app and remains live and queryable after detachment.
 
@@ -834,7 +834,7 @@ describe('[module-name] contract compliance', () => {
 
 **Cloud targets:** Vercel, Railway, Render, AWS CDK, GCP Cloud Run, Kubernetes
 
-**Homelab targets (first-class, not afterthoughts):**
+**Oweibo targets (first-class, not afterthoughts):**
 - Nginx / Traefik / Caddy reverse proxy configuration
 - Let's Encrypt ACME SSL provisioning scripts
 - Docker Compose production profile — runs on any Linux host, no cloud account required
@@ -881,7 +881,7 @@ git commit -m "chore: transfer CI/CD from factory to app repository"
 echo "✓ Running independently. Factory regeneration still available on request."
 ```
 
-**Supported Export Targets:** Homelab VPS (Docker + Nginx/Traefik), GitHub/GitLab runners, Vercel + Railway, AWS, GCP, any Linux host with Docker
+**Supported Export Targets:** Oweibo VPS (Docker + Nginx/Traefik), GitHub/GitLab runners, Vercel + Railway, AWS, GCP, any Linux host with Docker
 
 ---
 
@@ -1171,7 +1171,7 @@ Storybook scaffolded and pre-populated. Visual regression and accessibility test
 ## FACTORY LAYER F14 — Cost & Resource Model
 
 ### F14.1 Infrastructure Cost Estimator
-Projected costs at 1k / 10k / 100k / 1M users per provider including self-hosted homelab estimate. Surfaced at architecture decision time — before lock-in.
+Projected costs at 1k / 10k / 100k / 1M users per provider including self-hosted oweibo estimate. Surfaced at architecture decision time — before lock-in.
 
 ### F14.2 Bundle Size Analyzer
 Dependency tree weight analysis. Code-splitting and lazy loading configured for heavy modules.
@@ -1523,7 +1523,7 @@ export-package/
 ├── docker/
 ├── helm/
 ├── compose/
-│   ├── docker-compose.yml         ← local / homelab
+│   ├── docker-compose.yml         ← local / oweibo
 │   └── docker-compose.prod.yml    ← production self-hosted
 ├── nginx/ and traefik/            ← reverse proxy configs
 ├── db/
@@ -1603,7 +1603,7 @@ Items in **bold** are the knowledge-specific guarantees added in v4.
 | D | Business Module Catalog | Domain features — independent by design | Core breaks when a module is removed |
 | E | Multi-Tenancy Layer | Workspace / org isolation | Tenant data bleeds across organizations |
 | **G** | **App Knowledge & Documentation Layer** | **Living codebase index, user docs, knowledge portability** | **Docs drift; no user guides; knowledge lost on export** |
-| F | Deployment & Portability Layer | Export, migrate, run anywhere | Lock-in to factory infra; no homelab support |
+| F | Deployment & Portability Layer | Export, migrate, run anywhere | Lock-in to factory infra; no oweibo support |
 
 ---
 

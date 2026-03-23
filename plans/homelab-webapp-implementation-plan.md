@@ -1,4 +1,4 @@
-# homelab-master · Autonomous App Factory Platform
+# oweibo-master · Autonomous App Factory Platform
 
 ### Agentic-Driven Multi-Tenant App Factory + Generated App Plugin Architecture
 
@@ -10,7 +10,7 @@
 
 ## Executive Summary
 
-This plan converts the homelab from a basic single-tenant CRUD app builder into a complete **autonomous multi-tenant app factory** using OpenCLAW + Kilo-CLI integration. The factory generates full-stack applications with a clean plugin architecture where modules can be independently installed, activated, deactivated, or removed.
+This plan converts the oweibo from a basic single-tenant CRUD app builder into a complete **autonomous multi-tenant app factory** using OpenCLAW + Kilo-CLI integration. The factory generates full-stack applications with a clean plugin architecture where modules can be independently installed, activated, deactivated, or removed.
 
 ### Two-Tier Architecture
 
@@ -988,7 +988,7 @@ Every generated app ships with **complete export bundle**:
 | **Kubernetes** | Helm charts + manifests |
 | **CI/CD** | GitHub Actions / Woodpecker pipelines |
 
-**Primary Deployment Targets** (3): Docker Compose (VPS/homelab), Kubernetes (cloud-agnostic), Serverless (Vercel/Netlify)
+**Primary Deployment Targets** (3): Docker Compose (VPS/oweibo), Kubernetes (cloud-agnostic), Serverless (Vercel/Netlify)
 
 ---
 
@@ -1476,14 +1476,14 @@ postgres:
   image: pgvector/pgvector:pg16   # pgvector build — replaces postgres:16-alpine
   container_name: postgres
   restart: unless-stopped
-  networks: [homelab]
+  networks: [oweibo]
   volumes:
     - postgres_data:/var/lib/postgresql/data
     - ./postgres/init:/docker-entrypoint-initdb.d:ro
   environment:
     POSTGRES_USER:     ${POSTGRES_USER}
     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    POSTGRES_DB:       homelab
+    POSTGRES_DB:       oweibo
   healthcheck:
     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
     interval: 10s
@@ -1498,11 +1498,11 @@ mongodb:
   # MongoDB is included for MERN-stack scaffold support (mern template).
   # It is NOT used by the core platform — only by generated apps that specifically
   # require MongoDB (e.g., mern-ecommerce, mern-cms templates).
-  # On N100 homelab, this consumes ~100MB idle. Remove if MERN is not needed.
+  # On N100 oweibo, this consumes ~100MB idle. Remove if MERN is not needed.
   image: mongo:7
   container_name: mongodb
   restart: unless-stopped
-  networks: [homelab]
+  networks: [oweibo]
   volumes: [mongo_data:/data/db]
   environment:
     MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
@@ -1520,7 +1520,7 @@ project-registry:
   build: ./project-registry
   container_name: project-registry
   restart: unless-stopped
-  networks: [homelab]
+  networks: [oweibo]
   environment:
     DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/project_registry
     PORT: 4200
@@ -1528,7 +1528,7 @@ project-registry:
     postgres: { condition: service_healthy }
   labels:
     - "traefik.enable=true"
-    - "traefik.http.routers.registry.rule=Host(`registry.homelab.local`)"
+    - "traefik.http.routers.registry.rule=Host(`registry.oweibo.local`)"
     - "traefik.http.routers.registry.tls=true"
   logging:
     driver: "json-file"
@@ -1544,15 +1544,15 @@ volumes:
 
 ```bash
 # Postgres
-POSTGRES_USER=homelab
+POSTGRES_USER=oweibo
 POSTGRES_PASSWORD=<secret>
 # MongoDB
-MONGO_USER=homelab
+MONGO_USER=oweibo
 MONGO_PASSWORD=<secret>
 # Project Registry
 PORT=4200
 # Webapp sandbox
-WEBAPP_SANDBOX_IMAGE=homelab/webapp-sandbox:latest
+WEBAPP_SANDBOX_IMAGE=oweibo/webapp-sandbox:latest
 WEBAPP_SANDBOX_MEM_LIMIT=${HAL_SANDBOX_MEMORY:-2G}
 WEBAPP_WORKSPACES_DIR=/var/kilo/workspaces
 ```
@@ -1682,7 +1682,7 @@ export class T3ModuleGenerator implements ModuleGenerator {
 
 ## Phase 3 — Project Registry Service (Week 2)
 
-Express + Postgres API at `registry.homelab.local`.
+Express + Postgres API at `registry.oweibo.local`.
 
 **Schema (`001_init.sql`):**
 
@@ -1815,7 +1815,7 @@ redis:
   image: redis:7-alpine
   container_name: redis
   restart: unless-stopped
-  networks: [homelab]
+  networks: [oweibo]
   volumes: [redis_data:/data]
   command: >
     redis-server --appendonly yes --appendfsync everysec
@@ -1830,7 +1830,7 @@ report-engine:
   build: ./report-engine
   container_name: report-engine
   restart: unless-stopped
-  networks: [homelab]
+  networks: [oweibo]
   volumes: [report_output:/reports]
   environment:
     - REDIS_URL=${REDIS_URL}
@@ -1850,7 +1850,7 @@ volumes:
 
 ```bash
 REDIS_URL=redis://redis:6379
-FIN_SANDBOX_IMAGE=homelab/financial-sandbox:latest
+FIN_SANDBOX_IMAGE=oweibo/financial-sandbox:latest
 FIN_SANDBOX_MEM_LIMIT=${HAL_SANDBOX_MEMORY:-2G}
 FIN_WORKSPACES_DIR=/var/kilo/financial
 REPORT_OUTPUT_DIR=/var/kilo/reports
@@ -3232,7 +3232,7 @@ Every scaffold emits `GET /api/version` with `appName`, `version`, `buildDate`, 
 gitea:
   image: gitea/gitea:1.21
   labels:
-    - "traefik.http.routers.gitea.rule=Host(`gitea.homelab.local`)"
+    - "traefik.http.routers.gitea.rule=Host(`gitea.oweibo.local`)"
 
 woodpecker-server:
   image: woodpeckerci/woodpecker-server:v2.3.0
@@ -3265,7 +3265,7 @@ steps:
   build-image:
     image: plugins/docker
     settings:
-      repo: homelab/${CI_REPO_NAME}
+      repo: oweibo/${CI_REPO_NAME}
       tags: ["latest", "${CI_COMMIT_SHA:0:8}"]
       build_args: { APP_VERSION, BUILD_DATE, GIT_SHA: "${CI_COMMIT_SHA:0:8}" }
     depends_on: [test-unit, test-integration, typecheck, lint]
@@ -5758,7 +5758,7 @@ ollama:
   image: ollama/ollama:latest
   container_name: ollama
   restart: unless-stopped
-  networks: [homelab]
+  networks: [oweibo]
   volumes:
     - ollama_models:/root/.ollama
   environment:
@@ -5776,7 +5776,7 @@ ollama:
         memory: 6g                  # Reserve 6GB for model — leave 8GB for apps
   labels:
     - "traefik.enable=true"
-    - "traefik.http.routers.ollama.rule=Host(`ollama.homelab.local`)"
+    - "traefik.http.routers.ollama.rule=Host(`ollama.oweibo.local`)"
     - "traefik.http.routers.ollama.tls=true"
     - "traefik.http.services.ollama.loadbalancer.server.port=11434"
   logging:
@@ -5787,7 +5787,7 @@ qdrant:
   image: qdrant/qdrant:latest
   container_name: qdrant
   restart: unless-stopped
-  networks: [homelab]
+  networks: [oweibo]
   ports:
     - "6333:6333"
     - "6334:6334"
@@ -5806,7 +5806,7 @@ qdrant:
     retries: 3
   labels:
     - "traefik.enable=true"
-    - "traefik.http.routers.qdrant.rule=Host(`qdrant.homelab.local`)"
+    - "traefik.http.routers.qdrant.rule=Host(`qdrant.oweibo.local`)"
     - "traefik.http.routers.qdrant.tls=true"
     - "traefik.http.services.qdrant.loadbalancer.server.port=6333"
   logging:
@@ -6168,7 +6168,7 @@ export class CircuitOpenError extends Error {
 export class AICircuitBreaker {
   private providers = new Map<string, ProviderState>();
 
-  // Thresholds — tune per homelab hardware profile
+  // Thresholds — tune per oweibo hardware profile
   private readonly FAILURE_THRESHOLD  = 5;    // failures before opening
   private readonly RECOVERY_TIMEOUT   = 60_000; // 60s before trying HALF_OPEN
   private readonly SUCCESS_THRESHOLD  = 2;    // successes in HALF_OPEN before re-closing
@@ -7350,9 +7350,9 @@ EXPORT ADAPTER SYSTEM
 
 Scaffold generates:
   src/                    ← Application code — NEVER changes per target
-  Dockerfile              ← For container targets (VPS, GCP, homelab)
+  Dockerfile              ← For container targets (VPS, GCP, oweibo)
   deploy/
-    homelab/              ← docker-compose.fragment.yml + Traefik labels
+    oweibo/              ← docker-compose.fragment.yml + Traefik labels
     vps/                  ← deploy-vps.sh + docker-compose.prod.yml
     vercel/               ← vercel.json + .vercelignore + next.config adapter
     netlify/              ← netlify.toml + adapter install
@@ -7737,7 +7737,7 @@ By default, every scaffold runs `add-export-target.sh . all` — generating thre
 | ID      | Scope       | Severity | Description                                                                               |
 | ------- | ----------- | -------- | ----------------------------------------------------------------------------------------- |
 | EXP-001 | All         | T1       | `deploy/` directory never contains application logic — only config files               |
-| EXP-002 | Next.js, T3 | T1       | `output: 'standalone'` is in homelab `next.config.js` only — Vercel config omits it  |
+| EXP-002 | Next.js, T3 | T1       | `output: 'standalone'` is in oweibo `next.config.js` only — Vercel config omits it  |
 | EXP-003 | All         | T2       | `deploy/vercel/env.vercel.template` always lists all required env vars                  |
 | EXP-004 | All         | T1       | All DB connection strings use environment variables — no hardcoded hosts                 |
 | EXP-005 | All         | T1       | Apps with BullMQ workers have a separate `Dockerfile.worker` for non-serverless targets |
@@ -7818,7 +7818,7 @@ What are you building?
 │       └── Users see only features their tier includes
 │
 └── Where will it run? (3 Primary Targets)
-    ├── Docker Compose (VPS/homelab)     → deploy/vps/
+    ├── Docker Compose (VPS/oweibo)     → deploy/vps/
     ├── Kubernetes (cloud-agnostic)      → deploy/k8s/
     └── Serverless (Vercel/Netlify)       → deploy/vercel/
 ```
@@ -7938,7 +7938,7 @@ Node: POST to OpenClaw (send weekly AI cost report)
 ## Complete File Structure
 
 ```
-homelab/
+oweibo/
 │
 ├── docker-compose.yml               ← All services (including ollama)
 ├── .env / config.env.template       ← Adds AI provider keys + Ollama config
@@ -7952,7 +7952,7 @@ homelab/
 ├── grafana/
 │   └── dashboards/
 │       ├── kilo-pipeline.json
-│       ├── homelab-overview.json
+│       ├── oweibo-overview.json
 │       ├── webapps.json
 │       ├── logs.json
 │       ├── traces.json
@@ -8071,7 +8071,7 @@ Generated app structure:
 │   └── seed.ts
 ├── Dockerfile
 ├── Dockerfile.worker                ← Separate image for BullMQ workers
-├── .woodpecker.yaml                 ← Homelab CI
+├── .woodpecker.yaml                 ← Oweibo CI
 ├── .kilo/stack-context.md
 └── .vscode/
     ├── settings.json
@@ -8210,7 +8210,7 @@ Generated app structure:
 | ID      | Domain      | Type | Sev | Description                                                               |
 | ------- | ----------- | ---- | --- | ------------------------------------------------------------------------- |
 | EXP-001 | All         | sem  | T1  | `deploy/` directory never contains application logic                    |
-| EXP-002 | Next.js, T3 | det  | T1  | `output: 'standalone'` in homelab config only — Vercel config omits it |
+| EXP-002 | Next.js, T3 | det  | T1  | `output: 'standalone'` in oweibo config only — Vercel config omits it |
 | EXP-003 | All         | det  | T2  | `deploy/vercel/env.vercel.template` lists all required env vars         |
 | EXP-004 | All         | det  | T1  | All DB connection strings use environment variables                       |
 | EXP-005 | All         | det  | T1  | Apps with BullMQ workers have a separate `Dockerfile.worker`            |
@@ -8270,7 +8270,7 @@ Generated app structure:
 | Native React Native / Flutter builds                      | Requires Xcode / Android SDK — cannot containerise            | Dedicated ARM build machine available    |
 | Kubernetes / Helm                                         | Overkill at this scale; Docker Compose is correct              | Managing 20+ concurrent apps             |
 | Runtime plugin marketplace (`loaderStrategy: registry`) | Phase 3 of upgrade path — build runtime system first          | Runtime loader shipped and stable        |
-| Fine-tuned / self-hosted LLMs beyond Ollama               | Requires GPU — N100 is CPU-only                               | GPU node added to homelab                |
+| Fine-tuned / self-hosted LLMs beyond Ollama               | Requires GPU — N100 is CPU-only                               | GPU node added to oweibo                |
 | LLM evaluation / evals framework                          | Valuable but out of scope for factory                          | When AI app quality monitoring is needed |
 | Langfuse / LangSmith LLM tracing                          | Optional add-on — sandbox image includes `langfuse` package | When prompt debugging becomes a workflow |
 | Multi-currency live FX rates                              | External API dependency — add as n8n workflow when needed     | n8n FX workflow stable                   |
@@ -8313,7 +8313,7 @@ cd myapp && gcloud builds submit --config deploy/gcp/cloudbuild.yaml
 
 ---
 
-*homelab-master Web App Platform Implementation Plan*
+*oweibo-master Web App Platform Implementation Plan*
 *SaaS CRUD Factory + Financial Domain + Module System + AI Application Layer + Universal Export*
 *Future-Proof Edition — Compiled March 2026*
 
@@ -8325,11 +8325,11 @@ cd myapp && gcloud builds submit --config deploy/gcp/cloudbuild.yaml
 
 ## Overview
 
-This section integrates the existing hardware detection capabilities from the homelab codebase into a comprehensive Hardware Abstraction Layer (HAL). The HAL detects hardware specifications at startup, dynamically adjusts system behavior, and provides graceful degradation for resource-constrained environments.
+This section integrates the existing hardware detection capabilities from the oweibo codebase into a comprehensive Hardware Abstraction Layer (HAL). The HAL detects hardware specifications at startup, dynamically adjusts system behavior, and provides graceful degradation for resource-constrained environments.
 
 ### Existing Hardware Detection Capabilities
 
-The homelab already contains sophisticated hardware detection in:
+The oweibo already contains sophisticated hardware detection in:
 
 | Source File                                                                                                       | Capabilities                                                                                |
 | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
@@ -9455,7 +9455,7 @@ echo "Detected hardware: $HARDWARE_PROFILE"
 
 ### Phase 65.1 — Grafana Hardware Panels
 
-Add to `grafana/dashboards/homelab-overview.json`:
+Add to `grafana/dashboards/oweibo-overview.json`:
 
 ```json
 {
@@ -9539,6 +9539,6 @@ Add to `grafana/dashboards/homelab-overview.json`:
 
 ---
 
-*homelab-master Web App Platform Implementation Plan*
+*oweibo-master Web App Platform Implementation Plan*
 *SaaS CRUD Factory + Financial Domain + Module System + AI Application Layer + Universal Export*
 *Future-Proof Edition — Compiled March 2026*

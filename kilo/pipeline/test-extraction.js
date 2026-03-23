@@ -22,7 +22,7 @@ async function testExtraction() {
                         "sku": "SHIRT-001",
                         "brand": {
                             "@type": "Brand",
-                            "name": "Homelab Styles"
+                            "name": "Oweibo Styles"
                         },
                         "offers": [
                             {

@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================================
 # HARDWARE DETECTION MODULE
-# Dynamically detects CPU type and capabilities for the homelab
+# Dynamically detects CPU type and capabilities for the oweibo
 # Supports: Intel N-series (N95/N97/N100/N200), Celeron, Core, AMD
 # =============================================================================
 

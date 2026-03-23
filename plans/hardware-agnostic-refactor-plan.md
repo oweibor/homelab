@@ -1,8 +1,8 @@
-# Homelab Hardware-Agnostic Refactoring Plan
+# Oweibo Hardware-Agnostic Refactoring Plan
 
 ## Executive Summary
 
-This document outlines a comprehensive refactoring plan to transform the homelab project from N100-specific to a hardware-agnostic architecture that supports the entire family of low-power Intel processors (N95, N97, N100, N200, etc.) and potentially other x86_64 platforms.
+This document outlines a comprehensive refactoring plan to transform the oweibo project from N100-specific to a hardware-agnostic architecture that supports the entire family of low-power Intel processors (N95, N97, N100, N200, etc.) and potentially other x86_64 platforms.
 
 ## Current State Analysis
 
@@ -190,7 +190,7 @@ fi
 | Profile | Use Case | C-state | Governor |
 |---------|----------|---------|----------|
 | `performance` | High performance | Default | performance |
-| `balanced` | Normal homelab | Default | powersave |
+| `balanced` | Normal oweibo | Default | powersave |
 | `power-saver` | Always-on, low power | C6/C7 | powersave |
 | `n-series` | N100/N95 stability | C2 | performance |
 
@@ -260,7 +260,7 @@ HARDWARE_PROFILE=
 | "Intel N100" | "Intel N-series (N95/N97/N100/N200) or similar low-power x86" |
 | "N100 QuickSync" | "QuickSync hardware acceleration" |
 | "N100 stability" | "low-power processor stability" |
-| "N100 Homelab" | "Low-Power x86 Homelab" |
+| "N100 Oweibo" | "Low-Power x86 Oweibo" |
 | "N100 drivers" | "optimized drivers" |
 
 ### 4.2 Hardware Requirements Section

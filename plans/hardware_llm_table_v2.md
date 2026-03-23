@@ -152,7 +152,7 @@
 | 76 | M3 Pro (36 GB) | 6P + 6E | 18 CU | 18-core | 36 GB | 150 GB/s | `videotoolbox` | `deepseek-coder-v2:33b-q4` | `mixtral:8x7b-q5` | `phi3.5:mini-fp16` |
 | 77 | M3 Max (128 GB) | 14P + 4E | 40 CU | 18-core | 64–128 GB | 400 GB/s | `videotoolbox` | `deepseek-coder-v2:33b-fp16` | `llama3.1:70b-q5` | `phi3.5:mini-fp16` |
 
-> **Apple Silicon note:** Unified memory means 100% of RAM is available as GPU VRAM — a 96 GB M2 Max can run 70B models at Q4 comfortably. Detection via `system_profiler` on macOS; not applicable to Linux homelab scripts unless running Asahi Linux.
+> **Apple Silicon note:** Unified memory means 100% of RAM is available as GPU VRAM — a 96 GB M2 Max can run 70B models at Q4 comfortably. Detection via `system_profiler` on macOS; not applicable to Linux oweibo scripts unless running Asahi Linux.
 
 ---
 

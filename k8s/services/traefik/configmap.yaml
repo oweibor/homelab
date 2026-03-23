@@ -3,7 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: traefik-config
-  namespace: homelab
+  namespace: oweibo
 data:
   traefik.yaml: |
     global:

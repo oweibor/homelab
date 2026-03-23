@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: homelab
+  name: oweibo
   labels:
-    name: homelab
-    environment: homelab
+    name: oweibo
+    environment: oweibo

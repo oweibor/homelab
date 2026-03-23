@@ -433,7 +433,7 @@ get_deployment_type() {
 
 | Hardware Profile | CPU | RAM | GPU | K3s Ready | Docker Only | Notes |
 |-----------------|-----|-----|-----|-----------|-------------|-------|
-| n100_like | Intel N100 | 8-16GB | Intel UHD | No | ✓ | Low-power homelab |
+| n100_like | Intel N100 | 8-16GB | Intel UHD | No | ✓ | Low-power oweibo |
 | celeron | Celeron N | 4-8GB | Intel HD | No | ✓ | Minimal resources |
 | core_i3 | i3-xxxx | 8-16GB | Intel UHD | Optional | ✓ | Light K3s possible |
 | core_i5 | i5-xxxx | 16GB+ | Intel UHD/NONE | Yes | - | Good K3s candidate |
@@ -634,7 +634,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: traefik
-  namespace: homelab
+  namespace: oweibo
 spec:
   replicas: 1
   selector:
@@ -668,7 +668,7 @@ spec:
       volumes:
         - name: traefik-config
           hostPath:
-            path: /home/user/homelab/traefik
+            path: /home/user/oweibo/traefik
             type: Directory
 ```
 
@@ -989,7 +989,7 @@ install_k3s() {
     helm repo add traefik https://traefik.github.io/charts
     helm repo update
     helm install traefik traefik/traefik \
-        --namespace homelab --create-namespace \
+        --namespace oweibo --create-namespace \
         --set image.tag=v3.0 \
         --set ports.websecure.tls.enabled=true
 
@@ -1047,7 +1047,7 @@ esac
 |---------|-------------|----------|
 | `./setup.sh` | Detects hardware → runs Docker | Detects hardware → installs K3s |
 | `./update.sh` | `docker compose pull` | `kubectl apply -k` + `helm upgrade` |
-| `./backup-homelab.sh` | `docker commit` volumes | `kubectl get pv -o yaml` + volume snapshots |
+| `./backup-oweibo.sh` | `docker commit` volumes | `kubectl get pv -o yaml` + volume snapshots |
 
 ### 5.2 Deployment Type Persistence
 
@@ -1091,7 +1091,7 @@ fi
 
 | Step | Task | Command |
 |------|------|---------|
-| 1 | Backup all data | `./backup-homelab.sh` |
+| 1 | Backup all data | `./backup-oweibo.sh` |
 | 2 | Export Docker volumes | `docker run --rm -v volume_name:/data -v $(pwd):/backup ubuntu tar czf /backup/volume_name.tar.gz /data` |
 | 3 | Document current services | `docker compose ps` |
 | 4 | Note environment variables | `grep -E "^[A-Z_]+=" .env \| sort` |
@@ -1102,7 +1102,7 @@ fi
 2. **Apply base manifests**: `kubectl apply -k k8s/base`
 3. **Apply hardware overlay**: `kubectl apply -k "k8s/overlays/$(get_k8s_overlay)"`
 4. **Migrate persistent data**: Restore volume data to Kubernetes PVs
-5. **Verify services**: `kubectl get pods -n homelab`
+5. **Verify services**: `kubectl get pods -n oweibo`
 6. **Finalize**: Run `./scripts/k3s-install.sh finalize` to mark migration complete
 
 ### Migration State Tracking
@@ -1191,7 +1191,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: qdrant-data
-  namespace: homelab
+  namespace: oweibo
 spec:
   storageClassName: local-path
   accessModes: ["ReadWriteOnce"]

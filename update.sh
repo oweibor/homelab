@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==========================================================
-# HOMELAB UPDATE SCRIPT
+# OWEIBO UPDATE SCRIPT
 # Pulls latest images and restarts services
 # ==========================================================
 
@@ -19,12 +19,12 @@ log_step() { echo -e "${BLUE}[STEP]${NC} $1"; }
 # Get the actual user who ran sudo (if run with sudo)
 ACTUAL_USER="${SUDO_USER:-$(whoami)}"
 USER_HOME=$(getent passwd "$ACTUAL_USER" | cut -d: -f6)
-HOMELAB_DIR="${HOMELAB_DIR:-$USER_HOME/homelab}"
+OWEIBO_DIR="${OWEIBO_DIR:-$USER_HOME/oweibo}"
 
-cd "$HOMELAB_DIR"
+cd "$OWEIBO_DIR"
 
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║              HOMELAB UPDATE SCRIPT                         ║"
+echo "║              OWEIBO UPDATE SCRIPT                         ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
 

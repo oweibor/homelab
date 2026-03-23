@@ -2,7 +2,7 @@
 
 > **Status:** Draft Plan — Not Implemented
 > **Based on:** [`hardware_llm_table_v2.md`](hardware_llm_table_v2.md) + [`hardware_llm_table_v3.md`](hardware_llm_table_v3.md)
-> **Goal:** Unified hardware detection + LLM model selection for homelab
+> **Goal:** Unified hardware detection + LLM model selection for oweibo
 
 ---
 

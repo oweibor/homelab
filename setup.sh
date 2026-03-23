@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==========================================================
-# COMPLETE LOW-POWER X86 HOMELAB SETUP SCRIPT
+# COMPLETE LOW-POWER X86 OWEIBO SETUP SCRIPT
 # System Configuration + Bluetooth + Static IP + Docker Stack
 # Intel N-series (N95/N97/N100/N200) / Ubuntu Server 24.04+
 # ==========================================================
@@ -32,7 +32,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export SCRIPT_DIR
 
 # Initial log (config.env check is now handled in main())
-log_info "Initializing Homelab Setup Stack..."
+log_info "Initializing Oweibo Setup Stack..."
 
 # Source hardware detection module with fallback (matching onboard.sh)
 if [ -f "$SCRIPT_DIR/onboard-lib.sh" ]; then
@@ -53,7 +53,7 @@ fi
 # ============================================
 
 run_onboarding_wizard() {
-    log_step "Starting Homelab Onboarding Wizard..."
+    log_step "Starting Oweibo Onboarding Wizard..."
     
     # 1. Physical detection
     local RAM_GB=$(detect_ram)
@@ -223,7 +223,7 @@ cleanup() {
         if [ -d /etc/netplan/backup ] && [ "$(ls -A /etc/netplan/backup 2>/dev/null)" ]; then
             log_warn "Restoring network configuration backup..."
             # Remove only the file we likely created
-            rm -f /etc/netplan/99-homelab-static.yaml 2>/dev/null || true
+            rm -f /etc/netplan/99-oweibo-static.yaml 2>/dev/null || true
             # Restore backups
             cp -a /etc/netplan/backup/*.yaml /etc/netplan/ 2>/dev/null || true
             netplan apply 2>/dev/null || true
@@ -232,7 +232,7 @@ cleanup() {
 
         # Note: We intentionally do not run `docker compose down` here.
         # Tearing down the stack on a failed update could destroy a working production environment.
-        if [ -n "${HOMELAB_DIR:-}" ] && [ -f "$HOMELAB_DIR/docker-compose.yml" ]; then
+        if [ -n "${OWEIBO_DIR:-}" ] && [ -f "$OWEIBO_DIR/docker-compose.yml" ]; then
             log_warn "If containers were partially deployed, they have been left running to prevent data loss."
         fi
         log_error "Setup failed. Check logs above for details."
@@ -626,12 +626,12 @@ network:
 EOF
 
         # safe move
-        mv "$TEMP_NETPLAN" /etc/netplan/99-homelab-static.yaml
-        chmod 600 /etc/netplan/99-homelab-static.yaml
+        mv "$TEMP_NETPLAN" /etc/netplan/99-oweibo-static.yaml
+        chmod 600 /etc/netplan/99-oweibo-static.yaml
 
         # NOW safe to move old configs to backup instead of deleting
         for f in /etc/netplan/*.yaml; do
-            [ "$f" = "/etc/netplan/99-homelab-static.yaml" ] && continue
+            [ "$f" = "/etc/netplan/99-oweibo-static.yaml" ] && continue
             if [ -f "$f" ]; then
                  mv "$f" /etc/netplan/backup/ 2>/dev/null || true
             fi
@@ -642,7 +642,7 @@ EOF
             log_info "YAML syntax is valid"
         else
             log_error "YAML syntax error detected"
-            cat /etc/netplan/99-homelab-static.yaml
+            cat /etc/netplan/99-oweibo-static.yaml
             exit 1
         fi
 
@@ -660,7 +660,7 @@ EOF
             CONFIGURED_IP=$NEW_IP
         else
             log_error "Configuration rejected or timed out. Reverting..."
-            rm -f /etc/netplan/99-homelab-static.yaml
+            rm -f /etc/netplan/99-oweibo-static.yaml
             cp -a /etc/netplan/backup/*.yaml /etc/netplan/ 2>/dev/null || true
             netplan apply
             exit 1
@@ -750,7 +750,7 @@ if [ -d /etc/default ]; then
 fi
 
 # Sysctl optimizations
-SYSCTL_CONF="/etc/sysctl.d/99-homelab.conf"
+SYSCTL_CONF="/etc/sysctl.d/99-oweibo.conf"
 if [ ! -f "$SYSCTL_CONF" ]; then
     tee "$SYSCTL_CONF" >/dev/null <<EOF
 vm.dirty_ratio=10
@@ -798,29 +798,29 @@ echo ""
 
 
 # ============================================
-# STEP 6: HOMELAB DIRECTORY STRUCTURE
+# STEP 6: OWEIBO DIRECTORY STRUCTURE
 # ============================================
-show_step_header "6" "Creating Homelab Directory Structure"
+show_step_header "6" "Creating Oweibo Directory Structure"
 
-HOMELAB_DIR="$USER_HOME/homelab"
-mkdir -p "$HOMELAB_DIR"/{openclaw,backups,open-webui}
+OWEIBO_DIR="$USER_HOME/oweibo"
+mkdir -p "$OWEIBO_DIR"/{openclaw,backups}
 
-# Copy kilo-pipeline source from repo to homelab directory
-log_info "Copying kilo-pipeline source to homelab directory..."
+# Copy kilo-pipeline source from repo to oweibo directory
+log_info "Copying kilo-pipeline source to oweibo directory..."
 if [ -d "$SCRIPT_DIR/kilo/pipeline" ]; then
-    mkdir -p "$HOMELAB_DIR/kilo/pipeline"
-    if [ "$(readlink -f "$SCRIPT_DIR/kilo/pipeline" 2>/dev/null)" != "$(readlink -f "$HOMELAB_DIR/kilo/pipeline" 2>/dev/null)" ]; then
-        cp -r "$SCRIPT_DIR/kilo/pipeline/." "$HOMELAB_DIR/kilo/pipeline/"
-        chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/kilo/pipeline"
+    mkdir -p "$OWEIBO_DIR/kilo/pipeline"
+    if [ "$(readlink -f "$SCRIPT_DIR/kilo/pipeline" 2>/dev/null)" != "$(readlink -f "$OWEIBO_DIR/kilo/pipeline" 2>/dev/null)" ]; then
+        cp -r "$SCRIPT_DIR/kilo/pipeline/." "$OWEIBO_DIR/kilo/pipeline/"
+        chown -R "$ACTUAL_USER:$ACTUAL_USER" "$OWEIBO_DIR/kilo/pipeline"
         log_success "kilo-pipeline source files copied"
     else
-        log_info "kilo-pipeline already in homelab directory (source and destination are the same)"
+        log_info "kilo-pipeline already in oweibo directory (source and destination are the same)"
     fi
 else
     log_warn "kilo/pipeline source not found in repo at $SCRIPT_DIR/kilo/pipeline"
 fi
 
-chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR"
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$OWEIBO_DIR"
 
 
 # Phase 1 — Task 1.1: /var/kilo/ host directory tree
@@ -844,7 +844,6 @@ fi
 # Define agent-only subdirectories for idempotent creation
 declare -a DIRS=(
     "backups"
-    "open-webui"
     "openclaw"
     # Kilo Pipeline directories
     "kilo/pipeline"
@@ -857,23 +856,23 @@ declare -a DIRS=(
 )
 
 for dir in "${DIRS[@]}"; do
-    mkdir -p "$HOMELAB_DIR/$dir"
-    chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/$dir"
+    mkdir -p "$OWEIBO_DIR/$dir"
+    chown -R "$ACTUAL_USER:$ACTUAL_USER" "$OWEIBO_DIR/$dir"
 done
 
-log_success "Agent directory structure verified at $HOMELAB_DIR"
+log_success "Agent directory structure verified at $OWEIBO_DIR"
 
 # Set permissions
 PUID=$(id -u "$ACTUAL_USER")
 PGID=$(id -g "$ACTUAL_USER")
 
-chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/kilo"
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$OWEIBO_DIR/kilo"
 
-show_success_banner "Directory structure created at $HOMELAB_DIR"
+show_success_banner "Directory structure created at $OWEIBO_DIR"
 
 # Phase 7 — Task 7.6: kilo/.kilo/ directory tree + invariants init
 log_info "Provisioning kilo/.kilo/ project directory tree (Phase 7)..."
-KILO_PROJECT_DIR="$HOMELAB_DIR/kilo/.kilo"
+KILO_PROJECT_DIR="$OWEIBO_DIR/kilo/.kilo"
 mkdir -p "$KILO_PROJECT_DIR"/{decisions,invariants,reasoning,history,staging,rejected}
 if [ ! -f "$KILO_PROJECT_DIR/invariants/invariants.yaml" ]; then
     echo "# Kilo Pipeline - Stable Invariants" > "$KILO_PROJECT_DIR/invariants/invariants.yaml"
@@ -890,14 +889,11 @@ echo ""
 # STEP 7: GENERATE SERVICE CREDENTIALS
 # ============================================
 show_step_header "7" "Generating Service Credentials"
-
-# Samba credentials — Removed: Samba deleted from agent stack
-# n8n credentials — Removed: n8n deleted from agent stack
 # Grafana credentials — Removed: Grafana deleted from agent stack
 # NetBird TURN credentials — Removed: NetBird deleted from agent stack
 
 # OpenClaw gateway token
-OPENCLAW_ENV="$HOMELAB_DIR/openclaw/.env"
+OPENCLAW_ENV="$OWEIBO_DIR/openclaw/.env"
 if [ ! -f "$OPENCLAW_ENV" ]; then
     OPENCLAW_TOKEN=$(openssl rand -hex 16)
     echo "OPENCLAW_TOKEN=$OPENCLAW_TOKEN" > "$OPENCLAW_ENV"
@@ -981,12 +977,12 @@ fi
 # ============================================
 log_info "Configuring OpenClaw Skills & Models..."
 
-OPENCLAW_CONFIG_DIR="$HOMELAB_DIR/openclaw"
+OPENCLAW_CONFIG_DIR="$OWEIBO_DIR/openclaw"
 OPENCLAW_CONFIG_FILE="$OPENCLAW_CONFIG_DIR/openclaw.json"
 mkdir -p "$OPENCLAW_CONFIG_DIR"
 
 # Load model configuration from config.env if available
-CONFIG_ENV_FILE="$HOMELAB_DIR/.env"
+CONFIG_ENV_FILE="$OWEIBO_DIR/.env"
 if [ -f "$CONFIG_ENV_FILE" ]; then
     # Safely export variables without evaluating arbitrary strings
     while IFS='=' read -r key val; do
@@ -1203,7 +1199,7 @@ else
     mv "$TEMP_JSON" "$OPENCLAW_CONFIG_FILE"
 fi
 
-chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOMELAB_DIR/openclaw"
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$OWEIBO_DIR/openclaw"
 log_info "OpenClaw configured: Coding=$MODEL_CODING, General=$MODEL_GENERAL, Quick=$MODEL_QUICK"
 
 # Observability (Prometheus/Grafana) — Removed: deleted from agent stack
@@ -1227,7 +1223,7 @@ PUID=$(id -u "$ACTUAL_USER")
 PGID=$(id -g "$ACTUAL_USER")
 
 # Prepare .env content
-ENV_FILE="$HOMELAB_DIR/.env"
+ENV_FILE="$OWEIBO_DIR/.env"
 CONFIG_TEMPLATE="config.env.template"
 ONBOARD_CONFIG="config.env"
 
@@ -1313,35 +1309,12 @@ fi
 # OpenClaw Token
 if [ -n "${OPENCLAW_TOKEN:-}" ]; then
     echo "OPENCLAW_TOKEN=$OPENCLAW_TOKEN" >> "$ENV_FILE"
-elif [ -f "$HOMELAB_DIR/openclaw/.env" ]; then
-    grep "OPENCLAW_TOKEN" "$HOMELAB_DIR/openclaw/.env" >> "$ENV_FILE" || true
+elif [ -f "$OWEIBO_DIR/openclaw/.env" ]; then
+    grep "OPENCLAW_TOKEN" "$OWEIBO_DIR/openclaw/.env" >> "$ENV_FILE" || true
 fi
 
 # Home Assistant Token
-if [ -n "${HOME_ASSISTANT_TOKEN:-}" ]; then
-    echo "HOME_ASSISTANT_TOKEN=$HOME_ASSISTANT_TOKEN" >> "$ENV_FILE"
-elif [ -f "$HOMELAB_DIR/openclaw/.env" ]; then
-    grep "HOME_ASSISTANT_TOKEN" "$HOMELAB_DIR/openclaw/.env" >> "$ENV_FILE" || true
-fi
-
-# ONLYOFFICE & NEXTCLOUD
-if [ -n "${ONLYOFFICE_JWT_SECRET:-}" ]; then
-    echo "ONLYOFFICE_JWT_SECRET=$ONLYOFFICE_JWT_SECRET" >> "$ENV_FILE"
-fi
-if [ -n "${NEXTCLOUD_ADMIN_PASSWORD:-}" ]; then
-    echo "NEXTCLOUD_ADMIN_PASSWORD=$NEXTCLOUD_ADMIN_PASSWORD" >> "$ENV_FILE"
-fi
-
-# Tor Control Port Password Hash
-if [ -n "${TOR_PASSWORD_HASH:-}" ]; then
-    echo "TOR_PASSWORD_HASH=$TOR_PASSWORD_HASH" >> "$ENV_FILE"
-fi
-
-# PHASE 8 — Obsidian & RAG
-echo "OBSIDIAN_USER=${OBSIDIAN_USER:-admin}" >> "$ENV_FILE"
-echo "OBSIDIAN_PASSWORD=${OBSIDIAN_PASSWORD:-homelab_obsidian_pass}" >> "$ENV_FILE"
-echo "NEXTCLOUD_DATA_PATH=${NEXTCLOUD_DATA_PATH:-./nextcloud/data}" >> "$ENV_FILE"
-echo "NC_ADMIN_USER=${NC_ADMIN_USER:-admin}" >> "$ENV_FILE"
+# All legacy lifestyle app variables (Home Assistant, Nextcloud, Obsidian, etc.) have been completely removed.
 
 chmod 600 "$ENV_FILE"
 chown "$ACTUAL_USER:$ACTUAL_USER" "$ENV_FILE"
@@ -1349,9 +1322,7 @@ log_info "Environment configuration generated at $ENV_FILE"
 
 # Validate required environment variables
 log_info "Validating environment configuration..."
-REQUIRED_VARS=("PUID" "PGID" "TZ" "SAMBA_USER" "SAMBA_PASS" \
-    "VSCOD_E_PASSWORD" "OPENCLAW_TOKEN" \
-    "ONLYOFFICE_JWT_SECRET" "NEXTCLOUD_ADMIN_PASSWORD" "ACTUAL_USER")
+REQUIRED_VARS=("PUID" "PGID" "TZ" "OPENCLAW_TOKEN" "ACTUAL_USER")
 MISSING_VARS=()
 
 for var in "${REQUIRED_VARS[@]}"; do
@@ -1370,23 +1341,23 @@ log_info "All required environment variables validated"
 
 # Copy docker-compose.yml
 SOURCE_COMPOSE="docker-compose.yml"
-DEST_COMPOSE="$HOMELAB_DIR/docker-compose.yml"
+DEST_COMPOSE="$OWEIBO_DIR/docker-compose.yml"
 
 if [ -f "$SOURCE_COMPOSE" ]; then
-    if [ "$PWD" != "$HOMELAB_DIR" ]; then
+    if [ "$PWD" != "$OWEIBO_DIR" ]; then
         cp "$SOURCE_COMPOSE" "$DEST_COMPOSE"
         chown "$ACTUAL_USER:$ACTUAL_USER" "$DEST_COMPOSE"
-        log_info "Copied docker-compose.yml to $HOMELAB_DIR"
+        log_info "Copied docker-compose.yml to $OWEIBO_DIR"
     else
-        log_info "Running from $HOMELAB_DIR, skipping file copy"
+        log_info "Running from $OWEIBO_DIR, skipping file copy"
     fi
     
     # Validate docker-compose.yml syntax using the user context
-    if su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose config > /dev/null 2>&1"; then
+    if su - "$ACTUAL_USER" -c "cd '$OWEIBO_DIR' && docker compose config > /dev/null 2>&1"; then
         log_info "Docker Compose file validated (available at $DEST_COMPOSE)"
     else
         log_error "Docker Compose file has syntax errors!"
-        su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose config"
+        su - "$ACTUAL_USER" -c "cd '$OWEIBO_DIR' && docker compose config"
         exit 1
     fi
 else
@@ -1402,11 +1373,11 @@ echo ""
 # ============================================
 show_step_header "9" "Deploying Docker Stack"
 
-cd "$HOMELAB_DIR"
+cd "$OWEIBO_DIR"
 
 # Build local images first (kilo-pipeline is built locally, not pulled)
 log_info "Building local images (kilo-pipeline)..."
-if ! su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose build kilo-pipeline"; then
+if ! su - "$ACTUAL_USER" -c "cd '$OWEIBO_DIR' && docker compose build kilo-pipeline"; then
     log_warn "Failed to build kilo-pipeline (node:20-slim base image may not be accessible)"
     log_warn "If you see 'failed to solve node:20-slim' error, this is a DNS issue."
     log_warn "Fix:"
@@ -1477,7 +1448,7 @@ while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$PULL_SUCCESS" = false ]; do
     fi
     
     # Capture full output for debugging
-    PULL_OUTPUT=$(su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose pull" 2>&1)
+    PULL_OUTPUT=$(su - "$ACTUAL_USER" -c "cd '$OWEIBO_DIR' && docker compose pull" 2>&1)
     PULL_EXIT_CODE=$?
     
     if [ $PULL_EXIT_CODE -eq 0 ]; then
@@ -1504,7 +1475,7 @@ if [ "$PULL_SUCCESS" = false ]; then
 fi
 
 log_info "Starting containers..."
-if ! su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose up -d"; then
+if ! su - "$ACTUAL_USER" -c "cd '$OWEIBO_DIR' && docker compose up -d"; then
     log_error "Failed to start Docker stack"
     exit 1
 fi
@@ -1512,12 +1483,12 @@ fi
 # Verify containers are running
 sleep 5
 # Check for containers that exited with non-zero status (actual failures)
-FAILED_CONTAINERS=$(su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose ps -a --format '{{.Service}} {{.State}} {{.Status}}' 2>/dev/null" | grep -E "exited \([1-9]|Exited \([1-9]" || true)
+FAILED_CONTAINERS=$(su - "$ACTUAL_USER" -c "cd '$OWEIBO_DIR' && docker compose ps -a --format '{{.Service}} {{.State}} {{.Status}}' 2>/dev/null" | grep -E "exited \([1-9]|Exited \([1-9]" || true)
 
 if [ -n "$FAILED_CONTAINERS" ]; then
     log_error "The following containers failed (non-zero exit):"
     echo "$FAILED_CONTAINERS"
-    log_error "Check logs with: cd $HOMELAB_DIR && docker compose logs <service-name>"
+    log_error "Check logs with: cd $OWEIBO_DIR && docker compose logs <service-name>"
     exit 1
 fi
 
@@ -1544,7 +1515,7 @@ if [ $TIMEOUT -gt 0 ]; then
     
     # Iterate through models and pull each one
     for model in $OLLAMA_MODEL; do
-        su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose exec -T ollama ollama pull '$model'" >/dev/null 2>&1 &
+        su - "$ACTUAL_USER" -c "cd '$OWEIBO_DIR' && docker compose exec -T ollama ollama pull '$model'" >/dev/null 2>&1 &
         MOD_PID=$!
         show_fancy_spinner $MOD_PID "Ollama model: $model"
         wait $MOD_PID || log_warn "Ollama model download failed for $model"
@@ -1570,11 +1541,6 @@ if ! curl -m 5 -sf http://localhost:11434/api/tags >/dev/null 2>&1; then
     FAILED_CHECKS+=("Ollama (11434)")
 fi
 
-# Check Open WebUI (3000)
-if ! curl -m 5 -sf http://localhost:3000 >/dev/null 2>&1; then
-    FAILED_CHECKS+=("Open WebUI (3000)")
-fi
-
 # Check OpenClaw (18789)
 if ! curl -m 5 -sf http://localhost:18789 >/dev/null 2>&1; then
     FAILED_CHECKS+=("OpenClaw (18789)")
@@ -1591,7 +1557,7 @@ if ! curl -m 5 -sf http://localhost:3100/health >/dev/null 2>&1; then
 fi
 
 # Check Watchtower (Container running check as it has no ports)
-if ! su - "$ACTUAL_USER" -c "cd '$HOMELAB_DIR' && docker compose ps --format '{{.State}}' watchtower 2>/dev/null" | grep -q "running"; then
+if ! su - "$ACTUAL_USER" -c "cd '$OWEIBO_DIR' && docker compose ps --format '{{.State}}' watchtower 2>/dev/null" | grep -q "running"; then
     FAILED_CHECKS+=("Watchtower (Container not running)")
 fi
 
@@ -1599,7 +1565,7 @@ if [ ${#FAILED_CHECKS[@]} -gt 0 ]; then
     log_warn "The following services are not responding:"
     printf '  - %s\n' "${FAILED_CHECKS[@]}"
     log_warn "This might be normal if they are still initializing."
-    log_warn "Check logs with: cd $HOMELAB_DIR && docker compose logs -f <service>"
+    log_warn "Check logs with: cd $OWEIBO_DIR && docker compose logs -f <service>"
 else
     log_success "All services appear to be functional."
 fi
@@ -1625,7 +1591,7 @@ After=docker.service network-online.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-WorkingDirectory=$HOMELAB_DIR
+WorkingDirectory=$OWEIBO_DIR
 User=$ACTUAL_USER
 Group=$ACTUAL_USER
 ExecStart=/usr/bin/docker compose up -d
@@ -1644,31 +1610,31 @@ else
 fi
 
 # Ensure maintenance scripts are executable
-[ -f "$HOMELAB_DIR/check-ssl-expiry.sh" ] && chmod +x "$HOMELAB_DIR/check-ssl-expiry.sh"
-[ -f "$HOMELAB_DIR/update.sh" ] && chmod +x "$HOMELAB_DIR/update.sh"
-[ -f "$HOMELAB_DIR/backup-homelab.sh" ] && chmod +x "$HOMELAB_DIR/backup-homelab.sh"
+[ -f "$OWEIBO_DIR/check-ssl-expiry.sh" ] && chmod +x "$OWEIBO_DIR/check-ssl-expiry.sh"
+[ -f "$OWEIBO_DIR/update.sh" ] && chmod +x "$OWEIBO_DIR/update.sh"
+[ -f "$OWEIBO_DIR/backup-oweibo.sh" ] && chmod +x "$OWEIBO_DIR/backup-oweibo.sh"
 
 # Register weekly SSL check cron job (Every Sunday at midnight)
-CRON_JOB="0 0 * * 0 $HOMELAB_DIR/check-ssl-expiry.sh >> /var/log/homelab-cron.log 2>&1"
+CRON_JOB="0 0 * * 0 $OWEIBO_DIR/check-ssl-expiry.sh >> /var/log/oweibo-cron.log 2>&1"
 if (crontab -l 2>/dev/null | grep -v "check-ssl-expiry.sh"; echo "$CRON_JOB") | crontab -u "$ACTUAL_USER" - 2>/dev/null; then
     log_success "Weekly SSL monitoring cron job registered."
 else
     # Fallback to system crontab if user crontab fails
     log_warn "User crontab failed, trying system crontab..."
-    echo "$CRON_JOB" >> /etc/cron.d/homelab-ssl
-    chmod 0644 /etc/cron.d/homelab-ssl
+    echo "$CRON_JOB" >> /etc/cron.d/oweibo-ssl
+    chmod 0644 /etc/cron.d/oweibo-ssl
     log_success "Weekly SSL monitoring cron job registered (system crontab)."
 fi
 
-# Register weekly Homelab backup cron job (Every Sunday at 2 AM)
-BACKUP_CRON="0 2 * * 0 $HOMELAB_DIR/backup-homelab.sh >> /var/log/homelab-cron.log 2>&1"
-if (crontab -l 2>/dev/null | grep -v "backup-homelab.sh"; echo "$BACKUP_CRON") | crontab -u "$ACTUAL_USER" - 2>/dev/null; then
+# Register weekly Oweibo backup cron job (Every Sunday at 2 AM)
+BACKUP_CRON="0 2 * * 0 $OWEIBO_DIR/backup-oweibo.sh >> /var/log/oweibo-cron.log 2>&1"
+if (crontab -l 2>/dev/null | grep -v "backup-oweibo.sh"; echo "$BACKUP_CRON") | crontab -u "$ACTUAL_USER" - 2>/dev/null; then
     log_success "Weekly automated backup cron job registered (Sundays at 2 AM)."
 else
     # Fallback to system crontab if user crontab fails
     log_warn "User crontab failed for backup, trying system crontab..."
-    echo "$BACKUP_CRON" >> /etc/cron.d/homelab-backup
-    chmod 0644 /etc/cron.d/homelab-backup
+    echo "$BACKUP_CRON" >> /etc/cron.d/oweibo-backup
+    chmod 0644 /etc/cron.d/oweibo-backup
     log_success "Weekly automated backup cron job registered (system crontab, Sundays at 2 AM)."
 fi
 
@@ -1741,7 +1707,7 @@ main() {
         if [ ! -f "$SCRIPT_DIR/config.env" ]; then
             echo ""
             echo "  ┌─────────────────────────────────────────────────────────────┐"
-            echo "  │  Welcome to Homelab Setup!                                   │"
+            echo "  │  Welcome to Oweibo Setup!                                   │"
             echo "  │  No configuration found. I'll run the wizard now.           │"
             echo "  └─────────────────────────────────────────────────────────────┘"
             echo ""

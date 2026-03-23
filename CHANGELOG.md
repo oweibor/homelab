@@ -6,15 +6,15 @@ All notable changes to this project will be documented in this file.
 
 ### 🤖 Autonomous Agent Factory Pivot (Major Architecture Shift)
 
-- **Complete Project Pivot**: Transformed the general-purpose "Homelab" into a specialized "Autonomous Business & Coding Agent Factory". 
+- **Complete Project Pivot**: Transformed the general-purpose "Oweibo" into a specialized "Autonomous Business & Coding Agent Factory". 
 - **Agentic Core Focus**: Retained only the core AI and automation services necessary for an autonomous agent:
   - OpenClaw (Orchestrator)
   - Kilo Pipeline (Sandboxed Autonomous CI/CD loop)
   - Crawl4AI (Deep Research)
   - Qdrant (Long-term vector memory)
-  - Ollama & Open WebUI (Local LLMs)
+  - Ollama (Local LLM inference)
 - **Massive Debloat**: Removed all "Lifestyle" and media services to drastically reduce system footprint and focus resources entirely on AI operations. 
-  - **Removed**: Nextcloud, ONLYOFFICE, Plex, Jellyfin, Home Assistant, n8n, Samba, Antigravity, Obsidian, AnythingLLM, Tor, I2P.
+  - **Removed**: Open WebUI, Nextcloud, ONLYOFFICE, Plex, Jellyfin, Home Assistant, n8n, Samba, Antigravity, Obsidian, AnythingLLM, Tor, I2P.
 - **Observability Cleanup**: Removed Grafana and Prometheus stacks to simplify the base deployment.
 - **Network Simplification**: Consolidating Docker proxies and removing Traefik routing rules that applied to the removed legacy lifestyle components.
 - **Persistence**: Added a dedicated `openclaw-agent.service` systemd file guaranteeing the agent stays online 24/7 across reboots.
@@ -276,16 +276,16 @@ All notable changes to this project will be documented in this file.
   - Updated hardware requirements to reflect broader compatibility
   - Updated architecture diagram with "Low-Power x86" branding
   - Added AI model recommendations for Intel N-series
-  - Changed copyright to "Homelab Contributors"
+  - Changed copyright to "Oweibo Contributors"
 - **New `plans/hardware-agnostic-refactor-plan.md`**: Detailed planning document for the hardware-agnostic architecture
 
 ### 🧹 Cleanup
 
 - **Removed deprecated onboarding documents**:
 
-  - Deleted `implementation_plan/homelab_onboarding_v3.docx`
-  - Deleted `implementation_plan/homelab_onboarding_v5.docx`
-  - Deleted `implementation_plan/homelab_onboarding_v6.docx`
+  - Deleted `implementation_plan/oweibo_onboarding_v3.docx`
+  - Deleted `implementation_plan/oweibo_onboarding_v5.docx`
+  - Deleted `implementation_plan/oweibo_onboarding_v6.docx`
 - **Added new implementation plan**: `implementation_plan/openclaw_langgraph_crawl4ai_plan.docx`
 
 ### 🐛 Bug Fixes
@@ -378,13 +378,13 @@ All notable changes to this project will be documented in this file.
 - **Kill-Switch**: Added `OPENCLAW_KILO_ENABLED` environment variable to bypass the pipeline instantly in emergencies.
 - **Script Resilience**:
   - `update.sh`: Added logic to drain `writer_retry` queues and verify service health post-update.
-  - `backup-homelab.sh`: Integrated `/var/kilo` path and Qdrant vector backups.
+  - `backup-oweibo.sh`: Integrated `/var/kilo` path and Qdrant vector backups.
 - **Automated Provisioning**: `setup.sh` now automates the creation of `/var/kilo` hierarchy and invariant files.
 - **Disk Alerting**: Added Prometheus/Grafana alerts for `/var/kilo` partitioning and filesystem health.
 
 ### 📓 Obsidian & RAG Integration - Phase 8
 
-- **Nextcloud Vault Sync**: Architected a dual-access vault system where Obsidian notes live in Nextcloud (`~/homelab/nextcloud/data/admin/files/Obsidian`).
+- **Nextcloud Vault Sync**: Architected a dual-access vault system where Obsidian notes live in Nextcloud (`~/oweibo/nextcloud/data/admin/files/Obsidian`).
 - **AnythingLLM Integration**: Deployed AnythingLLM for Retrieval-Augmented Generation (RAG) over the Obsidian vault, linked to local Ollama embeddings.
 - **Browser-based Editing**: Deployed `linuxserver/obsidian` with KasmVNC security hardening and Traefik SSL routing.
 - **Resource Constraints**: Applied 2GB RAM and 1.5 CPU limits to all productivity containers to ensure N100 stability.
@@ -421,7 +421,7 @@ All notable changes to this project will be documented in this file.
 - **open-webui**: Pinned image to stable release `v0.8.3` to prevent unplanned breaking changes from the `:main` tag.
 - **n8n Modernization**: Pruned orphaned `N8N_USER` and `N8N_PASS` variables from the setup logic as credentials are now managed in-app.
 - **Infrastructure Persistence**: Standardized the monitoring stack (Grafana/Prometheus) with local bind mounts for consistent data management.
-- **NetBird Signal**: Moved behind Traefik with gRPC (`h2c`) support on `netbird.homelab.local`, removing direct port exposure for better security.
+- **NetBird Signal**: Moved behind Traefik with gRPC (`h2c`) support on `netbird.oweibo.local`, removing direct port exposure for better security.
 - **Samba Networking**: Corrected port 139 mapping from UDP to TCP for NetBIOS Session service compatibility.
 
 ## [1.0.0] - 2026-02-18
@@ -438,7 +438,7 @@ All notable changes to this project will be documented in this file.
 - **Automatic HTTPS**: Wildcard SSL certificates via `mkcert` and Traefik.
 - **Secure Headers**: Global OWASP-compliant headers (HSTS, CSP-lite, X-Frame-Options) applied to all services.
 - **Restricted Socket Access**: Traefik migrated to `docker-proxy`.
-- **mkcert Locally-Trusted SSL**: Replaced OpenSSL self-signed certs with mkcert. Generates wildcard `*.homelab.local` certificates trusted by the host OS — **zero browser warnings**. Includes OpenSSL fallback for air-gapped environments. Client CA export script (`scripts/export-ca.sh`) for trusting certs on phones and laptops.
+- **mkcert Locally-Trusted SSL**: Replaced OpenSSL self-signed certs with mkcert. Generates wildcard `*.oweibo.local` certificates trusted by the host OS — **zero browser warnings**. Includes OpenSSL fallback for air-gapped environments. Client CA export script (`scripts/export-ca.sh`) for trusting certs on phones and laptops.
 - **Global Security Headers**: Applied OWASP Top 5 security headers to all Traefik-proxied services:
   - `Strict-Transport-Security` (HSTS, 2 years with preload)
   - `X-Content-Type-Options: nosniff`
@@ -450,7 +450,7 @@ All notable changes to this project will be documented in this file.
 
 - **Self-Hosted Mesh VPN**: Complete NetBird stack (Management, Signal, Dashboard, Coturn) running locally.
 - **Embedded IdP**: Zero cloud dependency. Authentication is handled by the local management server.
-- **Local Dashboard**: Full management UI at `https://netbird.homelab.local`.
+- **Local Dashboard**: Full management UI at `https://netbird.oweibo.local`.
 
 > **Note**: Remote access from outside the LAN requires port forwarding and a public domain. Defined setup is for **local mesh networking only**.
 
@@ -470,7 +470,7 @@ All notable changes to this project will be documented in this file.
 ### 📊 Observability Stack
 
 - **Prometheus**: Metrics collection engine with 30-day retention. Scrapes Traefik, cAdvisor, node-exporter, and Ollama.
-- **Grafana**: Beautiful metrics dashboards at `grafana.homelab.local`. Pre-provisioned with Prometheus datasource and a custom "Homelab Infrastructure Overview" dashboard (CPU/memory per container, host gauges, network traffic, Traefik request rates).
+- **Grafana**: Beautiful metrics dashboards at `grafana.oweibo.local`. Pre-provisioned with Prometheus datasource and a custom "Oweibo Infrastructure Overview" dashboard (CPU/memory per container, host gauges, network traffic, Traefik request rates).
 - **cAdvisor**: Container-level resource metrics (CPU, memory, network, disk I/O per container).
 - **Node Exporter**: Host-level system metrics (CPU, memory, disk, network).
 - **Traefik Metrics**: Enabled Prometheus metrics endpoint on port 8082 for request rate and latency tracking.
@@ -486,7 +486,7 @@ All notable changes to this project will be documented in this file.
   - Traefik service healthchecks for host-networked services (Home Assistant, Plex)
   - Real-time "Healthy" status mapping in Traefik to prevent "Bad Gateway" errors
 - **Automated Backup Strategy**:
-  - Weekly automated backup script (`backup-homelab.sh`) with 4-week rotation
+  - Weekly automated backup script (`backup-oweibo.sh`) with 4-week rotation
   - Integration with `crontab` via `setup.sh` (Sundays at 2 AM)
 - **Security Hardening**:
   - Docker Socket Proxy implementation to mitigate container escape risks for AI agents
@@ -513,7 +513,7 @@ All notable changes to this project will be documented in this file.
   - Comprehensive troubleshooting section in README
   - Security documentation with credential management
   - Certificate renewal instructions
-- Initial release of the automated homelab setup script (`setup.sh`).
+- Initial release of the automated oweibo setup script (`setup.sh`).
 - Docker Compose stack including:
   - Watchtower
   - Home Assistant (Host Mode)
@@ -525,7 +525,7 @@ All notable changes to this project will be documented in this file.
   - Traefik (Reverse Proxy)
   - Antigravity (Code Editor)
   - OpenClaw (AI Agent)
-- **Reverse Proxy**: Added Traefik with self-signed SSL support for secure local access (`https://*.homelab.local`).
+- **Reverse Proxy**: Added Traefik with self-signed SSL support for secure local access (`https://*.oweibo.local`).
 - **Dashboard**: Added Traefik dashboard for service monitoring.
 - `config.env.template` for easy user configuration.
 - Robust error handling and network safety checks in setup script.

@@ -23,10 +23,10 @@ log_success() { echo -e "${GREEN}[OK]${NC} $*"; }
 
 # Source hardware detection
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-HOMELAB_DIR="$(dirname "$SCRIPT_DIR")"
+OWEIBO_DIR="$(dirname "$SCRIPT_DIR")"
 
-if [ -f "$HOMELAB_DIR/scripts/hardware-detect.sh" ]; then
-    source "$HOMELAB_DIR/scripts/hardware-detect.sh"
+if [ -f "$OWEIBO_DIR/scripts/hardware-detect.sh" ]; then
+    source "$OWEIBO_DIR/scripts/hardware-detect.sh"
 else
     log_error "hardware-detect.sh not found. Cannot proceed."
 fi
@@ -173,9 +173,9 @@ get_k8s_overlay() {
     hardware_profile=$(get_hardware_profile)
 
     # Prefer GPU-specific overlay
-    if [ -d "$HOMELAB_DIR/k8s/overlays/$gpu_tier" ]; then
+    if [ -d "$OWEIBO_DIR/k8s/overlays/$gpu_tier" ]; then
         echo "$gpu_tier"
-    elif [ -d "$HOMELAB_DIR/k8s/overlays/$hardware_profile" ]; then
+    elif [ -d "$OWEIBO_DIR/k8s/overlays/$hardware_profile" ]; then
         echo "$hardware_profile"
     else
         echo "high-perf"
@@ -219,7 +219,7 @@ install_k3s() {
     fi
     helm repo update
     helm install traefik traefik/traefik \
-        --namespace homelab \
+        --namespace oweibo \
         --create-namespace \
         --set ports.websecure.tls.enabled=true \
         --set ingressClass.enabled=true \
@@ -230,19 +230,19 @@ install_k3s() {
 
     # Apply base manifests
     log "Applying base manifests..."
-    kubectl apply -k "$HOMELAB_DIR/k8s/base"
+    kubectl apply -k "$OWEIBO_DIR/k8s/base"
 
     # Apply hardware-specific overlay
     local overlay
     overlay=$(get_k8s_overlay)
     log "Applying overlay: $overlay"
-    kubectl apply -k "$HOMELAB_DIR/k8s/overlays/$overlay"
+    kubectl apply -k "$OWEIBO_DIR/k8s/overlays/$overlay"
 
     # Apply service manifests
     log "Applying service manifests..."
-    kubectl apply -k "$HOMELAB_DIR/k8s/services/traefik"
-    kubectl apply -k "$HOMELAB_DIR/k8s/services/ollama"
-    kubectl apply -k "$HOMELAB_DIR/k8s/services/qdrant"
+    kubectl apply -k "$OWEIBO_DIR/k8s/services/traefik"
+    kubectl apply -k "$OWEIBO_DIR/k8s/services/ollama"
+    kubectl apply -k "$OWEIBO_DIR/k8s/services/qdrant"
 
     log_success "K3s installation complete! Overlay: $overlay"
 }
@@ -252,7 +252,7 @@ uninstall_k3s() {
     log "Uninstalling K3s..."
 
     # Remove Helm releases
-    helm uninstall traefik --namespace homelab 2>/dev/null || true
+    helm uninstall traefik --namespace oweibo 2>/dev/null || true
 
     # Remove K3s
     if [ -f /usr/local/bin/k3s-uninstall.sh ]; then

@@ -8,8 +8,8 @@ echo "=============================" | tee -a "$LOG_FILE"
 # Source config if present
 if [ -f "$(dirname "$0")/../.env" ]; then
     source "$(dirname "$0")/../.env"
-elif [ -f "$HOME/homelab/.env" ]; then
-    source "$HOME/homelab/.env"
+elif [ -f "$HOME/oweibo/.env" ]; then
+    source "$HOME/oweibo/.env"
 fi
 
 # 1. Check Ollama Connectivity
@@ -17,13 +17,6 @@ if curl -s http://localhost:11434/api/tags >/dev/null; then
     echo "✅ Ollama API is reachable (Port 11434)." | tee -a "$LOG_FILE"
 else
     echo "❌ Ollama API is NOT reachable!" | tee -a "$LOG_FILE"
-fi
-
-# 2. Check Open WebUI (Local Proxy)
-if curl -s http://localhost:3000 >/dev/null; then
-    echo "✅ Open WebUI is reachable (Port 3000)." | tee -a "$LOG_FILE"
-else
-    echo "❌ Open WebUI is NOT reachable!" | tee -a "$LOG_FILE"
 fi
 
 # 3. Check OpenClaw Connectivity

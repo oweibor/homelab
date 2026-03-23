@@ -11,7 +11,7 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const scraperService = require('../services/scraper');
 const scraperStorage = require('../services/scraper/storage');
-const scraperNextcloud = require('../services/scraper/nextcloudWriter');
+
 const auth = require('../middleware/auth');
 const logger = require('../services/logger');
 
@@ -278,83 +278,5 @@ router.delete('/scrape/storage/:jobId', auth, async (req, res) => {
     }
 });
 
-/**
- * POST /scrape/export/:jobId
- * Export scraped data to Nextcloud CSV.
- * 
- * Query params:
- *   - format: Export format (simple, woocommerce, products, categories)
- */
-router.post('/scrape/export/:jobId', auth, async (req, res) => {
-    try {
-        const { jobId } = req.params;
-        const { format = 'simple' } = req.query;
-
-        // Check if job exists
-        const job = scraperService.getJobStatus(jobId);
-        if (!job) {
-            return res.status(404).json({
-                error: 'Job not found',
-            });
-        }
-
-        // Get scraped data from storage
-        const pages = await scraperStorage.getPagesByJob(jobId);
-
-        if (pages.length === 0) {
-            return res.status(404).json({
-                error: 'No data found for this job',
-            });
-        }
-
-        // Check Nextcloud availability
-        const nextcloudAvailable = await scraperNextcloud.isAvailable();
-        if (!nextcloudAvailable) {
-            return res.status(503).json({
-                error: 'Nextcloud export not available. Check NEXTCLOUD_DATA_PATH configuration.',
-            });
-        }
-
-        // Export to Nextcloud
-        const result = await scraperNextcloud.exportToNextcloud(jobId, pages, format);
-
-        logger.info('Exported scrape data to Nextcloud', {
-            jobId,
-            rows: result.rows,
-            format
-        });
-
-        res.json({
-            job_id: jobId,
-            exported: result.rows,
-            format,
-            path: result.path,
-            nextcloud_url: result.url,
-            message: 'Export complete. File available in Nextcloud Files/Crawls/'
-        });
-    } catch (error) {
-        res.status(500).json({
-            error: error.message,
-        });
-    }
-});
-
-/**
- * GET /scrape/export/list
- * List all available exports.
- */
-router.get('/scrape/export/list', auth, async (req, res) => {
-    try {
-        const exports = scraperNextcloud.listExports();
-        res.json({
-            exports,
-            count: exports.length,
-        });
-    } catch (error) {
-        res.status(500).json({
-            error: error.message,
-        });
-    }
-});
 
 module.exports = router;

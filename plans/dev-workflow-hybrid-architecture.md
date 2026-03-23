@@ -132,5 +132,5 @@ POST /api/dev/categorize    # AI issue categorization
 1. **Separation of concerns**: Kilo handles API/AI, K8s handles execution
 2. **Hardware-aware**: Resource limits defined per hardware profile
 3. **Scalable**: Add more runners on powerful hardware
-4. **Self-hosted**: All data stays in homelab
+4. **Self-hosted**: All data stays in oweibo
 5. **AI-powered**: Leverage Ollama for intelligent automation
